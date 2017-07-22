@@ -1,0 +1,2 @@
+# mithril
+rust monero miner
