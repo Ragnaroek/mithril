@@ -4,4 +4,4 @@ version = "0.0.1"
 authors = ["Michael Bohn <spaceodyssey@gmx.de>"]
 
 [dependencies]
-sha3 = "0.6.0"
+tiny-keccak = "1.2"
