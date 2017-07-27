@@ -2,6 +2,8 @@
 //code taken from https://github.com/debris/tiny-keccak
 
 const PLEN: usize = 25;
+const TLEN: usize = 144;
+const LANES: usize = 25;
 
 const RHO: [u32; 24] = [
      1,  3,  6, 10, 15, 21,
@@ -117,6 +119,10 @@ fn a_mut_bytes(a: &mut [u64; PLEN]) -> &mut [u8; PLEN * 8] {
     unsafe { ::std::mem::transmute(a) }
 }
 
+fn transmute_u64(t: &mut [u8; TLEN]) -> &mut [u64; TLEN / 8] {
+    unsafe { ::std::mem::transmute(t) }
+}
+
 fn pad(dst: &mut [u8], l: usize, rate: usize) {
     println!("pad len {:?}", dst.len());
     let l = l + 1;
@@ -130,7 +136,7 @@ pub fn keccak(input: &[u8]) -> [u64; PLEN] {
     let init_rate = 136; //200 - 512/4;
     let mut rate = init_rate;
     let inlen = input.len();
-    let mut tmp: [u8; 144] = [0; 144];
+    let mut tmp: [u8; TLEN] = [0; TLEN];
     tmp[..inlen].copy_from_slice(input);
 
     println!("rate {:?}", rate);
@@ -159,22 +165,27 @@ pub fn keccak(input: &[u8]) -> [u64; PLEN] {
 
     //pad
     tmp[inlen] = 1;
+    tmp[rate - 1] |= 0x80;
 
-    //pad(&mut a_mut_bytes(&mut a)[0..], l, rate);
     print!("after pad (tmp): ");
-    for i in 0..144 {
+    for i in 0..TLEN {
         print!("{:02x}", tmp[i]);
     }
     println!("");
 
-    // Xor in the last block
-    xorin(&mut a_mut_bytes(&mut a)[0..][..l], &input[ip..]);
-    print!("after xor: ");
-    for i in 0..25 {
-        print!("{:x}", a[i]);
+    let t64 = transmute_u64(&mut tmp);
+    println!("####xoring");
+    for i in 0..(rate/8) {
+        println!("a[{:?}]={:02x} t64[{:?}]={:02x}", i, a[i], i, t64[i]);
+        a[i] ^= t64[i];
+    }
+    println!("####xoring");
+
+    println!("after xor: ");
+    for i in 0..LANES {
+        print!("{:02x}", a[i]);
     }
     println!("");
-
 
     keccakf(&mut a);
     return a;
