@@ -139,6 +139,11 @@ pub fn keccak(input: &[u8]) -> [u64; PLEN] {
         print!("{:02x}", input[i]);
     }
     println!("");
+    print!("tmp init: ");
+    for i in 0..input.len() {
+        print!("{:02x}", tmp[i]);
+    }
+    println!("");
 
     //first foldp
     let mut ip = 0;
@@ -153,7 +158,7 @@ pub fn keccak(input: &[u8]) -> [u64; PLEN] {
     }
 
     //pad
-    tmp[inlen+1] = 1; //TODO endianess wrong (is keccak bigendian??)
+    tmp[inlen] = 1;
 
     //pad(&mut a_mut_bytes(&mut a)[0..], l, rate);
     print!("after pad (tmp): ");
@@ -161,9 +166,6 @@ pub fn keccak(input: &[u8]) -> [u64; PLEN] {
         print!("{:02x}", tmp[i]);
     }
     println!("");
-
-    //TODO apply padding here!!!!
-
 
     // Xor in the last block
     xorin(&mut a_mut_bytes(&mut a)[0..][..l], &input[ip..]);
