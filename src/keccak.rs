@@ -176,17 +176,24 @@ pub fn keccak(input: &[u8]) -> [u64; PLEN] {
     let t64 = transmute_u64(&mut tmp);
     println!("####xoring");
     for i in 0..(rate/8) {
-        println!("a[{:?}]={:02x} t64[{:?}]={:02x}", i, a[i], i, t64[i]);
+        println!("a[{:?}]={:02x} t64[{:?}]={:016x} ^{:016x}", i, a[i], i, t64[i], a[i] ^ t64[i]);
         a[i] ^= t64[i];
     }
     println!("####xoring");
 
     println!("after xor: ");
     for i in 0..LANES {
-        print!("{:02x}", a[i]);
+        print!("{:016x}", a[i]);
     }
     println!("");
 
     keccakf(&mut a);
+
+    println!("after keccakf: ");
+    for i in 0..LANES {
+        print!("{:016x}", a[i]);
+    }
+    println!("");
+
     return a;
 }
