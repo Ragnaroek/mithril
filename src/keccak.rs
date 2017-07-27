@@ -117,14 +117,28 @@ fn a_mut_bytes(a: &mut [u64; PLEN]) -> &mut [u8; PLEN * 8] {
     unsafe { ::std::mem::transmute(a) }
 }
 
+fn pad(dst: &mut [u8], l: usize, rate: usize) {
+    println!("pad len {:?}", dst.len());
+    let l = l + 1;
+    dst[l] = 1;
+    dst[rate - 1] |= 0x80;
+}
+
 pub fn keccak(input: &[u8]) -> [u64; PLEN] {
 
     let mut a: [u64; PLEN] = [0; PLEN];
     let init_rate = 136; //200 - 512/4;
     let mut rate = init_rate;
     let inlen = input.len();
+    let mut tmp: [u8; 144] = [0; 144];
+    tmp[..inlen].copy_from_slice(input);
 
     println!("rate {:?}", rate);
+    print!("input: ");
+    for i in 0..input.len() {
+        print!("{:02x}", input[i]);
+    }
+    println!("");
 
     //first foldp
     let mut ip = 0;
@@ -138,13 +152,27 @@ pub fn keccak(input: &[u8]) -> [u64; PLEN] {
         rate = init_rate;
     }
 
+    //pad
+    tmp[inlen+1] = 1; //TODO endianess wrong (is keccak bigendian??)
+
+    //pad(&mut a_mut_bytes(&mut a)[0..], l, rate);
+    print!("after pad (tmp): ");
+    for i in 0..144 {
+        print!("{:02x}", tmp[i]);
+    }
+    println!("");
 
     //TODO apply padding here!!!!
 
 
     // Xor in the last block
     xorin(&mut a_mut_bytes(&mut a)[0..][..l], &input[ip..]);
-    println!("after xor: {:x}{:x}{:x}", a[0], a[1], a[2]);
+    print!("after xor: ");
+    for i in 0..25 {
+        print!("{:x}", a[i]);
+    }
+    println!("");
+
 
     keccakf(&mut a);
     return a;
