@@ -14,9 +14,9 @@ pub fn string_to_u8_array(hex: String) -> Vec<u8> {
     return bytes;
 }
 
-pub fn u8_array_to_string(a: [u8; 200]) -> String {
+pub fn u8_array_to_string(a: &[u8]) -> String {
     let mut str = String::new();
-    for i in 0..200 {
+    for i in 0..a.len() {
         str.push_str(&format!("{:02x}", a[i]));
     }
     return str;
