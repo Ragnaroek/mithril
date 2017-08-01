@@ -7,4 +7,4 @@ authors = ["Michael Bohn <spaceodyssey@gmx.de>"]
 name = "mithril"
 
 [dependencies]
-tiny-keccak = "1.2"
+aesti = "0.3.0"
