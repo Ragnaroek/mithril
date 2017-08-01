@@ -3,5 +3,8 @@ name = "mithril"
 version = "0.0.1"
 authors = ["Michael Bohn <spaceodyssey@gmx.de>"]
 
+[lib]
+name = "mithril"
+
 [dependencies]
 tiny-keccak = "1.2"

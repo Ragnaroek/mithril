@@ -3,7 +3,6 @@
 
 const PLEN: usize = 25;
 const TLEN: usize = 144;
-const LANES: usize = 25;
 
 const RHO: [u32; 24] = [
      1,  3,  6, 10, 15, 21,
@@ -115,7 +114,7 @@ fn xorin(dst: &mut [u8], src: &[u8]) {
     }
 }
 
-fn a_mut_bytes(a: &mut [u64; PLEN]) -> &mut [u8; PLEN * 8] {
+fn transmute_u8(a: &mut [u64; PLEN]) -> &mut [u8; PLEN * 8] {
     unsafe { ::std::mem::transmute(a) }
 }
 
@@ -123,14 +122,7 @@ fn transmute_u64(t: &mut [u8; TLEN]) -> &mut [u64; TLEN / 8] {
     unsafe { ::std::mem::transmute(t) }
 }
 
-fn pad(dst: &mut [u8], l: usize, rate: usize) {
-    println!("pad len {:?}", dst.len());
-    let l = l + 1;
-    dst[l] = 1;
-    dst[rate - 1] |= 0x80;
-}
-
-pub fn keccak(input: &[u8]) -> [u64; PLEN] {
+pub fn keccak(input: &[u8]) -> [u8; 200] {
 
     let mut a: [u64; PLEN] = [0; PLEN];
     let init_rate = 136; //200 - 512/4;
@@ -139,24 +131,11 @@ pub fn keccak(input: &[u8]) -> [u64; PLEN] {
     let mut tmp: [u8; TLEN] = [0; TLEN];
     tmp[..inlen].copy_from_slice(input);
 
-    println!("rate {:?}", rate);
-    print!("input: ");
-    for i in 0..input.len() {
-        print!("{:02x}", input[i]);
-    }
-    println!("");
-    print!("tmp init: ");
-    for i in 0..input.len() {
-        print!("{:02x}", tmp[i]);
-    }
-    println!("");
-
     //first foldp
     let mut ip = 0;
     let mut l = inlen;
-    while l >= rate {
-        println!("new round");
-        xorin(&mut a_mut_bytes(&mut a)[0..][..rate], &input[ip..]);
+    while l >= rate { //TODO never executed in the first step (do we need that?)
+        xorin(&mut transmute_u8(&mut a)[0..][..rate], &input[ip..]);
         keccakf(&mut a);
         ip += rate;
         l -= rate;
@@ -167,33 +146,13 @@ pub fn keccak(input: &[u8]) -> [u64; PLEN] {
     tmp[inlen] = 1;
     tmp[rate - 1] |= 0x80;
 
-    print!("after pad (tmp): ");
-    for i in 0..TLEN {
-        print!("{:02x}", tmp[i]);
-    }
-    println!("");
-
     let t64 = transmute_u64(&mut tmp);
-    println!("####xoring");
     for i in 0..(rate/8) {
-        println!("a[{:?}]={:02x} t64[{:?}]={:016x} ^{:016x}", i, a[i], i, t64[i], a[i] ^ t64[i]);
         a[i] ^= t64[i];
     }
-    println!("####xoring");
-
-    println!("after xor: ");
-    for i in 0..LANES {
-        print!("{:016x}", a[i]);
-    }
-    println!("");
 
     keccakf(&mut a);
 
-    println!("after keccakf: ");
-    for i in 0..LANES {
-        print!("{:016x}", a[i]);
-    }
-    println!("");
-
-    return a;
+    let t8 = transmute_u8(&mut a);
+    return *t8;
 }
