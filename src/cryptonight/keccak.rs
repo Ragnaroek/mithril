@@ -1,5 +1,5 @@
 
-//code taken from https://github.com/debris/tiny-keccak
+//code taken from https://github.com/debris/tiny-keccak (and modified)
 
 const PLEN: usize = 25;
 const TLEN: usize = 144;
