@@ -1,12 +1,10 @@
 extern crate mithril;
 
 use mithril::byte_string;
-use mithril::cryptonight::keccak;
+use mithril::cryptonight::hash;
 
 fn main() {
-    let input = byte_string::string_to_u8_array("0505fbf6ffcb050b68956935c6c2902af098f48b969d6e3577647e80c556d90ab2415c2996bb1625004000676466b9986865ae42affe0bf4b86a43129156457c76bd1968d087cc8a1bd46606".to_string());
-    let a = keccak::keccak(&input);
-    println!("len: {:?}", a.len());
-}
+    let input = byte_string::string_to_u8_array("05059fa5a8cc05b2df5d8fa271bb2d0304d4b1842f0f50844b735746db97ee5c196c647c3a5adc0c000000640680be903f504e896daebe42cdbe11e1a938d5c7fb2d64baa6356fe6fbacb704");
 
-//source: http://blog.nella.org/my-first-ever-rust-program/
+    hash::hash(&input);
+}

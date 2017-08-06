@@ -1,66 +1,109 @@
 
 //taken from https://github.com/RustCrypto/block-ciphers and modified for Cryptonight
 
-macro_rules! expand_round {
-    ($round:expr, $enc_keys:ident, $dec_keys:ident, $pos:expr) => {
+use std::ptr::copy_nonoverlapping;
+use std::mem;
+
+macro_rules! gen_key {
+    ($round:expr, $ib:expr, $key:ident, $input0:ident, $input1:ident) => {
         asm!(concat!("
             aeskeygenassist xmm2, xmm1, ", $round,
             "
-            pshufd xmm2, xmm2, 0xff
+            pshufd xmm2, xmm2, ", $ib,
+            "
+            movdqa xmm4, xmm3
+            pslldq xmm4, 0x4
+            pxor xmm3, xmm4
 
-            movdqa xmm3, xmm1
-            pslldq xmm3, 0x4
-            pxor xmm1, xmm3
+            pslldq xmm4, 0x4
+            pxor xmm3, xmm4
 
-            pslldq xmm3, 0x4
-            pxor xmm1, xmm3
+            pslldq xmm4, 0x4
+            pxor xmm3, xmm4
 
-            pslldq xmm3, 0x4
-            pxor xmm1, xmm3
-
-            pxor xmm1, xmm2
-            aesimc xmm0, xmm1
-            ")
-            : "={xmm1}"($enc_keys[$pos])
-            : "{xmm1}"($enc_keys[$pos-1])
-            : "xmm2", "xmm3"
+            pxor xmm3, xmm2"
+            )
+            : "={xmm3}"($key)
+            : "{xmm1}"($input1),"{xmm3}"($input0)
+            :
             : "intel", "alignstack", "volatile"
         );
-        if $pos != 10 {
-            asm!(
-                "aesimc xmm0, xmm1"
-                : "={xmm0}"($dec_keys[$pos])
-                : "{xmm1}"($enc_keys[$pos])
-                :
-                : "intel", "alignstack", "volatile"
-            );
-        } else {
-            $dec_keys[$pos] = $enc_keys[$pos];
-        }
     }
 }
 
-// TODO We only need enc_keys[10]
-
 #[inline(always)]
-pub(super) fn expand(key: u128) -> ([u128; 11], [u128; 11]) {
-    let mut enc_keys = [0; 11];
-    let mut dec_keys = [0; 11];
-    enc_keys[0] = key;
-    dec_keys[0] = enc_keys[0];
-
+pub fn gen_key(input0: u64x2, input1: u64x2) -> (u64x2, u64x2) {
+    let r0;
+    let r1;
     unsafe {
-        expand_round!("0x01", enc_keys, dec_keys, 1);
-        expand_round!("0x02", enc_keys, dec_keys, 2);
-        expand_round!("0x04", enc_keys, dec_keys, 3);
-        expand_round!("0x08", enc_keys, dec_keys, 4);
-        expand_round!("0x10", enc_keys, dec_keys, 5);
-        expand_round!("0x20", enc_keys, dec_keys, 6);
-        expand_round!("0x40", enc_keys, dec_keys, 7);
-        expand_round!("0x80", enc_keys, dec_keys, 8);
-        expand_round!("0x1b", enc_keys, dec_keys, 9);
-        expand_round!("0x36", enc_keys, dec_keys, 10);
+        gen_key!("0x01", "0xFF", r0, input0, input1);
+        gen_key!("0x00", "0xAA", r1, input1, r0);
+    }
+    return (r0, r1);
+}
+
+#[allow(non_camel_case_types)]
+#[repr(simd)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub struct u64x2(pub u64, pub u64);
+
+impl u64x2 {
+    /// Reads u64x2 from array pointer (potentially unaligned)
+    #[inline(always)]
+    pub fn read(src: &[u8; 16]) -> Self {
+        unsafe {
+            let mut tmp: Self = mem::uninitialized();
+            copy_nonoverlapping(
+                src.as_ptr(),
+                &mut tmp as *mut Self as *mut u8,
+                16,
+            );
+            tmp
+        }
     }
 
-    (enc_keys, dec_keys)
+    /// Write u64x2 content into array pointer (potentially unaligned)
+    #[inline(always)]
+    pub fn write(self, dst: &mut [u8; 16]) {
+        unsafe {
+            copy_nonoverlapping(
+                &self as *const Self as *const u8,
+                dst.as_mut_ptr(),
+                16,
+            );
+        }
+    }
+
+    /// Read [u64x2; 8] from array pointer (potentially unaligned)
+    #[inline(always)]
+    pub fn read8(src: &[u8; 16*8]) -> [Self; 8] {
+        unsafe {
+            let mut tmp: [Self; 8] = mem::uninitialized();
+            copy_nonoverlapping(
+                src.as_ptr(),
+                &mut tmp as *mut [Self; 8] as *mut u8,
+                16*8,
+            );
+            tmp
+        }
+    }
+
+    /// Write [u64x2; 8] content into array pointer (potentially unaligned)
+    #[inline(always)]
+    pub fn write8(src: [u64x2; 8], dst: &mut [u8; 16*8]) {
+        unsafe {
+            copy_nonoverlapping(
+                &src as *const [Self; 8] as *const u8,
+                dst.as_mut_ptr(),
+                16*8,
+            );
+        }
+    }
+
+    pub fn to_u128(self) -> u128 {
+        let mut r = u128::from(self.1);
+        r <<= 64;
+        r |= u128::from(self.0);
+        return r;
+    }
 }
