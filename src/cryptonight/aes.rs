@@ -50,7 +50,7 @@ pub struct u64x2(pub u64, pub u64);
 impl u64x2 {
     /// Reads u64x2 from array pointer (potentially unaligned)
     #[inline(always)]
-    pub fn read(src: &[u8; 16]) -> Self {
+    pub fn read(src: &[u8]) -> Self {
         unsafe {
             let mut tmp: Self = mem::uninitialized();
             copy_nonoverlapping(
