@@ -2,10 +2,23 @@
 use super::keccak;
 use super::aes;
 
-pub fn hash(input: &[u8]) {
-    let state = keccak::keccak(input);
+const MEM_SIZE : usize = 2097152 / 16;
 
+pub fn hash(input: &[u8]) {
+
+    //scratchpad init
+    let state = keccak::keccak(input);
     let keys = aes_round_keys(&state);
+
+    let mut scratchpad : [u128; MEM_SIZE] = [0; MEM_SIZE];
+    for i in 0..8 {
+        let offset = i*16;
+        let mut block = to_u128(&state[64+offset..64+offset+16]);
+        for k in 0..10 {
+            block = aes::aes_round(block, keys[i]);
+        }
+        scratchpad[i] = block;
+    }
 }
 
 fn to_u128(input: &[u8]) -> u128 {
