@@ -3,16 +3,9 @@ use super::keccak;
 use super::aes;
 
 pub fn hash(input: &[u8]) {
-    let a = keccak::keccak(input);
+    let state = keccak::keccak(input);
 
-    let r = aes_round_keys(&a);
-
-    println!("r[0]={:016x}", r[0]);
-    println!("r[1]={:016x}", r[1]);
-    println!("r[2]={:016x}", r[2]);
-    println!("r[3]={:016x}", r[3]);
-    //TODO extract round key 0..9
-
+    let keys = aes_round_keys(&state);
 }
 
 fn to_u128(input: &[u8]) -> u128 {
@@ -33,13 +26,22 @@ pub fn aes_round_keys(state: &[u8; 200]) -> [u128;10] {
 
     let input0 = aes::u64x2::read(&state[0..16]);
     let input1 = aes::u64x2::read(&state[16..32]);
-    let (k0, k1) = aes::gen_key(input0, input1);
-    r[2] = k0.to_u128();
-    r[3] = k1.to_u128();
 
-    //TODO generate other round keys from input0 and input1
-    println!("k0={:016x}{:016x}", k0.1, k0.0);
-    println!("k1={:016x}{:016x}", k1.1, k1.0);
+    let (input0, input1) = aes::gen_key_0x01(input0, input1);
+    r[2] = input0.to_u128();
+    r[3] = input1.to_u128();
+
+    let (input0, input1) = aes::gen_key_0x02(input0, input1);
+    r[4] = input0.to_u128();
+    r[5] = input1.to_u128();
+
+    let (input0, input1) = aes::gen_key_0x04(input0, input1);
+    r[6] = input0.to_u128();
+    r[7] = input1.to_u128();
+
+    let (input0, input1) = aes::gen_key_0x08(input0, input1);
+    r[8] = input0.to_u128();
+    r[9] = input1.to_u128();
 
     return r;
 }

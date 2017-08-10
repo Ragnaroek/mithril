@@ -32,11 +32,44 @@ macro_rules! gen_key {
 }
 
 #[inline(always)]
-pub fn gen_key(input0: u64x2, input1: u64x2) -> (u64x2, u64x2) {
+pub fn gen_key_0x01(input0: u64x2, input1: u64x2) -> (u64x2, u64x2) {
     let r0;
     let r1;
     unsafe {
         gen_key!("0x01", "0xFF", r0, input0, input1);
+        gen_key!("0x00", "0xAA", r1, input1, r0);
+    }
+    return (r0, r1);
+}
+
+#[inline(always)]
+pub fn gen_key_0x02(input0: u64x2, input1: u64x2) -> (u64x2, u64x2) {
+    let r0;
+    let r1;
+    unsafe {
+        gen_key!("0x02", "0xFF", r0, input0, input1);
+        gen_key!("0x00", "0xAA", r1, input1, r0);
+    }
+    return (r0, r1);
+}
+
+#[inline(always)]
+pub fn gen_key_0x04(input0: u64x2, input1: u64x2) -> (u64x2, u64x2) {
+    let r0;
+    let r1;
+    unsafe {
+        gen_key!("0x04", "0xFF", r0, input0, input1);
+        gen_key!("0x00", "0xAA", r1, input1, r0);
+    }
+    return (r0, r1);
+}
+
+#[inline(always)]
+pub fn gen_key_0x08(input0: u64x2, input1: u64x2) -> (u64x2, u64x2) {
+    let r0;
+    let r1;
+    unsafe {
+        gen_key!("0x08", "0xFF", r0, input0, input1);
         gen_key!("0x00", "0xAA", r1, input1, r0);
     }
     return (r0, r1);
