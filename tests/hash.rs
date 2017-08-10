@@ -10,14 +10,14 @@ fn test_aes_round_keys() {
     let a = keccak::keccak(&input);
     let keys = hash::aes_round_keys(&a);
 
-    assert_eq!(byte_string::u128_to_string(keys[0]), "4c73438521575791be9c2c292f259ec4");
-    assert_eq!(byte_string::u128_to_string(keys[1]), "2dba7e0233542a04a9e58cf7213e2f56");
-    assert_eq!(byte_string::u128_to_string(keys[2]), "8b45520bc736118ee661461f58fd6a36");
-    assert_eq!(byte_string::u128_to_string(keys[3]), "ab5bf78c86e1898eb5b5a38a1c502f7d");
-    assert_eq!(byte_string::u128_to_string(keys[4]), "968d56c61dc804cddafe15433c9f535c");
-    assert_eq!(byte_string::u128_to_string(keys[5]), "14024341bf59b4cd39b83d438c0d9ec9");
-    assert_eq!(byte_string::u128_to_string(keys[6]), "eede630a785335cc659b3101bf652442");
-    assert_eq!(byte_string::u128_to_string(keys[7]), "36f3af6122f1ec209da858eda41065ae");
-    assert_eq!(byte_string::u128_to_string(keys[8]), "a3764ef44da82dfe35fb183250602933");
-    assert_eq!(byte_string::u128_to_string(keys[9]), "278251bd1171fedc338012fcae284a11");
+    assert_eq!(byte_string::u64x2_to_string(keys[0]), "4c73438521575791be9c2c292f259ec4");
+    assert_eq!(byte_string::u64x2_to_string(keys[1]), "2dba7e0233542a04a9e58cf7213e2f56");
+    assert_eq!(byte_string::u64x2_to_string(keys[2]), "8b45520bc736118ee661461f58fd6a36");
+    assert_eq!(byte_string::u64x2_to_string(keys[3]), "ab5bf78c86e1898eb5b5a38a1c502f7d");
+    assert_eq!(byte_string::u64x2_to_string(keys[4]), "968d56c61dc804cddafe15433c9f535c");
+    assert_eq!(byte_string::u64x2_to_string(keys[5]), "14024341bf59b4cd39b83d438c0d9ec9");
+    assert_eq!(byte_string::u64x2_to_string(keys[6]), "eede630a785335cc659b3101bf652442");
+    assert_eq!(byte_string::u64x2_to_string(keys[7]), "36f3af6122f1ec209da858eda41065ae");
+    assert_eq!(byte_string::u64x2_to_string(keys[8]), "a3764ef44da82dfe35fb183250602933");
+    assert_eq!(byte_string::u64x2_to_string(keys[9]), "278251bd1171fedc338012fcae284a11");
 }

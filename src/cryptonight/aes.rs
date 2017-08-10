@@ -31,6 +31,17 @@ macro_rules! gen_key {
     }
 }
 
+macro_rules! aes_enc {
+    ($data:ident, $key:ident, $result:ident) => {
+        asm!("aesenc xmm1, xmm2"
+            : "={xmm1}"($result)
+            : "{xmm1}"($data),"{xmm2}"($key)
+            :
+            : "intel", "alignstack", "volatile"
+        );
+    }
+}
+
 #[inline(always)]
 pub fn gen_key_0x01(input0: u64x2, input1: u64x2) -> (u64x2, u64x2) {
     let r0;
@@ -75,11 +86,12 @@ pub fn gen_key_0x08(input0: u64x2, input1: u64x2) -> (u64x2, u64x2) {
     return (r0, r1);
 }
 
-pub fn aes_round(block: u128, key: u128) -> u128 {
-    //TODO Test, whether we can use u128 in SSE instructions. Otherwise we have
-    // to use u64x2
-
-    return 0;
+pub fn aes_round(block: u64x2, key: u64x2) -> u64x2 {
+    let r;
+    unsafe {
+        aes_enc!(block, key, r);
+    }
+    return r;
 }
 
 #[allow(non_camel_case_types)]
