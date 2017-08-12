@@ -29,5 +29,5 @@ pub fn u128_to_string(u: u128) -> String {
 }
 
 pub fn u64x2_to_string(u: u64x2) -> String {
-    return format!("{:08x}{:08x}", u.1, u.0);
+    return format!("{:016x}{:016x}", u.1, u.0);
 }

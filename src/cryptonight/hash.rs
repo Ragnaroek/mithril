@@ -15,20 +15,21 @@ pub fn hash(input: &[u8]) {
 
 }
 
-pub fn init_scratchpad(state: &[u8; 200]) -> Box<[u128; MEM_SIZE]>{
+pub fn init_scratchpad(state: &[u8; 200]) -> Box<[u64x2; MEM_SIZE]>{
     let keys = aes_round_keys(&state);
 
-    let mut scratchpad : Box<[u128; MEM_SIZE]> = box [0; MEM_SIZE];
+    let mut scratchpad : Box<[u64x2; MEM_SIZE]> = box [u64x2(0,0); MEM_SIZE];
     for i in 0..8 {
         let offset = i*16;
         let mut block = aes::u64x2::read(&state[64+offset..64+offset+16]);
         for k in 0..10 {
             block = aes::aes_round(block, keys[k]);
         }
-        scratchpad[i] = block.to_u128();
+        scratchpad[i] = block;
     }
 
     //TODO init rest of scratchpad => encrypt 8x16 previous blocks
+    // ==> directly read u64x2 from scratchpad
 
     return scratchpad;
 }
