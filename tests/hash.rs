@@ -42,19 +42,41 @@ fn test_init_scratchpad() {
     assert_eq!(byte_string::u64x2_to_string(scratchpad[10]), "3e8825dccc7726e25a937432d724b273");
     assert_eq!(byte_string::u64x2_to_string(scratchpad[11]), "f891bc42841bf3dab14bd7b7fdf89a33");
     assert_eq!(byte_string::u64x2_to_string(scratchpad[12]), "6e907a303bbc32fe47cd0cb080969894");
+    assert_eq!(byte_string::u64x2_to_string(scratchpad[13]), "f3a068a0fe82415a9e9e45b3eb6a76da");
+    assert_eq!(byte_string::u64x2_to_string(scratchpad[14]), "9262feadb97bf76a8dbcc0a32e395968");
+    assert_eq!(byte_string::u64x2_to_string(scratchpad[15]), "d722f17a07c4eaa5486fe39cc6d9609b");
 
-    //TODO Rest of data:
-/*
-    f3a068a0fe82415a9e9e45b3eb6a76da
-    9262feadb97bf76a8dbcc0a32e395968
-    d722f17a07c4eaa5486fe39cc6d9609b
-    5ac5dba2328b12c869e7cf919b347e80
-    3ad72813d8215a1e8b966a7c19258003
-    802219ba78b4259525b0cd8bd2112336
-    9e01d10e7cc1be2855b783b3a79884bf
-    c91bb830de5effea6cf238b15f54d4b5
-    9372f958c16b5591b1c44bf22b3d4d20
-    e4f26cf077bee0304fb11d6eaad48e82
-    953dea5d5b4fa058ab3f06ffc1ea0ec1
-    */
+    assert_eq!(byte_string::u64x2_to_string(scratchpad[16]), "5ac5dba2328b12c869e7cf919b347e80");
+    assert_eq!(byte_string::u64x2_to_string(scratchpad[17]), "3ad72813d8215a1e8b966a7c19258003");
+    assert_eq!(byte_string::u64x2_to_string(scratchpad[18]), "802219ba78b4259525b0cd8bd2112336");
+    assert_eq!(byte_string::u64x2_to_string(scratchpad[19]), "9e01d10e7cc1be2855b783b3a79884bf");
+    assert_eq!(byte_string::u64x2_to_string(scratchpad[20]), "c91bb830de5effea6cf238b15f54d4b5");
+    assert_eq!(byte_string::u64x2_to_string(scratchpad[21]), "9372f958c16b5591b1c44bf22b3d4d20");
+    assert_eq!(byte_string::u64x2_to_string(scratchpad[22]), "e4f26cf077bee0304fb11d6eaad48e82");
+    assert_eq!(byte_string::u64x2_to_string(scratchpad[23]), "953dea5d5b4fa058ab3f06ffc1ea0ec1");
+}
+
+#[test]
+fn test_init_scratchpad_tail() {
+    let input = byte_string::string_to_u8_array("0505a9e6c9cc0529b1608dbf9840e20164ee24efd67979e6a937ce174f9aff423a96a7cc5bdcd504008000ca5d84112bf941d3df2c44132b2df08fb766ebf0cc0ad4ccc4012b0929e4edeb04");
+    let a = keccak::keccak(&input);
+
+    let scratchpad = hash::init_scratchpad(&a);
+    assert_eq!(byte_string::u64x2_to_string(scratchpad[hash::MEM_SIZE-16]), "c7a1f8660d2cf76f652e90e067f41e30");
+    assert_eq!(byte_string::u64x2_to_string(scratchpad[hash::MEM_SIZE-15]), "29f328053cb5ce9a3144fedcebeb0455");
+    assert_eq!(byte_string::u64x2_to_string(scratchpad[hash::MEM_SIZE-14]), "e3592994985e0937fc0b43c1a6ac738c");
+    assert_eq!(byte_string::u64x2_to_string(scratchpad[hash::MEM_SIZE-13]), "8d6844339f9196e249add1d2531907a9");
+    assert_eq!(byte_string::u64x2_to_string(scratchpad[hash::MEM_SIZE-12]), "a774d67ff9a5836f6f315822984e3e82");
+    assert_eq!(byte_string::u64x2_to_string(scratchpad[hash::MEM_SIZE-11]), "e1c5aaeb19b05eed5637d023056b8205");
+    assert_eq!(byte_string::u64x2_to_string(scratchpad[hash::MEM_SIZE-10]), "0501dea25f90b0049e92261354ecf772");
+    assert_eq!(byte_string::u64x2_to_string(scratchpad[hash::MEM_SIZE-9]),  "94c5166924405464f762963e09b8c55c");
+
+    assert_eq!(byte_string::u64x2_to_string(scratchpad[hash::MEM_SIZE-8]), "304fe9475ecec1065413f0a591b4b2ba");
+    assert_eq!(byte_string::u64x2_to_string(scratchpad[hash::MEM_SIZE-7]), "a70bd25d9d8011b68a8ff4282ba35eef");
+    assert_eq!(byte_string::u64x2_to_string(scratchpad[hash::MEM_SIZE-6]), "39ed29569a1736736f1eb608f73372bd");
+    assert_eq!(byte_string::u64x2_to_string(scratchpad[hash::MEM_SIZE-5]), "aaecaabb587e5027f48ac0832a157471");
+    assert_eq!(byte_string::u64x2_to_string(scratchpad[hash::MEM_SIZE-4]), "02935ff82a7c59380f69a1a9dfbf66e0");
+    assert_eq!(byte_string::u64x2_to_string(scratchpad[hash::MEM_SIZE-3]), "ae0d8323c4dbe1ec68f8ae668d447bcd");
+    assert_eq!(byte_string::u64x2_to_string(scratchpad[hash::MEM_SIZE-2]), "e2a0e238f8d5f1dd3dfefa5ac05445b0");
+    assert_eq!(byte_string::u64x2_to_string(scratchpad[hash::MEM_SIZE-1]), "76696694f5e369e0c543e82f84559129");
 }

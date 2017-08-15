@@ -5,6 +5,7 @@
 #![feature(asm)]
 #![feature(repr_simd)]
 #![feature(box_syntax)]
+#![feature(iterator_step_by)]
 
 pub mod byte_string;
 pub mod cryptonight;

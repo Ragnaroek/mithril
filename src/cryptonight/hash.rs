@@ -4,13 +4,12 @@ use super::aes;
 use super::aes::u64x2;
 use std::boxed::Box;
 
-const MEM_SIZE : usize = 2097152 / 16;
+pub const MEM_SIZE : usize = 2097152 / 16;
 
 pub fn hash(input: &[u8]) {
 
     //scratchpad init
     let state = keccak::keccak(input);
-
     let scratchpad = init_scratchpad(&state);
 
 }
@@ -28,8 +27,15 @@ pub fn init_scratchpad(state: &[u8; 200]) -> Box<[u64x2; MEM_SIZE]>{
         scratchpad[i] = block;
     }
 
-    //TODO init rest of scratchpad => encrypt 8x16 previous blocks
-    // ==> directly read u64x2 from scratchpad
+    for k in (0..(MEM_SIZE-8)).step_by(8) {
+        for i in k..(k+8) {
+            let mut block = scratchpad[i];
+            for j in 0..10 {
+                block = aes::aes_round(block, keys[j]);
+            }
+            scratchpad[i+8] = block
+        }
+    }
 
     return scratchpad;
 }
@@ -61,14 +67,3 @@ pub fn aes_round_keys(state: &[u8; 200]) -> [u64x2;10] {
 
     return r;
 }
-
-/*
-fn to_u128(input: &[u8]) -> u128 {
-    let mut r = 0;
-    for i in 0..16 {
-        let mut m = u128::from(input[i]);
-        m = m << i * 8;
-        r |= m;
-    }
-    return r;
-}*/
