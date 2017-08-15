@@ -5,6 +5,7 @@ use u64x2::u64x2;
 use std::boxed::Box;
 
 pub const MEM_SIZE : usize = 2097152 / 16;
+const ITERATIONS : u32 = 524288;
 
 pub fn hash(input: &[u8]) {
 
@@ -12,6 +13,15 @@ pub fn hash(input: &[u8]) {
     let state = keccak::keccak(input);
     let scratchpad = init_scratchpad(&state);
 
+    let a = u64x2::read(&state[0..16]) ^ u64x2::read(&state[32..48]);
+    let b = u64x2::read(&state[16..32]) ^ u64x2::read(&state[48..64]);
+
+    println!("a={:?}", super::super::byte_string::u64x2_to_string(a));
+    println!("b={:?}", super::super::byte_string::u64x2_to_string(b));
+
+    for i in 0..ITERATIONS {
+
+    }
 }
 
 pub fn init_scratchpad(state: &[u8; 200]) -> Box<[u64x2; MEM_SIZE]>{

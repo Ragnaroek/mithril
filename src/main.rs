@@ -4,7 +4,7 @@ use mithril::byte_string;
 use mithril::cryptonight::hash;
 
 fn main() {
-    let input = byte_string::string_to_u8_array("05059fa5a8cc05b2df5d8fa271bb2d0304d4b1842f0f50844b735746db97ee5c196c647c3a5adc0c000000640680be903f504e896daebe42cdbe11e1a938d5c7fb2d64baa6356fe6fbacb704");
+    let input = byte_string::string_to_u8_array("0505f8fcc9cc05b7844da6f865bb3f5db086fe87af9f0ddc21a20a06a9b6c76ce510bb795ed20425004000f8ad73db1c595d3a6e2c06368ee411c184d7be7b15a5e4da928c19a958303d7a01");
 
     hash::hash(&input);
 }
