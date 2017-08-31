@@ -9,3 +9,4 @@
 
 pub mod byte_string;
 pub mod cryptonight;
+pub mod u64x2;

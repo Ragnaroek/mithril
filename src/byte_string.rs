@@ -1,5 +1,5 @@
 
-use cryptonight::aes::u64x2;
+use u64x2::u64x2;
 
 pub fn string_to_u8_array(hex: &str) -> Vec<u8> {
     let mut bytes = Vec::new();

@@ -1,7 +1,7 @@
 
 use super::keccak;
 use super::aes;
-use super::aes::u64x2;
+use u64x2::u64x2;
 use std::boxed::Box;
 
 pub const MEM_SIZE : usize = 2097152 / 16;
@@ -20,7 +20,7 @@ pub fn init_scratchpad(state: &[u8; 200]) -> Box<[u64x2; MEM_SIZE]>{
     let mut scratchpad : Box<[u64x2; MEM_SIZE]> = box [u64x2(0,0); MEM_SIZE];
     for i in 0..8 {
         let offset = i*16;
-        let mut block = aes::u64x2::read(&state[64+offset..64+offset+16]);
+        let mut block = u64x2::read(&state[64+offset..64+offset+16]);
         for k in 0..10 {
             block = aes::aes_round(block, keys[k]);
         }
@@ -44,8 +44,8 @@ pub fn init_scratchpad(state: &[u8; 200]) -> Box<[u64x2; MEM_SIZE]>{
 pub fn aes_round_keys(state: &[u8; 200]) -> [u64x2;10] {
     let mut r : [u64x2;10] = [u64x2(0,0);10];
 
-    let input0 = aes::u64x2::read(&state[0..16]);
-    let input1 = aes::u64x2::read(&state[16..32]);
+    let input0 = u64x2::read(&state[0..16]);
+    let input1 = u64x2::read(&state[16..32]);
     r[0] = input0;
     r[1] = input1;
 
