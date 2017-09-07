@@ -17,41 +17,18 @@ pub fn hash(input: &[u8]) {
     let mut a = u64x2::read(&state[0..16]) ^ u64x2::read(&state[32..48]);
     let mut b = u64x2::read(&state[16..32]) ^ u64x2::read(&state[48..64]);
 
-    let debug_r = 5;
-    for i in 0..ITERATIONS {
-        if i == debug_r {
-            println!("i={:?}", i);
-            println!("a={:?}", super::super::byte_string::u64x2_to_string(a));
-            println!("b={:?}", super::super::byte_string::u64x2_to_string(b));
-        }
-
+    for _ in 0..ITERATIONS {
         let mut ix = scratchpad_addr(&a);
-        if i == debug_r {
-            println!("ix={:x}", ix);
-            println!("scratchpad[ix]={:}", byte_string::u64x2_to_string(scratchpad[ix]));
-        }
         let aes_result = aes::aes_round(scratchpad[ix], a);
         scratchpad[ix] = b ^ aes_result;
-
-        if i == debug_r {
-            println!("b xor aes={:}", byte_string::u64x2_to_string(scratchpad[ix]));
-            println!("aes_result={:}", byte_string::u64x2_to_string(aes_result));
-        }
 
         ix = scratchpad_addr(&aes_result);
         let mem = scratchpad[ix];
         let add_r = ebyte_add(&a, &ebyte_mul(&aes_result, &mem));
         scratchpad[ix] = add_r;
-        if i == debug_r {
-            println!("ix={:x}", ix);
-            println!("add_r: {:?}", byte_string::u64x2_to_string(add_r));
-        }
 
         a = add_r ^ mem;
         b = aes_result;
-        if i == debug_r {
-            println!("new a,b = {:},{:}", byte_string::u64x2_to_string(a), byte_string::u64x2_to_string(b));
-        }
     }
 
     println!("scratchpad[0]={:}", byte_string::u64x2_to_string(scratchpad[0]));
