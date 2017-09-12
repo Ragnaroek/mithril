@@ -3,15 +3,13 @@ use super::aes;
 use u64x2::u64x2;
 use std::boxed::Box;
 
-use super::super::byte_string;
-
 pub const MEM_SIZE : usize = 2097152 / 16;
 const ITERATIONS : u32 = 524288;
 
 pub fn hash(input: &[u8]) {
 
     //scratchpad init
-    let state = keccak::keccak(input);
+    let mut state = keccak::keccak(input);
     let mut scratchpad = init_scratchpad(&state);
 
     let mut a = u64x2::read(&state[0..16]) ^ u64x2::read(&state[32..48]);
@@ -31,9 +29,19 @@ pub fn hash(input: &[u8]) {
         b = aes_result;
     }
 
-    println!("scratchpad[0]={:}", byte_string::u64x2_to_string(scratchpad[0]));
-    println!("scratchpad[10]={:}", byte_string::u64x2_to_string(scratchpad[10]));
-    println!("scratchpad[100]={:}", byte_string::u64x2_to_string(scratchpad[100]));
+    let final_result = finalise_scratchpad(scratchpad, &state);
+
+    for k in 0..8 {
+        let block = final_result[k];
+        let offset = 63+(k<<4);
+        block.write(&mut state[offset..offset+16]);
+    }
+
+    print!("state(64..191)=");
+    for i in 63..192 {
+        print!("{:x}", state[i]);
+    }
+    println!("");
 }
 
 pub fn ebyte_mul(a: &u64x2, b: &u64x2) -> u64x2 {
@@ -51,8 +59,36 @@ pub fn scratchpad_addr(u: &u64x2) -> usize {
     return ((u.0 & 0x1FFFF0) >> 4) as usize;
 }
 
+pub fn finalise_scratchpad(scratchpad: Box<[u64x2; MEM_SIZE]>, keccak_state: &[u8; 200]) -> [u64x2; 8] {
+    let keys = aes_round_keys(&keccak_state, 32);
+
+    let mut state : [u64x2; 8] = [u64x2(0,0); 8];
+    for i in 0..8 {
+        let offset = i*16;
+        let mut block = u64x2::read(&keccak_state[64+offset..64+offset+16]);
+        block = scratchpad[i] ^ block;
+        for k in 0..10 {
+            block = aes::aes_round(block, keys[k]);
+        }
+        state[i] = block;
+    }
+
+    for k in (8..MEM_SIZE).step_by(8) {
+        for i in 0..8 {
+            let mut block = scratchpad[k+i];
+            block = state[i] ^ block;
+            for j in 0..10 {
+                block = aes::aes_round(block, keys[j]);
+            }
+            state[i] = block;
+        }
+    }
+
+    return state;
+}
+
 pub fn init_scratchpad(state: &[u8; 200]) -> Box<[u64x2; MEM_SIZE]>{
-    let keys = aes_round_keys(&state);
+    let keys = aes_round_keys(&state, 0);
 
     let mut scratchpad : Box<[u64x2; MEM_SIZE]> = box [u64x2(0,0); MEM_SIZE];
     for i in 0..8 {
@@ -77,11 +113,11 @@ pub fn init_scratchpad(state: &[u8; 200]) -> Box<[u64x2; MEM_SIZE]>{
     return scratchpad;
 }
 
-pub fn aes_round_keys(state: &[u8; 200]) -> [u64x2;10] {
+pub fn aes_round_keys(state: &[u8; 200], offset: usize) -> [u64x2;10] {
     let mut r : [u64x2;10] = [u64x2(0,0);10];
 
-    let input0 = u64x2::read(&state[0..16]);
-    let input1 = u64x2::read(&state[16..32]);
+    let input0 = u64x2::read(&state[offset..(offset+16)]);
+    let input1 = u64x2::read(&state[(offset+16)..(offset+32)]);
     r[0] = input0;
     r[1] = input1;
 

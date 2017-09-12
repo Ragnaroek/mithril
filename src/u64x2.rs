@@ -26,7 +26,7 @@ impl u64x2 {
 
     /// Write u64x2 content into array pointer (potentially unaligned)
     #[inline(always)]
-    pub fn write(self, dst: &mut [u8; 16]) {
+    pub fn write(self, dst: &mut [u8]) {
         unsafe {
             copy_nonoverlapping(
                 &self as *const Self as *const u8,
