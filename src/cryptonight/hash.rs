@@ -33,15 +33,17 @@ pub fn hash(input: &[u8]) {
 
     for k in 0..8 {
         let block = final_result[k];
-        let offset = 63+(k<<4);
+        let offset = 64+(k<<4);
         block.write(&mut state[offset..offset+16]);
     }
 
-    print!("state(64..191)=");
-    for i in 63..192 {
-        print!("{:x}", state[i]);
-    }
-    println!("");
+    let state_64 = transmute_u64(&mut state);
+    keccak::keccakf(state_64);
+
+}
+
+fn transmute_u64(t: &mut [u8; 200]) -> &mut [u64; 25] {
+    unsafe { ::std::mem::transmute(t) }
 }
 
 pub fn ebyte_mul(a: &u64x2, b: &u64x2) -> u64x2 {
