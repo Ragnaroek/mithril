@@ -8,3 +8,4 @@ name = "mithril"
 
 [dependencies]
 aesti = "0.3.0"
+groestl = "0.3.0"

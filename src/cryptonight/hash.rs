@@ -1,12 +1,18 @@
+extern crate groestl;
+extern crate skein;
+
 use super::keccak;
 use super::aes;
 use u64x2::u64x2;
 use std::boxed::Box;
 
+use self::groestl::{Digest, Groestl256};
+use self::skein::{Digest, Skein256};
+
 pub const MEM_SIZE : usize = 2097152 / 16;
 const ITERATIONS : u32 = 524288;
 
-pub fn hash(input: &[u8]) {
+pub fn hash(input: &[u8]) -> String {
 
     //scratchpad init
     let mut state = keccak::keccak(input);
@@ -40,9 +46,32 @@ pub fn hash(input: &[u8]) {
     let state_64 = transmute_u64(&mut state);
     keccak::keccakf(state_64);
 
+    return final_hash(transmute_u8(state_64));
+}
+
+fn final_hash(keccak_state: &[u8; 200]) -> String {
+    println!("extra_hash={:?}", keccak_state[0] & 3);
+
+    //TODO format hash_result (if always same format)
+    let hash_result = match keccak_state[0] & 3 {
+        0 => "".to_string(),//blake-256
+        1 => {
+              let mut hasher = Groestl256::default();
+              hasher.input(keccak_state);
+              format!("{:x}", hasher.result())
+          },
+        2 => "".to_string(),//jh-256
+        3 => "".to_string(),//skein-256
+        _ => panic!("hash select error")
+    };
+    return hash_result;
 }
 
 fn transmute_u64(t: &mut [u8; 200]) -> &mut [u64; 25] {
+    unsafe { ::std::mem::transmute(t) }
+}
+
+fn transmute_u8(t: &mut [u64; 25]) -> &mut [u8; 200] {
     unsafe { ::std::mem::transmute(t) }
 }
 

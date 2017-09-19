@@ -134,7 +134,7 @@ pub fn keccak(input: &[u8]) -> [u8; 200] {
     //first foldp
     let mut ip = 0;
     let mut l = inlen;
-    while l >= rate { //TODO never executed in the first step (do we need that?)
+    while l >= rate { 
         xorin(&mut transmute_u8(&mut a)[0..][..rate], &input[ip..]);
         keccakf(&mut a);
         ip += rate;
