@@ -1,5 +1,6 @@
 extern crate groestl;
 extern crate blake;
+extern crate jhffi;
 
 use super::keccak;
 use super::aes;
@@ -7,7 +8,6 @@ use u64x2::u64x2;
 use std::boxed::Box;
 
 use self::groestl::{Digest, Groestl256};
-use self::blake::Blake;
 use super::super::byte_string;
 
 pub const MEM_SIZE : usize = 2097152 / 16;
@@ -65,7 +65,11 @@ fn final_hash(keccak_state: &[u8; 200]) -> String {
               hasher.input(keccak_state);
               format!("{:x}", hasher.result())
           },
-        2 => "".to_string(),//jh-256
+        2 => {
+              let mut result = [0; 32];
+              jhffi::hash(256, keccak_state, &mut result).unwrap();
+              byte_string::u8_array_to_string(&result)
+          },
         3 => "".to_string(),//skein-256
         _ => panic!("hash select error")
     };

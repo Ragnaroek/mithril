@@ -92,8 +92,8 @@ fn test_hash() {
     assert_eq!(hash::hash(&input), "a084f01d1437a09c6985401b60d43554ae105802c5f5d8a9b3253649c0be6605");
 
     //2=JH (xmr-stak input "This is a test66")
-    //input = byte_string::string_to_u8_array("54686973206973206120746573743636");
-    //assert_eq!(hash::hash(&input), "21fb4137747541810d5f8ce821b6dacf68eb3051778e68b5bcd990c21fa08fd6");
+    input = byte_string::string_to_u8_array("54686973206973206120746573743636");
+    assert_eq!(hash::hash(&input), "21fb4137747541810d5f8ce821b6dacf68eb3051778e68b5bcd990c21fa08fd6");
 
     //3=Skein (xmr-stak input "This is a test6")
     //input = byte_string::string_to_u8_array("546869732069732061207465737436");
