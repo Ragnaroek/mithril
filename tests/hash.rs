@@ -84,9 +84,11 @@ fn test_init_scratchpad_tail() {
 #[test]
 fn test_hash() {
     //0=Blake
+    let mut input = byte_string::string_to_u8_array("546869732069732061207465737431");
+    assert_eq!(hash::hash(&input), "236ebffb019ea9b19c9ff160775bc7a6ed090fce7103a32ee582d24a81db6960");
 
     //1=groestl
-    let input = byte_string::string_to_u8_array("5468697320697320612074657374");
+    input = byte_string::string_to_u8_array("5468697320697320612074657374");
     assert_eq!(hash::hash(&input), "a084f01d1437a09c6985401b60d43554ae105802c5f5d8a9b3253649c0be6605");
 
     //2=JH (xmr-stak input "This is a test66")

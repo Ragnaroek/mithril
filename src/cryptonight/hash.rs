@@ -1,4 +1,5 @@
 extern crate groestl;
+extern crate blake;
 
 use super::keccak;
 use super::aes;
@@ -6,6 +7,8 @@ use u64x2::u64x2;
 use std::boxed::Box;
 
 use self::groestl::{Digest, Groestl256};
+use self::blake::Blake;
+use super::super::byte_string;
 
 pub const MEM_SIZE : usize = 2097152 / 16;
 const ITERATIONS : u32 = 524288;
@@ -52,7 +55,11 @@ fn final_hash(keccak_state: &[u8; 200]) -> String {
 
     //TODO format hash_result (if always same format)
     let hash_result = match keccak_state[0] & 3 {
-        0 => "".to_string(),//blake-256
+        0 => {
+              let mut result = [0; 32];
+              blake::hash(256, keccak_state, &mut result).unwrap();
+              byte_string::u8_array_to_string(&result)
+        },
         1 => {
               let mut hasher = Groestl256::default();
               hasher.input(keccak_state);
