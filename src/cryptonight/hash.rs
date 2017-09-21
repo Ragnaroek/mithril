@@ -1,5 +1,4 @@
 extern crate groestl;
-extern crate skein;
 
 use super::keccak;
 use super::aes;
@@ -7,7 +6,6 @@ use u64x2::u64x2;
 use std::boxed::Box;
 
 use self::groestl::{Digest, Groestl256};
-use self::skein::{Digest, Skein256};
 
 pub const MEM_SIZE : usize = 2097152 / 16;
 const ITERATIONS : u32 = 524288;
