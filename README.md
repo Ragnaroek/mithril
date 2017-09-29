@@ -3,7 +3,10 @@
 # mithril
 rust monero miner
 
-
-step 1) get it functional right
-
-step 2) optimise it :)
+TODOs:
+- [x] implement cryptonight hashing function
+- [ ] implement stratum protocol (for pooled mining support)
+- [ ] use a naive parallelisation scheme
+- [ ] measure hash performance
+- [ ] optimise cryptonight hashing function
+- [ ] auto-optimisation via bandit algorithms
