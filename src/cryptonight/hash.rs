@@ -1,6 +1,7 @@
 extern crate groestl;
 extern crate blake;
 extern crate jhffi;
+extern crate skeinffi;
 
 use super::keccak;
 use super::aes;
@@ -51,9 +52,6 @@ pub fn hash(input: &[u8]) -> String {
 }
 
 fn final_hash(keccak_state: &[u8; 200]) -> String {
-    println!("extra_hash={:?}", keccak_state[0] & 3);
-
-    //TODO format hash_result (if always same format)
     let hash_result = match keccak_state[0] & 3 {
         0 => {
               let mut result = [0; 32];
@@ -64,13 +62,17 @@ fn final_hash(keccak_state: &[u8; 200]) -> String {
               let mut hasher = Groestl256::default();
               hasher.input(keccak_state);
               format!("{:x}", hasher.result())
-          },
+        },
         2 => {
               let mut result = [0; 32];
               jhffi::hash(256, keccak_state, &mut result).unwrap();
               byte_string::u8_array_to_string(&result)
-          },
-        3 => "".to_string(),//skein-256
+        },
+        3 => {
+              let mut result = [0; 32];
+              skeinffi::hash(256, keccak_state, &mut result).unwrap();
+              byte_string::u8_array_to_string(&result)
+        },
         _ => panic!("hash select error")
     };
     return hash_result;
