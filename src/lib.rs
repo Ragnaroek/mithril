@@ -7,6 +7,10 @@
 #![feature(box_syntax)]
 #![feature(iterator_step_by)]
 
+#[macro_use]
+extern crate serde_derive;
+
 pub mod byte_string;
 pub mod cryptonight;
+pub mod stratum;
 pub mod u64x2;
