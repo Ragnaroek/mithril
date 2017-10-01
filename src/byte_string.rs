@@ -1,6 +1,7 @@
 
 use u64x2::u64x2;
 
+//TODO Rename to hex2_u8_array
 pub fn string_to_u8_array(hex: &str) -> Vec<u8> {
     let mut bytes = Vec::new();
     for i in 0..(hex.len() / 2) {
@@ -14,6 +15,19 @@ pub fn string_to_u8_array(hex: &str) -> Vec<u8> {
         };
     }
     return bytes;
+}
+
+/// Converts the first 8 hex chars of the slice to a u32
+/// number. The hex string is interpreted as litte-endian
+/// (last two chars are most signifiant)
+pub fn hex2_u32_le(hex: &str) -> u32 {
+    let mut result : u32 = 0;
+    for k in (0..8).step_by(2) {
+        let p = u32::from_str_radix(&hex[(8-k-2)..(8-k)], 16).unwrap();
+        result <<= 8;
+        result |= p;
+    }
+    return result;
 }
 
 pub fn u8_array_to_string(a: &[u8]) -> String {
