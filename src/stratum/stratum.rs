@@ -50,3 +50,8 @@ pub fn test() -> Result<LoginResponse, serde_json::Error> {
 
     return parse_login_response(&line);
 }
+
+
+pub fn target_u64(t: u32) -> u64 {
+    return u64::max_value() / (u32::max_value() as u64 / t as u64)
+}

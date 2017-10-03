@@ -13,3 +13,8 @@ fn test_deser_json() {
     assert_eq!(result.result.job.target, "169f0200");
     assert_eq!(result.result.job.job_id, "138133069709874");
 }
+
+#[test]
+fn test_target_u64() {
+    assert_eq!(stratum::target_u64(171798), 737869762948382);
+}
