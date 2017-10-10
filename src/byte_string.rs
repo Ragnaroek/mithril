@@ -30,14 +30,19 @@ pub fn hex2_u32_le(hex: &str) -> u32 {
     return result;
 }
 
+//TODO Write a test
 pub fn hex2_u64_le(hex: &str) -> u64 {
     let mut result : u64 = 0;
-    for k in (0..16).step_by(2) {
-        let p = u64::from_str_radix(&hex[(16-k-2)..(16-k)], 16).unwrap();
+    for k in (0..hex.len()).step_by(2) {
+        let p = u64::from_str_radix(&hex[(hex.len()-k-2)..(hex.len()-k)], 16).unwrap();
         result <<= 8;
         result |= p;
     }
     return result;
+}
+
+pub fn hex2_u64_be(hex: &str) -> u64 {
+    return u64::from_str_radix(hex, 16).unwrap();
 }
 
 pub fn u8_array_to_string(a: &[u8]) -> String {

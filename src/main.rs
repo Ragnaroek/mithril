@@ -13,11 +13,11 @@ fn main() {
     //Real impl test
 
     println!("Doing client login");
-    let client = StratumClient::new();
+    let mut client = StratumClient::new();
     client.login();
+    client.join();
 
     return;
-
 
     let stream = TcpStream::connect("mine.moneropool.com:3335").unwrap();
 
@@ -55,6 +55,9 @@ fn main() {
 
                     if hash_val < num_target {
                         println!("found share {:?} {:?}", hash_result, hash_val);
+                        println!("b-hex {:?}", byte_string::u8_array_to_string(&b));
+                        println!("nonce-hex {:?}", format!("{:02x}{:02x}{:02x}{:02x}", k, i, j, g));
+
                         let share = stratum_data::Share{
                             miner_id: r.result.id.clone(),
                             job_id: r.result.job.job_id.clone(),
