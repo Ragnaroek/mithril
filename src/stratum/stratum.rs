@@ -14,7 +14,7 @@ const DEFAULT_CMD_TIMEOUT : u64 = 100; //ms
 
 #[derive(Debug)]
 pub enum StratumCmd {
-    Login
+    Login {url: String}
 }
 
 pub enum StratumError {
@@ -26,6 +26,7 @@ pub struct StratumClient {
     rcv_thread: Option<thread::JoinHandle<()>>
 }
 
+/// All operation in the client are async
 impl StratumClient {
     pub fn new() -> StratumClient {
         return StratumClient{
@@ -35,15 +36,9 @@ impl StratumClient {
         };
     }
 
-    /// Initialises the StratumClient and performs the login that
-    /// returns the first mining job.
-    pub fn login(self: &mut Self) -> () {// Result<LoginResponse, StratumError> {
-
-        //TODO Init socket connection here and move read/writer buffer to threads
-
+    fn init(self: &mut Self) {
         let (tx, rx) = channel();
 
-        let tx_test = tx.clone();
         let send_thread = thread::spawn(move || {
             handle_stratum_send(rx);
         });
@@ -55,8 +50,19 @@ impl StratumClient {
         });
         self.rcv_thread = Option::Some(rcv_thread);
 
+        //TODO create Read and write buffers, TcpStream here
+    }
 
-        tx_test.clone().send(StratumCmd::Login).unwrap();
+    /// Initialises the StratumClient and performs the login that
+    /// returns the first mining job.
+    pub fn login(self: &mut Self, url: String) -> () {// Result<LoginResponse, StratumError> {
+
+        //TODO Init socket connection here and move read/writer buffer to threads
+
+        self.init();
+
+        self.tx_cmd.clone().unwrap().send(StratumCmd::Login{url}).unwrap();
+        return;
     }
 
     pub fn join(self: Self) -> () {

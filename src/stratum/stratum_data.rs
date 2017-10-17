@@ -97,6 +97,7 @@ pub fn submit_share(stream: &TcpStream, share: Share) -> String {
 
     let json = serde_json::to_string(&submit_req).unwrap();
     print!("json={}\n", json);
+
     write!(writer, "{}\n", json).unwrap();
     writer.flush().unwrap();
 
@@ -117,6 +118,26 @@ pub fn submit_share(stream: &TcpStream, share: Share) -> String {
     }
 
     return line;
+}
+
+pub fn submit_share_dummy(share: Share) {
+
+    println!("submitting share: {:?}", share);
+
+    let submit_req = SubmitRequest{
+        id: 1,
+        method: "submit".to_string(),
+        params: SubmitParams {
+            id: share.miner_id,
+            job_id: share.job_id,
+            nonce: share.nonce,
+            result: share.hash
+        }
+    };
+
+    let json = serde_json::to_string(&submit_req).unwrap();
+    print!("json={}\n", json);
+    return;
 }
 
 pub fn target_u64(t: u32) -> u64 {
