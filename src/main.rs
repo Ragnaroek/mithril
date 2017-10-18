@@ -1,30 +1,37 @@
 extern crate mithril;
 
-use mithril::byte_string;
-use mithril::cryptonight::hash;
-use mithril::stratum::stratum_data;
+//use mithril::byte_string;
+//use mithril::cryptonight::hash;
+//use mithril::stratum::stratum_data;
 
 use mithril::stratum::stratum::{StratumClient};
+use std::sync::mpsc::{channel};
 
-use std::net::TcpStream;
+//use std::net::TcpStream;
 
 fn main() {
-
-
-/*
     //Real impl test
 
     //TODO read this from config file
     let pool_url = "mine.moneropool.com:3335".to_string();
 
+    let (test_tx, test_rx) = channel();
+
     println!("Doing client login");
-    let mut client = StratumClient::new();
+    let mut client = StratumClient::new(vec![test_tx]);
     client.login(pool_url);
-    client.join();
 
-    return;
+    loop {
+        let received = test_rx.recv();
+        println!("main received: {:?}", received);
+    }
 
-*/
+    //client.join();
+    //return;
+//===========================================
+
+
+/*
 let k = 0xa5;
 let i = 0x01;
 let j = 0;
@@ -54,7 +61,11 @@ println!("hex={}", format!("{:02x}{:02x}{:02x}{:02x}", k, i, j, g));
     println!("target received {:}", target);
     println!("blob received {:}", blob);
 
-    let b = byte_string::string_to_u8_array(&blob);
+    let mut b = byte_string::string_to_u8_array(&blob);
+    b[39] = 165;
+    b[40] = 1;
+    b[41] = 0;
+    b[42] = 0;
     let num_target = stratum_data::target_u64(byte_string::hex2_u32_le(&target));
     println!("num_target={:}", num_target);
 
@@ -121,6 +132,6 @@ println!("hex={}", format!("{:02x}{:02x}{:02x}{:02x}", k, i, j, g));
         }
     }
 */
-
+*/
 
 }
