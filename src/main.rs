@@ -12,7 +12,7 @@ use std::sync::mpsc::{channel};
 fn main() {
     //Real impl test
 
-    //TODO read this from config file
+    //TODO read this from config file (use config crate file)
     let pool_url = "mine.moneropool.com:3335".to_string();
 
     let (test_tx, test_rx) = channel();

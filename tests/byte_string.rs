@@ -1,6 +1,6 @@
 extern crate mithril;
 
-use mithril::byte_string::{hex2_u32_le, hex2_u64_le, hex2_u64_be};
+use mithril::byte_string::{hex2_u32_le, hex2_u64_be};
 
 #[test]
 fn test_hex2_u32_le() {

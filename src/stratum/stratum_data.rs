@@ -5,6 +5,12 @@ use std::net::TcpStream;
 use std::io::{BufReader, BufRead, BufWriter, Write};
 use std::{thread, time};
 
+/// For checking the method in the json content and parsing further
+#[derive(Deserialize, Debug)]
+pub struct Method {
+    pub method: String
+}
+
 #[derive(Deserialize)]
 pub struct Job {
     pub blob: String,
@@ -23,6 +29,11 @@ pub struct LoginResult {
 pub struct LoginResponse {
     pub id: u32,
     pub result: LoginResult
+}
+
+#[derive(Deserialize)]
+pub struct JobResponse {
+    pub params: Job
 }
 
 #[derive(Serialize)]
