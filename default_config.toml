@@ -1,0 +1,5 @@
+
+[pool]
+pool_address = "mine.moneropool.com:3333"
+wallet_address = ""
+pool_password = ""

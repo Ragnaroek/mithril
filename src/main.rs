@@ -1,25 +1,29 @@
 extern crate mithril;
+extern crate config;
 
 //use mithril::byte_string;
 //use mithril::cryptonight::hash;
-//use mithril::stratum::stratum_data;
+use mithril::stratum::stratum_data::{PoolConfig};
 
 use mithril::stratum::stratum::{StratumClient};
 use std::sync::mpsc::{channel};
+use std::path::Path;
+use config::{Config, ConfigError, File};
 
-//use std::net::TcpStream;
+const CONFIG_FILE_NAME : &'static str = "config.toml";
 
 fn main() {
+
+    //Read config
+    let config = read_config().unwrap();
+    let pool_conf = pool_config(config).unwrap();
+
     //Real impl test
-
-    //TODO read this from config file (use config crate file)
-    let pool_url = "mine.moneropool.com:3335".to_string();
-
     let (test_tx, test_rx) = channel();
 
     println!("Doing client login");
-    let mut client = StratumClient::new(vec![test_tx]);
-    client.login(pool_url);
+    let mut client = StratumClient::new(pool_conf, vec![test_tx]);
+    client.login();
 
     loop {
         let received = test_rx.recv();
@@ -133,5 +137,23 @@ println!("hex={}", format!("{:02x}{:02x}{:02x}{:02x}", k, i, j, g));
     }
 */
 */
+}
 
+fn pool_config(conf: Config) -> Result<PoolConfig, ConfigError> {
+    let pool_address = conf.get_str("pool.pool_address")?;
+    let wallet_address = conf.get_str("pool.wallet_address")?;
+    let pool_password = conf.get_str("pool.pool_password")?;
+    return Ok(PoolConfig{pool_address, wallet_address, pool_password});
+}
+
+fn read_config() -> Result<Config, ConfigError> {
+
+    let cwd_path = &format!("{}{}", "./", CONFIG_FILE_NAME);
+    let cwd_config_file = Path::new(cwd_path);
+    if cwd_config_file.exists() {
+        let mut conf = Config::default();
+        conf.merge(File::with_name(CONFIG_FILE_NAME))?;
+        return Ok(conf);
+    }
+    return Err(ConfigError::Message("config file not found".to_string()));
 }

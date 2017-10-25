@@ -26,11 +26,6 @@ pub enum StratumAction {
     }
 }
 
-//{"jsonrpc":"2.0","method":"job","params":{"blob":"0606fcb29bcf051b9c7bfc
-//60c98885de404ef48f721f09b8f51d37faf280470880bd120d4e9e0500000000577192c076fed53a24372bc43a3bed1d448a061ad06
-//a262ac5e7f6803a28ccc705","job_id":"878440772206522","target":"169f0200"}}
-
-
 pub enum StratumError {
 }
 
@@ -39,29 +34,32 @@ pub struct StratumClient {
     send_thread: Option<thread::JoinHandle<()>>,
     rcv_thread: Option<thread::JoinHandle<()>>,
     action_rcvs: Vec<Sender<StratumAction>>,
+    pool_conf: stratum_data::PoolConfig,
 }
 
 /// All operation in the client are async
 impl StratumClient {
-    pub fn new(action_rcvs: Vec<Sender<StratumAction>>) -> StratumClient {
+    pub fn new(pool_conf: stratum_data::PoolConfig, action_rcvs: Vec<Sender<StratumAction>>) -> StratumClient {
         return StratumClient{
             tx_cmd : Option::None,
             send_thread: Option::None,
             rcv_thread: Option::None,
             action_rcvs: action_rcvs,
+            pool_conf: pool_conf
         };
     }
 
-    fn init(self: &mut Self, url: String) {
+    fn init(self: &mut Self) {
 
-        let stream = TcpStream::connect(url).unwrap();
+        let stream = TcpStream::connect(self.pool_conf.clone().pool_address).unwrap();
         let reader = BufReader::new(stream.try_clone().unwrap());
         let writer = BufWriter::new(stream);
 
         let (tx, rx) = channel();
+        let pool_conf = self.pool_conf.clone();
 
         let send_thread = thread::spawn(move || {
-            handle_stratum_send(rx, writer);
+            handle_stratum_send(rx, writer, pool_conf);
         });
         self.tx_cmd = Option::Some(tx);
         self.send_thread = Option::Some(send_thread);
@@ -75,11 +73,9 @@ impl StratumClient {
 
     /// Initialises the StratumClient and performs the login that
     /// returns the first mining job.
-    pub fn login(self: &mut Self, url: String) -> () {// Result<LoginResponse, StratumError> {
+    pub fn login(self: &mut Self) -> () {// Result<LoginResponse, StratumError> {
 
-        //TODO Init socket connection here and move read/writer buffer to threads
-
-        self.init(url);
+        self.init();
 
         self.tx_cmd.clone().unwrap().send(StratumCmd::Login{}).unwrap();
         return;
@@ -91,18 +87,18 @@ impl StratumClient {
     }
 }
 
-fn handle_stratum_send(rx: Receiver<StratumCmd>, mut writer: BufWriter<TcpStream>) -> () {
+fn handle_stratum_send(rx: Receiver<StratumCmd>, mut writer: BufWriter<TcpStream>, pool_conf: stratum_data::PoolConfig) -> () {
     loop {
         match rx.recv().unwrap() { //TODO Err handling
-            StratumCmd::Login{} => do_stratum_login(&mut writer)
+            StratumCmd::Login{} => do_stratum_login(&mut writer, &pool_conf)
         }
     }
 }
 
-fn do_stratum_login(writer: &mut BufWriter<TcpStream>) {
+fn do_stratum_login(writer: &mut BufWriter<TcpStream>, pool_conf: &stratum_data::PoolConfig) {
     //TODO create login json with serde
-    //TODO take address from config
-    write!(writer, "{{\"id\": 1, \"method\": \"login\", \"params\": {{\"login\": \"4715wx51k4w2m7dgCcyX9LjYgzBnASbTEJg35r7Wta2b8yxTDTrjpuT8JDhz42oA7Q2dumz7Evb876NbVD8PDLkv4Jqd6Cj\", \"pass\":\"\"}}}}\n").unwrap();
+    write!(writer, "{{\"id\": 1, \"method\": \"login\", \"params\": {{\"login\": \"{}\", \"pass\":\"{}\"}}}}\n",
+        pool_conf.wallet_address, pool_conf.pool_password).unwrap();
     writer.flush().unwrap();
 }
 
@@ -126,8 +122,7 @@ pub fn parse_line_dispatch_result(line: &str, rcvs: &Vec<Sender<StratumAction>>)
                     "job" => action = parse_job(line),
                     _ => action = StratumAction::Error{err: format!("unknown method received: {}", method)}
                 }
-            },
-            _ => action = StratumAction::Error{err: format!("unknown method received")}
+            }
         }
     } else {
         //try parsing intial job
@@ -146,7 +141,8 @@ pub fn parse_line_dispatch_result(line: &str, rcvs: &Vec<Sender<StratumAction>>)
     }
 
     for rcv in rcvs {
-        let result = rcv.send(action.clone());
+        rcv.send(action.clone()).unwrap();
+        // TODO Log instead of panic + remove faulty rcv_er
     }
 }
 

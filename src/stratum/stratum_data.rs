@@ -59,6 +59,13 @@ pub struct Share {
     pub hash: String
 }
 
+#[derive(Debug, Clone)]
+pub struct PoolConfig {
+    pub pool_address: String,
+    pub wallet_address: String,
+    pub pool_password: String
+}
+
 pub fn parse_login_response(str: &str) -> Result<LoginResponse, serde_json::Error> {
     serde_json::from_str(str)
 }
