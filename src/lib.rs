@@ -13,4 +13,5 @@ extern crate serde_derive;
 pub mod byte_string;
 pub mod cryptonight;
 pub mod stratum;
+pub mod worker;
 pub mod u64x2;

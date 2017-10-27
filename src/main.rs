@@ -4,8 +4,9 @@ extern crate config;
 //use mithril::byte_string;
 //use mithril::cryptonight::hash;
 use mithril::stratum::stratum_data::{PoolConfig};
-
 use mithril::stratum::stratum::{StratumClient};
+use mithril::worker::worker_pool;
+use mithril::worker::worker_pool::{WorkerConfig};
 use std::sync::mpsc::{channel};
 use std::path::Path;
 use config::{Config, ConfigError, File};
@@ -16,9 +17,13 @@ fn main() {
 
     //Read config
     let config = read_config().unwrap();
-    let pool_conf = pool_config(config).unwrap();
+    let pool_conf = pool_config(&config).unwrap();
+    let worker_conf = worker_config(&config).unwrap();
 
-    //Real impl test
+    //worker pool start
+    let pool = worker_pool::start(worker_conf);
+
+    //Stratum start
     let (test_tx, test_rx) = channel();
 
     println!("Doing client login");
@@ -139,11 +144,19 @@ println!("hex={}", format!("{:02x}{:02x}{:02x}{:02x}", k, i, j, g));
 */
 }
 
-fn pool_config(conf: Config) -> Result<PoolConfig, ConfigError> {
+fn pool_config(conf: &Config) -> Result<PoolConfig, ConfigError> {
     let pool_address = conf.get_str("pool.pool_address")?;
     let wallet_address = conf.get_str("pool.wallet_address")?;
     let pool_password = conf.get_str("pool.pool_password")?;
     return Ok(PoolConfig{pool_address, wallet_address, pool_password});
+}
+
+fn worker_config(conf: &Config) -> Result<WorkerConfig, ConfigError> {
+    let num_threads = conf.get_int("worker.num_threads")?;
+    if num_threads <= 0 {
+        return Err(ConfigError::Message("num_threads hat to be > 0".to_string()));
+    }
+    return Ok(WorkerConfig{num_threads: num_threads as u64});
 }
 
 fn read_config() -> Result<Config, ConfigError> {
