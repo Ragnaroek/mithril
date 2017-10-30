@@ -13,3 +13,8 @@ fn test_num_bits() {
     assert_eq!(worker_pool::num_bits(9), 4);
     assert_eq!(worker_pool::num_bits(16), 4);
 }
+
+#[test]
+fn test_target_u64() {
+    assert_eq!(worker_pool::target_u64(171798), 737869762948382);
+}

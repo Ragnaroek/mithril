@@ -37,11 +37,6 @@ fn test_ser_submit_json() {
 }
 
 #[test]
-fn test_target_u64() {
-    assert_eq!(stratum_data::target_u64(171798), 737869762948382);
-}
-
-#[test]
 fn test_parse_method_with_method_field() {
     let method : stratum_data::Method = serde_json::from_str("{\"jsonrpc\":\"2.0\",\"method\":\"job\",\"params\":{}}").unwrap();
     assert_eq!(method.method, "job".to_string());
