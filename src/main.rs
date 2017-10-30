@@ -4,7 +4,7 @@ extern crate config;
 //use mithril::byte_string;
 //use mithril::cryptonight::hash;
 use mithril::stratum::stratum_data::{PoolConfig};
-use mithril::stratum::stratum::{StratumClient};
+use mithril::stratum::stratum::{StratumClient, StratumAction};
 use mithril::worker::worker_pool;
 use mithril::worker::worker_pool::{WorkerConfig};
 use std::sync::mpsc::{channel};
@@ -21,24 +21,48 @@ fn main() {
     let worker_conf = worker_config(&config).unwrap();
 
     //worker pool start
-    let pool = worker_pool::start(worker_conf);
+    let pool = &worker_pool::start(worker_conf);
 
     //Stratum start
-    let (test_tx, test_rx) = channel();
+    let (stratum_tx, stratum_rx) = channel();
 
     println!("Doing client login");
-    let mut client = StratumClient::new(pool_conf, vec![test_tx]);
+    let mut client = StratumClient::new(pool_conf, vec![stratum_tx]);
     client.login();
 
     loop {
-        let received = test_rx.recv();
-        println!("main received: {:?}", received);
+        let received = stratum_rx.recv();
+        if received.is_err() {
+            println!("lost connection to stratum client: {:?}", received);
+            return
+        }
+        match received.unwrap() {
+            StratumAction::Job{blob, job_id, target} => {
+                pool.job_change(blob, job_id, target);
+            },
+            StratumAction::Error{err} => {
+                println!("received stratum error: {}", err);
+            }
+        }
     }
 
     //client.join();
     //return;
 //===========================================
+/*
+pub enum StratumAction {
+    Job {
+        blob: String,
+        job_id: String,
+        target: String
+    },
+    Error{
+        err: String
+    }
+}
 
+
+*/
 
 /*
 let k = 0xa5;

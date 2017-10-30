@@ -157,7 +157,3 @@ pub fn submit_share_dummy(share: Share) {
     print!("json={}\n", json);
     return;
 }
-
-pub fn target_u64(t: u32) -> u64 {
-    return u64::max_value() / (u32::max_value() as u64 / t as u64)
-}
