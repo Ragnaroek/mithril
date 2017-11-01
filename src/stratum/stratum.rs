@@ -3,20 +3,24 @@ extern crate serde_json;
 
 use super::stratum_data;
 use std::thread;
-use std::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::mpsc::{channel, Receiver, Sender, SendError};
 use std::net::TcpStream;
 use std::io::{BufReader, BufRead, BufWriter, Write};
 
 /// command send to the stratum server
 #[derive(Debug)]
-enum StratumCmd {
-    Login {}
+pub enum StratumCmd {
+    Login {},
+    SubmitShare{
+        share: stratum_data::Share
+    }
 }
 
 /// something received from the stratum server
 #[derive(Debug, Clone)]
 pub enum StratumAction {
     Job {
+        miner_id: String,
         blob: String,
         job_id: String,
         target: String
@@ -30,6 +34,7 @@ pub enum StratumError {
 }
 
 pub struct StratumClient {
+    is_init: bool,
     tx_cmd: Option<Sender<StratumCmd>>,
     send_thread: Option<thread::JoinHandle<()>>,
     rcv_thread: Option<thread::JoinHandle<()>>,
@@ -41,6 +46,7 @@ pub struct StratumClient {
 impl StratumClient {
     pub fn new(pool_conf: stratum_data::PoolConfig, action_rcvs: Vec<Sender<StratumAction>>) -> StratumClient {
         return StratumClient{
+            is_init: false,
             tx_cmd : Option::None,
             send_thread: Option::None,
             rcv_thread: Option::None,
@@ -69,6 +75,7 @@ impl StratumClient {
             handle_stratum_receive(reader, rcvs);
         });
         self.rcv_thread = Option::Some(rcv_thread);
+        self.is_init = true;
     }
 
     /// Initialises the StratumClient and performs the login that
@@ -85,12 +92,31 @@ impl StratumClient {
         //TODO check send_thread optional
         self.send_thread.unwrap().join().unwrap();
     }
+
+    /// Returns a new channel for sending commands to the stratum client
+    pub fn new_cmd_channel(self: Self) -> Result<Sender<StratumCmd>, String> {
+        if !self.is_init {
+            return Err("stratum client not initialised, call login first".to_string());
+        }
+        let tx_clone = self.tx_cmd.clone();
+        if tx_clone.is_some() {
+            return Ok(self.tx_cmd.clone().unwrap());
+        }
+        return Err("Internal error, tx_clone.unwrap() failed although init was called".to_string());
+        //
+    }
+}
+
+pub fn submit_share(tx: &Sender<StratumCmd>, share: stratum_data::Share) -> Result<(), SendError<StratumCmd>> {
+    return tx.send(StratumCmd::SubmitShare{share});
 }
 
 fn handle_stratum_send(rx: Receiver<StratumCmd>, mut writer: BufWriter<TcpStream>, pool_conf: stratum_data::PoolConfig) -> () {
     loop {
         match rx.recv().unwrap() { //TODO Err handling
-            StratumCmd::Login{} => do_stratum_login(&mut writer, &pool_conf)
+            StratumCmd::Login{} => do_stratum_login(&mut writer, &pool_conf),
+            //TODO handle submit share
+            otherwise => println!("Unknown command received {:?}", otherwise) //TODO Proper err logging
         }
     }
 }
@@ -128,10 +154,10 @@ pub fn parse_line_dispatch_result(line: &str, rcvs: &Vec<Sender<StratumAction>>)
         //try parsing intial job
         let initial : Result<stratum_data::LoginResponse, serde_json::Error> = serde_json::from_str(line);
         match initial {
-            Ok(stratum_data::LoginResponse{id: _, result: stratum_data::LoginResult{status, job: stratum_data::Job{blob, job_id, target}, id: _}})
+            Ok(stratum_data::LoginResponse{id: _, result: stratum_data::LoginResult{status, job: stratum_data::Job{blob, job_id, target}, id: miner_id}})
                 => {
                       if status == "OK" {
-                          action = StratumAction::Job{blob, job_id, target}
+                          action = StratumAction::Job{miner_id, blob, job_id, target}
                       } else {
                           action = StratumAction::Error{err: format!("Not OK initial job received, status was {}", status)}
                       }
@@ -150,7 +176,8 @@ fn parse_job(line: &str) -> StratumAction {
     let result : Result<stratum_data::JobResponse, serde_json::Error> = serde_json::from_str(line);
     match result {
         Ok(stratum_data::JobResponse{params: stratum_data::Job{blob, job_id, target}}) => {
-            return StratumAction::Job{blob, job_id, target};
+            //TODO We have to transport the id from login to the job method?
+            return StratumAction::Job{miner_id: "unknown".to_string(), blob, job_id, target};
         },
         _ => return StratumAction::Error{err: "Error parsing job response".to_string()}
     }

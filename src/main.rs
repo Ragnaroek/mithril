@@ -20,8 +20,6 @@ fn main() {
     let pool_conf = pool_config(&config).unwrap();
     let worker_conf = worker_config(&config).unwrap();
 
-    //worker pool start
-    let pool = &worker_pool::start(worker_conf);
 
     //Stratum start
     let (stratum_tx, stratum_rx) = channel();
@@ -30,6 +28,11 @@ fn main() {
     let mut client = StratumClient::new(pool_conf, vec![stratum_tx]);
     client.login();
 
+    let share_tx = client.new_cmd_channel().unwrap();
+
+    //worker pool start
+    let pool = &worker_pool::start(worker_conf, share_tx);
+
     loop {
         let received = stratum_rx.recv();
         if received.is_err() {
@@ -37,8 +40,8 @@ fn main() {
             return
         }
         match received.unwrap() {
-            StratumAction::Job{blob, job_id, target} => {
-                pool.job_change(blob, job_id, target);
+            StratumAction::Job{miner_id, blob, job_id, target} => {
+                pool.job_change(miner_id, blob, job_id, target);
             },
             StratumAction::Error{err} => {
                 println!("received stratum error: {}", err);
