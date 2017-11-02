@@ -7,6 +7,17 @@ pub struct Method {
     pub method: String
 }
 
+#[derive(Deserialize, Debug)]
+pub struct ErrorDetails {
+    pub code: i64,
+    pub message: String,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct ErrorResult {
+    pub error: ErrorDetails
+}
+
 #[derive(Deserialize)]
 pub struct Job {
     pub blob: String,

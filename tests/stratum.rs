@@ -38,6 +38,26 @@ fn test_parse_method_without_method_field() {
 }
 
 #[test]
+fn test_parse_line_dispatch_result_error() {
+    let (tx, rx) = channel();
+    let miner_id_mutex = Arc::new(Mutex::new(Option::None));
+
+    let line = r#"{"id":1,"jsonrpc":"2.0","error":{"code":-1,"message":"Low difficulty share"}}"#;
+
+    let mutex_thread = miner_id_mutex.clone();
+    thread::spawn(move || {
+        stratum::parse_line_dispatch_result(line, &vec![tx], &mutex_thread);
+    });
+
+    let result = rx.recv().unwrap();
+
+    match result {
+        stratum::StratumAction::Error{err} => assert_eq!(err, "error received: Low difficulty share (code -1)".to_string()),
+        _ => assert!(false, "Wrong result returned: {:?}", result)
+    }
+}
+
+#[test]
 fn test_parse_line_dispatch_result_initial_job() {
 
     let (tx, rx) = channel();
@@ -65,7 +85,6 @@ fn test_parse_line_dispatch_result_initial_job() {
     let result = rx.recv().unwrap();
 
     let miner_id_guard = &*miner_id_mutex.lock().unwrap();
-    // TODO check mutex contains correct miner_id!!
     assert_eq!(miner_id_guard.clone().unwrap(), "930717205908149");
 
     match result {
