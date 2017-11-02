@@ -3,22 +3,11 @@ extern crate serde;
 extern crate serde_json;
 
 use std::sync::mpsc::{channel};
+use std::sync::{Arc, Mutex};
 use std::thread;
 
 use mithril::stratum::stratum_data;
 use mithril::stratum::stratum;
-
-#[test]
-fn test_deser_login_json() {
-    let result = stratum_data::parse_login_response("{\"id\":1,\"jsonrpc\":\"2.0\",\"error\":null,\"result\":{\"id\":\"102368431002832\",\"job\":{\"blob\":\"0606a98bbece052423b128ae15482563d93d4c004034a051d8246236e6abd0cac766f0f54f28b90000000079c072d1fda66d20f0660fa9d374e2a940fcc938a46a837d6b21ff6515b5b58906\",\"job_id\":\"138133069709874\",\"target\":\"169f0200\"},\"status\":\"OK\"}}\n").unwrap();
-
-    assert_eq!(result.id, 1);
-    assert_eq!(result.result.id, "102368431002832");
-    assert_eq!(result.result.status, "OK");
-    assert_eq!(result.result.job.blob, "0606a98bbece052423b128ae15482563d93d4c004034a051d8246236e6abd0cac766f0f54f28b90000000079c072d1fda66d20f0660fa9d374e2a940fcc938a46a837d6b21ff6515b5b58906");
-    assert_eq!(result.result.job.target, "169f0200");
-    assert_eq!(result.result.job.job_id, "138133069709874");
-}
 
 #[test]
 fn test_ser_submit_json() {
@@ -52,6 +41,7 @@ fn test_parse_method_without_method_field() {
 fn test_parse_line_dispatch_result_initial_job() {
 
     let (tx, rx) = channel();
+    let miner_id_mutex = Arc::new(Mutex::new(Option::None));
 
     let line = r#"{
         "id":1,
@@ -67,11 +57,16 @@ fn test_parse_line_dispatch_result_initial_job() {
             "status":"OK"
         }}"#;
 
+    let mutex_thread = miner_id_mutex.clone();
     thread::spawn(move || {
-        stratum::parse_line_dispatch_result(line, &vec![tx]);
+        stratum::parse_line_dispatch_result(line, &vec![tx], &mutex_thread);
     });
 
     let result = rx.recv().unwrap();
+
+    let miner_id_guard = &*miner_id_mutex.lock().unwrap();
+    // TODO check mutex contains correct miner_id!!
+    assert_eq!(miner_id_guard.clone().unwrap(), "930717205908149");
 
     match result {
         stratum::StratumAction::Job{miner_id, blob, job_id, target} => {
@@ -88,7 +83,7 @@ fn test_parse_line_dispatch_result_initial_job() {
 fn test_parse_line_dispatch_result_initial_job_with_non_ok_result() {
 
     let (tx, rx) = channel();
-
+    let miner_id_mutex = Arc::new(Mutex::new(Option::None));
     //Only difference here is that status is != OK
     let line = r#"{
         "id":1,
@@ -105,7 +100,7 @@ fn test_parse_line_dispatch_result_initial_job_with_non_ok_result() {
         }}"#;
 
     thread::spawn(move || {
-        stratum::parse_line_dispatch_result(line, &vec![tx]);
+        stratum::parse_line_dispatch_result(line, &vec![tx], &miner_id_mutex);
     });
 
     let result = rx.recv().unwrap();
@@ -120,6 +115,7 @@ fn test_parse_line_dispatch_result_initial_job_with_non_ok_result() {
 fn test_parse_line_dispatch_unknown_method() {
 
     let (tx, rx) = channel();
+    let miner_id_mutex = Arc::new(Mutex::new(Option::None));
 
     let line = r#"{
         "jsonrpc":"2.0",
@@ -129,7 +125,7 @@ fn test_parse_line_dispatch_unknown_method() {
         }}"#;
 
     thread::spawn(move || {
-        stratum::parse_line_dispatch_result(line, &vec![tx]);
+        stratum::parse_line_dispatch_result(line, &vec![tx], &miner_id_mutex);
     });
 
     let result = rx.recv().unwrap();
@@ -144,6 +140,7 @@ fn test_parse_line_dispatch_unknown_method() {
 fn test_parse_line_dispatch_job_method() {
 
     let (tx, rx) = channel();
+    let miner_id_mutex = Arc::new(Mutex::new(Option::Some("test_miner_id".to_string())));
 
     let line = r#"{
         "jsonrpc":"2.0",
@@ -155,17 +152,44 @@ fn test_parse_line_dispatch_job_method() {
         }}"#;
 
     thread::spawn(move || {
-        stratum::parse_line_dispatch_result(line, &vec![tx]);
+        stratum::parse_line_dispatch_result(line, &vec![tx], &miner_id_mutex);
     });
 
     let result = rx.recv().unwrap();
     match result {
         stratum::StratumAction::Job{miner_id, blob, job_id, target} => {
-            assert_eq!(miner_id, ""); //TODO Find a way to transport the miner_id to a normal job. Until this is not fixed this test should fail.
+            assert_eq!(miner_id, "test_miner_id"); //TODO Find a way to transport the miner_id to a normal job. Until this is not fixed this test should fail.
             assert_eq!(blob, "0606fcb29bcf051b9c7bfc60c98885de404ef48f721f09b8f51d37faf280470880bd120d4e9e0500000000577192c076fed53a24372bc43a3bed1d448a061ad06a262ac5e7f6803a28ccc705");
             assert_eq!(job_id, "878440772206522");
             assert_eq!(target, "169f0200");
         },
+        _ => assert!(false, "Wrong result returned: {:?}", result)
+    }
+}
+
+#[test]
+fn test_parse_line_dispatch_job_method_missing_miner_id() {
+
+    let (tx, rx) = channel();
+    let miner_id_mutex = Arc::new(Mutex::new(Option::None));
+
+    let line = r#"{
+        "jsonrpc":"2.0",
+        "method":"job",
+        "params":{
+            "blob":"0606fcb29bcf051b9c7bfc60c98885de404ef48f721f09b8f51d37faf280470880bd120d4e9e0500000000577192c076fed53a24372bc43a3bed1d448a061ad06a262ac5e7f6803a28ccc705",
+            "job_id":"878440772206522",
+            "target":"169f0200"
+        }}"#;
+
+    thread::spawn(move || {
+        stratum::parse_line_dispatch_result(line, &vec![tx], &miner_id_mutex);
+    });
+
+    let result = rx.recv().unwrap();
+
+    match result {
+        stratum::StratumAction::Error{err} => assert_eq!(err, "miner_id not available for first mining job (login failed previously, this is a bug)"),
         _ => assert!(false, "Wrong result returned: {:?}", result)
     }
 }

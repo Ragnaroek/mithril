@@ -133,9 +133,7 @@ fn work_job(job: WorkerCmd, rcv: &Receiver<WorkerCmd>, share_tx: &Sender<stratum
                     }
                 }
             }
-
-        },
-        _ => return
+        }
     }
 }
 
