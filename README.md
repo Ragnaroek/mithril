@@ -18,3 +18,9 @@ Shares submitted to moneropool.org (pool I am using for testing) are rejected, b
 I have no idea why, although the same data as the reference implemenation xmr-stak-cpu are submitted :)
 
 I am currently setting up my own local pool with node-cryptonote-pool to debug share submission in more detail.
+
+# help wanted
+
+The goal of this project is to build a `pure` Rust monero miner implementation. Currently the 
+Skein and JH hash functions are used as FFI C-Bindings, because there is not Rust implementation available (or I have not found any). A pure Skein or JH Rust implentation would be very welcomed. Notify me if you did implement one of these hashing
+functions and I will gladly use them in mithril!
