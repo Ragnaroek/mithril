@@ -1,7 +1,7 @@
 [![Build Status](https://travis-ci.org/Ragnaroek/mithril.svg?branch=master)](https://travis-ci.org/Ragnaroek/mithril)
 
 # mithril
-rust monero miner
+rust monero miner (pure Rust is the goal, but the project is not there yet, see help wanted section)
 
 TODOs:
 - [x] implement cryptonight hashing function
