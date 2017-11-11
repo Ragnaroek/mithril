@@ -23,7 +23,7 @@ macro_rules! gen_key {
             )
             : "={xmm3}"($key)
             : "{xmm1}"($input1),"{xmm3}"($input0)
-            :
+            : "xmm4", "xmm2"
             : "intel", "alignstack", "volatile"
         );
     }

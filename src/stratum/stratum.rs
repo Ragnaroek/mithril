@@ -135,6 +135,7 @@ fn do_stratum_submit_share(writer: &mut BufWriter<TcpStream>, share: stratum_dat
         }
     };
     let json = serde_json::to_string(&submit_req).unwrap();
+    println!("sending share {}", json);
     write!(writer, "{}\n", json).unwrap();
     writer.flush().unwrap();
 }
@@ -214,7 +215,6 @@ fn parse_job(line: &str, miner_id_mutx: &Arc<Mutex<Option<String>>>) -> StratumA
 
     match result {
         Ok(stratum_data::JobResponse{params: stratum_data::Job{blob, job_id, target}}) => {
-            //TODO We have to transport the id from login to the job method?
             return StratumAction::Job{miner_id, blob, job_id, target};
         },
         _ => return StratumAction::Error{err: "Error parsing job response".to_string()}

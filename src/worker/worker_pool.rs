@@ -46,6 +46,7 @@ pub fn start(conf: WorkerConfig, share_tx: Sender<stratum::StratumCmd>) -> Worke
 
 impl WorkerPool {
     pub fn job_change(&self, miner_id: String, blob: String, job_id: String, target: String) {
+        println!("job change, blob {}", blob);
         let mut partition_ix = 0;
         let num_bits = num_bits(self.num_threads);
         for tx in self.thread_chan.clone() {
@@ -91,34 +92,38 @@ fn work(rcv: Receiver<WorkerCmd>, share_tx: Sender<stratum::StratumCmd>) {
     }
 }
 
+pub fn with_nonce(blob: String, nonce: String) -> String {
+    let (a, _) = blob.split_at(78);
+    let (_, b) = blob.split_at(86);
+    return format!("{}{}{}", a, nonce, b);
+}
+
 fn work_job(job: WorkerCmd, rcv: &Receiver<WorkerCmd>, share_tx: &Sender<stratum::StratumCmd>) {
     match job {
         WorkerCmd::NewJob{job_data} => {
 
-            println!("Starting job: {}", job_data.job_id); //TODO proper logging
+            println!("Starting job with blob: {}", job_data.blob); //TODO proper logging
 
             let num_target = target_u64(byte_string::hex2_u32_le(&job_data.target));
-            let mut b = byte_string::string_to_u8_array(&job_data.blob);
             let first_byte = job_data.nonce_partition << (8 - job_data.nonce_partition_num_bits);
 
             for i in 0..2^(8 - job_data.nonce_partition_num_bits) {
                 for j in 0..u8::max_value() {
                     for k in 0..u8::max_value() {
                         for l in 0..u8::max_value() {
-                            b[39] = first_byte | i;
-                            b[40] = j;
-                            b[41] = k;
-                            b[42] = l;
 
-                            let hash_result = hash::hash(&b);
+                            let nonce = format!("{:02x}{:02x}{:02x}{:02x}", first_byte | i, j, k, l);
+                            let hash_in = with_nonce(job_data.blob.clone(), nonce.clone());
+                            let bytes_in = byte_string::string_to_u8_array(&hash_in);
+
+                            let hash_result = hash::hash(&bytes_in);
                             let hash_val = byte_string::hex2_u64_le(&hash_result[48..]);
 
                             if hash_val < num_target {
-                                println!("found share {}", hash_val);
                                 let share = stratum_data::Share{
                                     miner_id: job_data.miner_id.clone(),
                                     job_id: job_data.job_id.clone(),
-                                    nonce: format!("{:02x}{:02x}{:02x}{:02x}", i, j, k, l),
+                                    nonce: nonce,
                                     hash: hash_result
                                 };
 

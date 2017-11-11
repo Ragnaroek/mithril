@@ -83,6 +83,7 @@ fn test_init_scratchpad_tail() {
 
 #[test]
 fn test_hash() {
+
     //0=Blake
     let mut input = byte_string::string_to_u8_array("546869732069732061207465737431");
     assert_eq!(hash::hash(&input), "236ebffb019ea9b19c9ff160775bc7a6ed090fce7103a32ee582d24a81db6960");
@@ -98,4 +99,16 @@ fn test_hash() {
     //3=Skein (xmr-stak input "This is a test6")
     input = byte_string::string_to_u8_array("546869732069732061207465737436");
     assert_eq!(hash::hash(&input), "bfabcc134608782e8f7322972dba801267f841535372741b554356045910f614");
+
+    input = byte_string::string_to_u8_array("0606cbe692d005ecfebc7d2249d2b43535c237c02359e888b8b05d2e980c1405779241ac3ab48500000004e62a06e71559c98a37e7b6743465f4f72e42784c5719411c935dc002e347826b05");
+    assert_eq!(hash::hash(&input), "5de3f18eff8271adbd3b9848b49d71230d696c7ba6c735554af8e15330ab881b");
+
+    input = byte_string::string_to_u8_array("060687f092d005c5f46c239d1bd5a0667ee32d0687aa566644f81a491a31378fb0f21d8ed5a7a38000000a75c2eacb144fd31b0050c9abb6a52e1e6b9d1692ce6c2f8d2a5e0f01d69d908e15");
+    assert_eq!(hash::hash(&input), "55b4a3163cb2b0720b3b83bee0067dd088891d7fa116fe4c7250f004011c2d99");
+
+    input = byte_string::string_to_u8_array("0606898093d005b6a7bbdd52bf852324ad3c1db10b09501043b3c6f9c436538c848827e65e13e300000008336118421c17ce50b0ea1fa51e4d2255c0b56d5eebc00b4dd4a4ed600010685402");
+    assert_eq!(hash::hash(&input), "c8dcfae5547a922eba99a65692636b2fd17745b62fddb588fe684ee2f80bd8fd");
+
+    input = byte_string::string_to_u8_array("0606ebba9cd005f688598a3ad7ae62d6e150005ded336138b26417772375b1bd5d3c0bc480eeb000000005f3c91e30aab34cbacb1bbb3eecb8b4dfd5e799aa4407b8a0ea4ee397707bc51017");
+    assert_eq!(hash::hash(&input), "038228f36441187229333dd71d3f1b672335ec526d2101cc5fc700692c6aa9cb");
 }
