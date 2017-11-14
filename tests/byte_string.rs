@@ -17,13 +17,7 @@ fn test_hex2_u64_be() {
 }
 
 #[test]
-fn test() {
-    let n : u32 = 8388665;
-    assert_eq!("39008000", format!("{:x}", n.to_be()));
-}
-
-#[test]
-fn test_conv() {
+fn test_conv_back_and_forth() {
     let str_in = "06068cf792d0057f8b118fb8ee53bc32f72dcbae3e6ab44fd846995e8e145566eca098b19020f30000000104c599c5199374899d45470ffd1a381cb6d3aa186965298dbf37a37d03cea32a05";
     let a = string_to_u8_array(str_in);
     let str_out = u8_array_to_string(&a);
