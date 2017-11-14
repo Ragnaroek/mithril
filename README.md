@@ -5,19 +5,16 @@ rust monero miner (pure Rust is the goal, but the project is not there yet, see 
 
 TODOs:
 - [x] implement cryptonight hashing function
-- [ ] implement stratum protocol (for pooled mining support)
-- [ ] use a naive parallelisation scheme
+- [x] implement stratum protocol (for pooled mining support)
+- [x] use a naive parallelisation scheme
 - [ ] measure hash performance
 - [ ] optimise cryptonight hashing function
 - [ ] auto-optimisation via bandit algorithms
 
-# current status (2017-11-04)
+# current status (2017-11-14)
 
-The basic implementation for actual mining monero is ready and complete.
-Shares submitted to moneropool.com (pool I am using for testing) are rejected, but
-I have no idea why, although the same data as the reference implemenation xmr-stak-cpu are submitted :)
-
-I am currently setting up my own local pool with node-cryptonote-pool to debug share submission in more detail.
+The error with wrong submitted shares has been resolved. Mithril is now actually ready to mine Monero!
+Performance is probably not yet comparable to other miners, but this will be the next step.
 
 # help wanted
 
