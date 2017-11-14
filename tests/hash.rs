@@ -112,3 +112,12 @@ fn test_hash() {
     input = byte_string::string_to_u8_array("0606ebba9cd005f688598a3ad7ae62d6e150005ded336138b26417772375b1bd5d3c0bc480eeb000000005f3c91e30aab34cbacb1bbb3eecb8b4dfd5e799aa4407b8a0ea4ee397707bc51017");
     assert_eq!(hash::hash(&input), "038228f36441187229333dd71d3f1b672335ec526d2101cc5fc700692c6aa9cb");
 }
+
+#[test]
+fn test_hash_from_cryptonote_white_paper() {
+    let input = byte_string::string_to_u8_array("");
+    assert_eq!(hash::hash(&input), "eb14e8a833fac6fe9a43b57b336789c46ffe93f2868452240720607b14387e11");
+
+    let input2 = b"This is a test";
+    assert_eq!(hash::hash(&input2[0..]), "a084f01d1437a09c6985401b60d43554ae105802c5f5d8a9b3253649c0be6605");
+}
