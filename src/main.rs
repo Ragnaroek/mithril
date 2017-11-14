@@ -42,6 +42,9 @@ fn main() {
             StratumAction::Error{err} => {
                 println!("received stratum error: {}", err);
             }
+            StratumAction::Ok => {
+                println!("received stratum ok");
+            }
         }
     }
 }

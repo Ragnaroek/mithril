@@ -39,9 +39,23 @@ pub struct LoginResponse {
 }
 
 #[derive(Deserialize)]
+pub struct OkResult {
+    pub id: Option<String>,
+    pub status: String
+}
+
+#[derive(Deserialize)]
+pub struct OkResponse {
+    pub id: u32,
+    pub result: OkResult
+}
+
+#[derive(Deserialize)]
 pub struct JobResponse {
     pub params: Job
 }
+
+
 
 #[derive(Serialize)]
 pub struct SubmitParams {

@@ -212,3 +212,19 @@ fn test_parse_line_dispatch_job_method_missing_miner_id() {
         _ => assert!(false, "Wrong result returned: {:?}", result)
     }
 }
+
+#[test]
+fn test_parse_line_dispatch_job_ok_result_share_submit() {
+
+    let (tx, rx) = channel();
+    let miner_id_mutex = Arc::new(Mutex::new(Option::Some("test_miner_id".to_string())));
+
+    let line = r#"{"id":1,"jsonrpc":"2.0","error":null,"result":{"status":"OK"}}"#;
+
+    thread::spawn(move || {
+        stratum::parse_line_dispatch_result(line, &vec![tx], &miner_id_mutex);
+    });
+
+    let result = rx.recv().unwrap();
+    assert_eq!(stratum::StratumAction::Ok, result);
+}

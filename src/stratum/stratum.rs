@@ -18,7 +18,7 @@ pub enum StratumCmd {
 }
 
 /// something received from the stratum server
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum StratumAction {
     Job {
         miner_id: String,
@@ -28,7 +28,8 @@ pub enum StratumAction {
     },
     Error{
         err: String
-    }
+    },
+    Ok,
 }
 
 pub enum StratumError {
@@ -157,6 +158,15 @@ fn handle_stratum_receive(mut reader: BufReader<TcpStream>, rcvs: Vec<Sender<Str
     }
 }
 
+fn is_generic_ok(result: Result<stratum_data::OkResponse, serde_json::Error>) -> bool {
+    if result.is_ok() {
+        let unwrapped = result.unwrap();
+        return unwrapped.result.status == "OK" && unwrapped.result.id.is_none()
+    }
+    return false;
+}
+
+//TODO Refactor this method (it is very ugly) - its probably better to use generic value parsing and not using struct for every case
 pub fn parse_line_dispatch_result(line: &str, rcvs: &Vec<Sender<StratumAction>>, miner_id_mutx: &Arc<Mutex<Option<String>>>) {
 
     let action;
@@ -169,31 +179,36 @@ pub fn parse_line_dispatch_result(line: &str, rcvs: &Vec<Sender<StratumAction>>,
             }
         }
     } else {
-        let result : Result<stratum_data::Method, serde_json::Error> = serde_json::from_str(line);
-        if result.is_ok() {
-            match result.unwrap() {
-                stratum_data::Method{method} => {
-                    match method.as_ref() {
-                        "job" => action = parse_job(line, miner_id_mutx),
-                        _ => action = StratumAction::Error{err: format!("unknown method received: {}", method)}
+        let ok_result : Result<stratum_data::OkResponse, serde_json::Error> = serde_json::from_str(line);
+        if is_generic_ok(ok_result) {
+            action = StratumAction::Ok
+        } else {
+            let result : Result<stratum_data::Method, serde_json::Error> = serde_json::from_str(line);
+            if result.is_ok() {
+                match result.unwrap() {
+                    stratum_data::Method{method} => {
+                        match method.as_ref() {
+                            "job" => action = parse_job(line, miner_id_mutx),
+                            _ => action = StratumAction::Error{err: format!("unknown method received: {}", method)}
+                        }
                     }
                 }
-            }
-        } else {
-            //try parsing intial job
-            let initial : Result<stratum_data::LoginResponse, serde_json::Error> = serde_json::from_str(line);
-            match initial {
-                Ok(stratum_data::LoginResponse{id: _, result: stratum_data::LoginResult{status, job: stratum_data::Job{blob, job_id, target}, id: miner_id}})
-                    => {
-                          if status == "OK" {
-                              action = StratumAction::Job{miner_id: miner_id.clone(), blob, job_id, target};
-                              let mut miner_id_guard = miner_id_mutx.lock().unwrap();
-                              *miner_id_guard = Option::Some(miner_id.clone());
-                          } else {
-                              action = StratumAction::Error{err: format!("Not OK initial job received, status was {}", status)}
-                          }
-                       },
-                Err(e) => action = StratumAction::Error{err: format!("{:?}, json received {}", e, line)}
+            } else {
+                //try parsing intial job
+                let initial : Result<stratum_data::LoginResponse, serde_json::Error> = serde_json::from_str(line);
+                match initial {
+                    Ok(stratum_data::LoginResponse{id: _, result: stratum_data::LoginResult{status, job: stratum_data::Job{blob, job_id, target}, id: miner_id}})
+                        => {
+                              if status == "OK" {
+                                  action = StratumAction::Job{miner_id: miner_id.clone(), blob, job_id, target};
+                                  let mut miner_id_guard = miner_id_mutx.lock().unwrap();
+                                  *miner_id_guard = Option::Some(miner_id.clone());
+                              } else {
+                                  action = StratumAction::Error{err: format!("Not OK initial job received, status was {}", status)}
+                              }
+                           },
+                    Err(e) => action = StratumAction::Error{err: format!("{:?}, json received {}", e, line)}
+                }
             }
         }
     }
