@@ -6,3 +6,9 @@ pool_password = ""
 
 [worker]
 num_threads = 8
+
+[metric]
+enabled = false
+resolution = 100 #determines how often a hash result is reported
+sample_interval_seconds = 60
+report_file = "/path/to/hash/report/file.csv"

@@ -4,6 +4,7 @@ use super::super::cryptonight::hash;
 use super::super::stratum::stratum;
 use super::super::stratum::stratum_data;
 use super::super::byte_string;
+use super::super::metric::metric::{MetricConfig};
 
 pub struct WorkerPool {
     thread_chan : Vec<Sender<WorkerCmd>>,
@@ -31,14 +32,18 @@ pub enum WorkerCmd {
     },
 }
 
-pub fn start(conf: WorkerConfig, share_tx: Sender<stratum::StratumCmd>) -> WorkerPool {
+pub fn start(conf: WorkerConfig,
+             share_tx: Sender<stratum::StratumCmd>,
+             metric_resolution: u64,
+             metric_tx: Sender<u32>) -> WorkerPool {
     let mut thread_chan : Vec<Sender<WorkerCmd>> = Vec::with_capacity(conf.num_threads as usize);
     for _ in 0..conf.num_threads {
         let (tx, rx) = channel();
         let share_tx_thread = share_tx.clone();
+        let metric_tx_thread = metric_tx.clone();
         thread_chan.push(tx);
         thread::spawn(move || {
-            work(rx, share_tx_thread)
+            work(rx, share_tx_thread, metric_resolution, metric_tx_thread)
         });
     }
     return WorkerPool{thread_chan, num_threads: conf.num_threads};
@@ -74,7 +79,10 @@ pub fn num_bits(num_threads: u64) -> u8 {
 
 //TODO pub fn stop() //stop all workers, for controlled shutdown
 
-fn work(rcv: Receiver<WorkerCmd>, share_tx: Sender<stratum::StratumCmd>) {
+fn work(rcv: Receiver<WorkerCmd>,
+        share_tx: Sender<stratum::StratumCmd>,
+        metric_resolution: u64,
+        metric_tx: Sender<u32>) {
 
     loop {
         let job_blocking = rcv.recv();
@@ -84,7 +92,7 @@ fn work(rcv: Receiver<WorkerCmd>, share_tx: Sender<stratum::StratumCmd>) {
             //channel was dropped, terminate thread
             return;
         } else {
-            work_job(job_blocking.unwrap(), &rcv, &share_tx);
+            work_job(job_blocking.unwrap(), &rcv, metric_resolution, &share_tx);
             //if work_job returns the received WorkerCmd was not a job cmd
             //or the nonce space was exhausted. We have to wait blocking for
             //a new job and "idle".
@@ -98,7 +106,7 @@ pub fn with_nonce(blob: String, nonce: String) -> String {
     return format!("{}{}{}", a, nonce, b);
 }
 
-fn work_job(job: WorkerCmd, rcv: &Receiver<WorkerCmd>, share_tx: &Sender<stratum::StratumCmd>) {
+fn work_job(job: WorkerCmd, rcv: &Receiver<WorkerCmd>, metric_resolution: u64, share_tx: &Sender<stratum::StratumCmd>) {
     match job {
         WorkerCmd::NewJob{job_data} => {
 
