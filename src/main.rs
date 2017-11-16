@@ -5,6 +5,7 @@ use mithril::stratum::stratum_data::{PoolConfig};
 use mithril::stratum::stratum::{StratumClient, StratumAction};
 use mithril::worker::worker_pool;
 use mithril::worker::worker_pool::{WorkerConfig};
+use mithril::metric::metric;
 use mithril::metric::metric::{MetricConfig};
 use std::sync::mpsc::{channel};
 use std::path::Path;
@@ -28,6 +29,8 @@ fn main() {
 
     let share_tx = client.new_cmd_channel().unwrap();
     let (metric_tx, metric_rx) = channel();
+
+    metric::start(metric_conf.clone(), metric_rx);
 
     //worker pool start
     let pool = &worker_pool::start(worker_conf, share_tx, metric_conf.resolution, metric_tx);

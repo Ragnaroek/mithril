@@ -4,7 +4,6 @@ use super::super::cryptonight::hash;
 use super::super::stratum::stratum;
 use super::super::stratum::stratum_data;
 use super::super::byte_string;
-use super::super::metric::metric::{MetricConfig};
 
 pub struct WorkerPool {
     thread_chan : Vec<Sender<WorkerCmd>>,
@@ -35,7 +34,7 @@ pub enum WorkerCmd {
 pub fn start(conf: WorkerConfig,
              share_tx: Sender<stratum::StratumCmd>,
              metric_resolution: u64,
-             metric_tx: Sender<u32>) -> WorkerPool {
+             metric_tx: Sender<u64>) -> WorkerPool {
     let mut thread_chan : Vec<Sender<WorkerCmd>> = Vec::with_capacity(conf.num_threads as usize);
     for _ in 0..conf.num_threads {
         let (tx, rx) = channel();
@@ -82,7 +81,7 @@ pub fn num_bits(num_threads: u64) -> u8 {
 fn work(rcv: Receiver<WorkerCmd>,
         share_tx: Sender<stratum::StratumCmd>,
         metric_resolution: u64,
-        metric_tx: Sender<u32>) {
+        metric_tx: Sender<u64>) {
 
     loop {
         let job_blocking = rcv.recv();
@@ -92,7 +91,7 @@ fn work(rcv: Receiver<WorkerCmd>,
             //channel was dropped, terminate thread
             return;
         } else {
-            work_job(job_blocking.unwrap(), &rcv, metric_resolution, &share_tx);
+            work_job(job_blocking.unwrap(), &rcv, &share_tx, metric_resolution, &metric_tx);
             //if work_job returns the received WorkerCmd was not a job cmd
             //or the nonce space was exhausted. We have to wait blocking for
             //a new job and "idle".
@@ -106,14 +105,17 @@ pub fn with_nonce(blob: String, nonce: String) -> String {
     return format!("{}{}{}", a, nonce, b);
 }
 
-fn work_job(job: WorkerCmd, rcv: &Receiver<WorkerCmd>, metric_resolution: u64, share_tx: &Sender<stratum::StratumCmd>) {
+fn work_job(job: WorkerCmd,
+    rcv: &Receiver<WorkerCmd>,
+    share_tx: &Sender<stratum::StratumCmd>,
+    metric_resolution: u64,
+    metric_tx: &Sender<u64>) {
     match job {
         WorkerCmd::NewJob{job_data} => {
-
-            println!("Starting job with blob: {}", job_data.blob); //TODO proper logging
-
             let num_target = target_u64(byte_string::hex2_u32_le(&job_data.target));
             let first_byte = job_data.nonce_partition << (8 - job_data.nonce_partition_num_bits);
+
+            let mut hash_count : u64 = 0;
 
             for i in 0..2^(8 - job_data.nonce_partition_num_bits) {
                 for j in 0..u8::max_value() {
@@ -139,7 +141,20 @@ fn work_job(job: WorkerCmd, rcv: &Receiver<WorkerCmd>, metric_resolution: u64, s
                                 println!("share submit result {:?}", share_result);
                             }
 
+                            hash_count += 1;
+                            if hash_count % metric_resolution == 0 {
+                                let send_result = metric_tx.send(hash_count);
+                                if send_result.is_err() {
+                                    println!("metric submit failed {:?}", send_result); //TODO Log
+                                }
+                                hash_count = 0;
+                            }
+
                             if new_job_available(rcv) {
+                                let send_result = metric_tx.send(hash_count);
+                                if send_result.is_err() { //flush hash_count
+                                    println!("metric submit failed {:?}", send_result); //TODO Log
+                                }
                                 return
                             }
                         }
