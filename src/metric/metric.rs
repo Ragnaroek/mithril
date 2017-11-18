@@ -32,8 +32,7 @@ pub fn start(conf: MetricConfig, hash_cnt_receiver: Receiver<u64>) {
     thread::spawn(move || {
         loop {
             thread::sleep(time::Duration::from_secs(conf.sample_interval_seconds));
-            let sample_cnt = count.load(Ordering::SeqCst);
-
+            let sample_cnt = count.swap(0, Ordering::SeqCst);
             //TODO write result to csv file
             println!("sampled hash count {}", sample_cnt);
         }
