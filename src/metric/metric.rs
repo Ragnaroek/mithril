@@ -50,7 +50,7 @@ pub fn start(conf: MetricConfig, hash_cnt_receiver: Receiver<u64>) {
                              .open(conf.report_file.clone());
             if file_result.is_ok() {
                 let mut file = file_result.unwrap();
-                let write_result = write!(file, "{};{}/n", millis, sample_cnt);
+                let write_result = write!(file, "{};{}\n", millis, sample_cnt);
                 if write_result.is_err() {
                     println!("could not write metric file"); //TODO Log
                 }
