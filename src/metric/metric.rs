@@ -3,6 +3,8 @@ use std::time;
 use std::sync::mpsc::{Receiver};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc};
+use std::io::Write;
+use std::fs::OpenOptions;
 
 #[derive(Clone)]
 pub struct MetricConfig {
@@ -33,8 +35,31 @@ pub fn start(conf: MetricConfig, hash_cnt_receiver: Receiver<u64>) {
         loop {
             thread::sleep(time::Duration::from_secs(conf.sample_interval_seconds));
             let sample_cnt = count.swap(0, Ordering::SeqCst);
-            //TODO write result to csv file
-            println!("sampled hash count {}", sample_cnt);
+
+            let timestamp_result = time::SystemTime::now().duration_since(time::UNIX_EPOCH);
+            if timestamp_result.is_err() {
+                println!("error getting timestamp"); //TODO Log
+                return;
+            }
+            let timestamp = timestamp_result.unwrap();
+            let millis = timestamp.as_secs() * 1_000 + (timestamp.subsec_nanos() / 1_000_000) as u64;
+
+            let file_result = OpenOptions::new()
+                             .create(true)
+                             .append(true)
+                             .open(conf.report_file.clone());
+            if file_result.is_ok() {
+                let mut file = file_result.unwrap();
+                let write_result = write!(file, "{};{}/n", millis, sample_cnt);
+                if write_result.is_err() {
+                    println!("could not write metric file"); //TODO Log
+                }
+                if file.flush().is_err() {
+                    println!("err flushing file"); //TODO Log
+                }
+            } else {
+                println!("could not open metric file"); //TODO Log
+            }
         }
     });
 }
