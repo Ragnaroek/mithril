@@ -11,3 +11,5 @@ Cargo.lock
 
 # real config with potential credentials
 config.toml
+
+hash_report_release.csv
