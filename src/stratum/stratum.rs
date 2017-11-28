@@ -87,6 +87,8 @@ impl StratumClient {
     /// returns the first mining job.
     pub fn login(self: &mut Self) -> () {// Result<LoginResponse, StratumError> {
 
+        info!("stratum client login");
+
         self.init();
 
         self.tx_cmd.clone().unwrap().send(StratumCmd::Login{}).unwrap();
@@ -112,6 +114,7 @@ impl StratumClient {
 }
 
 pub fn submit_share(tx: &Sender<StratumCmd>, share: stratum_data::Share) -> Result<(), SendError<StratumCmd>> {
+    info!("submitting share: {:?}", share);
     return tx.send(StratumCmd::SubmitShare{share});
 }
 
@@ -136,7 +139,6 @@ fn do_stratum_submit_share(writer: &mut BufWriter<TcpStream>, share: stratum_dat
         }
     };
     let json = serde_json::to_string(&submit_req).unwrap();
-    println!("sending share {}", json);
     write!(writer, "{}\n", json).unwrap();
     writer.flush().unwrap();
 }
@@ -153,7 +155,7 @@ fn handle_stratum_receive(mut reader: BufReader<TcpStream>, rcvs: Vec<Sender<Str
         let mut line = String::new();
         match reader.read_line(&mut line) {
             Ok(_) => parse_line_dispatch_result(&line, &rcvs, &miner_id),
-            Err(e) => println!("read_line error: {:?}", e), //TODO Err handling??
+            Err(e) => error!("read_line error: {:?}", e), //TODO Err handling??
         };
     }
 }

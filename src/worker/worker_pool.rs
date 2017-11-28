@@ -50,7 +50,7 @@ pub fn start(conf: WorkerConfig,
 
 impl WorkerPool {
     pub fn job_change(&self, miner_id: String, blob: String, job_id: String, target: String) {
-        println!("job change, blob {}", blob);
+        info!("job change, blob {}", blob);
         let mut partition_ix = 0;
         let num_bits = num_bits(self.num_threads);
         for tx in self.thread_chan.clone() {
@@ -87,7 +87,7 @@ fn work(rcv: Receiver<WorkerCmd>,
         let job_blocking = rcv.recv();
         if job_blocking.is_err() {
             //TODO proper logging
-            println!("err: {:?}", job_blocking);
+            error!("job channel was droppped: {:?}", job_blocking);
             //channel was dropped, terminate thread
             return;
         } else {
@@ -137,15 +137,17 @@ fn work_job(job: WorkerCmd,
                                     hash: hash_result
                                 };
 
-                                let share_result = stratum::submit_share(share_tx, share);
-                                println!("share submit result {:?}", share_result);
+                                let submit_result = stratum::submit_share(share_tx, share);
+                                if submit_result.is_err() {
+                                    error!("submitting share failed: {:?}", submit_result);
+                                }
                             }
 
                             hash_count += 1;
                             if hash_count % metric_resolution == 0 {
                                 let send_result = metric_tx.send(hash_count);
                                 if send_result.is_err() {
-                                    println!("metric submit failed {:?}", send_result); //TODO Log
+                                    error!("metric submit failed {:?}", send_result);
                                 }
                                 hash_count = 0;
                             }
@@ -153,7 +155,7 @@ fn work_job(job: WorkerCmd,
                             if new_job_available(rcv) {
                                 let send_result = metric_tx.send(hash_count);
                                 if send_result.is_err() { //flush hash_count
-                                    println!("metric submit failed {:?}", send_result); //TODO Log
+                                    error!("metric submit failed {:?}", send_result);
                                 }
                                 return
                             }

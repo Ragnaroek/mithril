@@ -23,7 +23,7 @@ pub fn start(conf: MetricConfig, hash_cnt_receiver: Receiver<u64>) {
         loop {
             let cnt_rcv = hash_cnt_receiver.recv();
             if cnt_rcv.is_err() {
-                println!("reading hash count failed"); //TODO Logging
+                error!("reading hash count failed");
             } else {
                 let cnt = cnt_rcv.unwrap();
                 thread_count.fetch_add(cnt, Ordering::SeqCst);
@@ -38,7 +38,7 @@ pub fn start(conf: MetricConfig, hash_cnt_receiver: Receiver<u64>) {
 
             let timestamp_result = time::SystemTime::now().duration_since(time::UNIX_EPOCH);
             if timestamp_result.is_err() {
-                println!("error getting timestamp"); //TODO Log
+                error!("error getting metric timestamp");
                 return;
             }
             let timestamp = timestamp_result.unwrap();
@@ -52,13 +52,13 @@ pub fn start(conf: MetricConfig, hash_cnt_receiver: Receiver<u64>) {
                 let mut file = file_result.unwrap();
                 let write_result = write!(file, "{};{}\n", millis, sample_cnt);
                 if write_result.is_err() {
-                    println!("could not write metric file"); //TODO Log
+                    error!("could not write metric file"); //TODO Log
                 }
                 if file.flush().is_err() {
-                    println!("err flushing file"); //TODO Log
+                    error!("err flushing metric file"); //TODO Log
                 }
             } else {
-                println!("could not open metric file"); //TODO Log
+                error!("could not open metric file"); //TODO Log
             }
         }
     });

@@ -1,4 +1,3 @@
-
 use u64x2::u64x2;
 
 //TODO Rename to hex2_u8_array
@@ -9,7 +8,7 @@ pub fn string_to_u8_array(hex: &str) -> Vec<u8> {
         match res {
             Ok(v) => bytes.push(v),
             Err(e) => {
-                println!("Problem with hex: {}", e);
+                error!("Problem with hex: {}", e);
                 return bytes;
             }
         };

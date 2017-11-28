@@ -1,5 +1,8 @@
 extern crate mithril;
 extern crate config;
+#[macro_use]
+extern crate log;
+extern crate env_logger;
 
 use mithril::stratum::stratum_data::{PoolConfig};
 use mithril::stratum::stratum::{StratumClient, StratumAction};
@@ -17,6 +20,8 @@ const CONFIG_FILE_NAME : &'static str = "config.toml";
 
 fn main() {
 
+    env_logger::init().unwrap();
+
     sanity_check();
 
     //Read config
@@ -28,7 +33,6 @@ fn main() {
     //Stratum start
     let (stratum_tx, stratum_rx) = channel();
 
-    println!("Doing client login");
     let mut client = StratumClient::new(pool_conf, vec![stratum_tx]);
     client.login();
 
@@ -43,7 +47,7 @@ fn main() {
     loop {
         let received = stratum_rx.recv();
         if received.is_err() {
-            println!("lost connection to stratum client: {:?}", received);
+            error!("Lost connection to stratum client: {:?}", received);
             return
         }
         match received.unwrap() {
@@ -51,10 +55,10 @@ fn main() {
                 pool.job_change(miner_id, blob, job_id, target);
             },
             StratumAction::Error{err} => {
-                println!("received stratum error: {}", err);
+                error!("Received stratum error: {}", err);
             }
             StratumAction::Ok => {
-                println!("received stratum ok");
+                info!("Received stratum ok");
             }
         }
     }
