@@ -86,7 +86,6 @@ fn work(rcv: Receiver<WorkerCmd>,
     loop {
         let job_blocking = rcv.recv();
         if job_blocking.is_err() {
-            //TODO proper logging
             error!("job channel was droppped: {:?}", job_blocking);
             //channel was dropped, terminate thread
             return;

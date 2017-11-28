@@ -177,7 +177,7 @@ fn test_parse_line_dispatch_job_method() {
     let result = rx.recv().unwrap();
     match result {
         stratum::StratumAction::Job{miner_id, blob, job_id, target} => {
-            assert_eq!(miner_id, "test_miner_id"); //TODO Find a way to transport the miner_id to a normal job. Until this is not fixed this test should fail.
+            assert_eq!(miner_id, "test_miner_id"); 
             assert_eq!(blob, "0606fcb29bcf051b9c7bfc60c98885de404ef48f721f09b8f51d37faf280470880bd120d4e9e0500000000577192c076fed53a24372bc43a3bed1d448a061ad06a262ac5e7f6803a28ccc705");
             assert_eq!(job_id, "878440772206522");
             assert_eq!(target, "169f0200");

@@ -52,13 +52,13 @@ pub fn start(conf: MetricConfig, hash_cnt_receiver: Receiver<u64>) {
                 let mut file = file_result.unwrap();
                 let write_result = write!(file, "{};{}\n", millis, sample_cnt);
                 if write_result.is_err() {
-                    error!("could not write metric file"); //TODO Log
+                    error!("could not write metric file");
                 }
                 if file.flush().is_err() {
-                    error!("err flushing metric file"); //TODO Log
+                    error!("err flushing metric file");
                 }
             } else {
-                error!("could not open metric file"); //TODO Log
+                error!("could not open metric file"); 
             }
         }
     });
