@@ -41,7 +41,7 @@ macro_rules! aes_enc {
 }
 
 #[inline(always)]
-pub fn gen_key_0x01(input0: u64x2, input1: u64x2) -> (u64x2, u64x2) {
+fn gen_key_0x01(input0: u64x2, input1: u64x2) -> (u64x2, u64x2) {
     let r0;
     let r1;
     unsafe {
@@ -52,7 +52,7 @@ pub fn gen_key_0x01(input0: u64x2, input1: u64x2) -> (u64x2, u64x2) {
 }
 
 #[inline(always)]
-pub fn gen_key_0x02(input0: u64x2, input1: u64x2) -> (u64x2, u64x2) {
+fn gen_key_0x02(input0: u64x2, input1: u64x2) -> (u64x2, u64x2) {
     let r0;
     let r1;
     unsafe {
@@ -63,7 +63,7 @@ pub fn gen_key_0x02(input0: u64x2, input1: u64x2) -> (u64x2, u64x2) {
 }
 
 #[inline(always)]
-pub fn gen_key_0x04(input0: u64x2, input1: u64x2) -> (u64x2, u64x2) {
+fn gen_key_0x04(input0: u64x2, input1: u64x2) -> (u64x2, u64x2) {
     let r0;
     let r1;
     unsafe {
@@ -74,7 +74,7 @@ pub fn gen_key_0x04(input0: u64x2, input1: u64x2) -> (u64x2, u64x2) {
 }
 
 #[inline(always)]
-pub fn gen_key_0x08(input0: u64x2, input1: u64x2) -> (u64x2, u64x2) {
+fn gen_key_0x08(input0: u64x2, input1: u64x2) -> (u64x2, u64x2) {
     let r0;
     let r1;
     unsafe {
@@ -82,6 +82,31 @@ pub fn gen_key_0x08(input0: u64x2, input1: u64x2) -> (u64x2, u64x2) {
         gen_key!("0x00", "0xAA", r1, input1, r0);
     }
     return (r0, r1);
+}
+
+pub fn gen_round_keys(input0: u64x2, input1: u64x2) -> [u64x2;10] {
+    let mut r : [u64x2;10] = [u64x2(0,0);10];
+
+    r[0] = input0;
+    r[1] = input1;
+
+    let (input0, input1) = gen_key_0x01(input0, input1);
+    r[2] = input0;
+    r[3] = input1;
+
+    let (input0, input1) = gen_key_0x02(input0, input1);
+    r[4] = input0;
+    r[5] = input1;
+
+    let (input0, input1) = gen_key_0x04(input0, input1);
+    r[6] = input0;
+    r[7] = input1;
+
+    let (input0, input1) = gen_key_0x08(input0, input1);
+    r[8] = input0;
+    r[9] = input1;
+
+    return r;
 }
 
 pub fn aes_round(block: u64x2, key: u64x2) -> u64x2 {

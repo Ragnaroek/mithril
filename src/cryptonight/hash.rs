@@ -102,7 +102,9 @@ pub fn scratchpad_addr(u: &u64x2) -> usize {
 }
 
 pub fn finalise_scratchpad(scratchpad: Box<[u64x2; MEM_SIZE]>, keccak_state: &[u8; 200], aes: &AES) -> [u64x2; 8] {
-    let keys = aes_round_keys(&keccak_state, 32, aes);
+    let input0 = u64x2::read(&keccak_state[32..(32+16)]);
+    let input1 = u64x2::read(&keccak_state[(32+16)..(32+32)]);
+    let keys = aes.gen_round_keys(input0, input1);
 
     let mut state : [u64x2; 8] = [u64x2(0,0); 8];
     for i in 0..8 {
@@ -130,7 +132,9 @@ pub fn finalise_scratchpad(scratchpad: Box<[u64x2; MEM_SIZE]>, keccak_state: &[u
 }
 
 pub fn init_scratchpad(state: &[u8; 200], aes: &AES) -> Box<[u64x2; MEM_SIZE]>{
-    let keys = aes_round_keys(&state, 0, aes);
+    let input0 = u64x2::read(&state[0..16]);
+    let input1 = u64x2::read(&state[16..32]);
+    let keys = aes.gen_round_keys(input0, input1);
 
     let mut scratchpad : Box<[u64x2; MEM_SIZE]> = box [u64x2(0,0); MEM_SIZE];
     for i in 0..8 {
@@ -153,32 +157,4 @@ pub fn init_scratchpad(state: &[u8; 200], aes: &AES) -> Box<[u64x2; MEM_SIZE]>{
     }
 
     return scratchpad;
-}
-
-//TODO move this to aes.rs and only expose this function in AES
-pub fn aes_round_keys(state: &[u8; 200], offset: usize, aes: &AES) -> [u64x2;10] {
-    let mut r : [u64x2;10] = [u64x2(0,0);10];
-
-    let input0 = u64x2::read(&state[offset..(offset+16)]);
-    let input1 = u64x2::read(&state[(offset+16)..(offset+32)]);
-    r[0] = input0;
-    r[1] = input1;
-
-    let (input0, input1) = aes.gen_key_0x01(input0, input1);
-    r[2] = input0;
-    r[3] = input1;
-
-    let (input0, input1) = aes.gen_key_0x02(input0, input1);
-    r[4] = input0;
-    r[5] = input1;
-
-    let (input0, input1) = aes.gen_key_0x04(input0, input1);
-    r[6] = input0;
-    r[7] = input1;
-
-    let (input0, input1) = aes.gen_key_0x08(input0, input1);
-    r[8] = input0;
-    r[9] = input1;
-
-    return r;
 }
