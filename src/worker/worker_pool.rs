@@ -1,6 +1,8 @@
 use std::thread;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use super::super::cryptonight::hash;
+use super::super::cryptonight::aes;
+use super::super::cryptonight::aes::{AES, AESSupport};
 use super::super::stratum::stratum;
 use super::super::stratum::stratum_data;
 use super::super::byte_string;
@@ -32,6 +34,7 @@ pub enum WorkerCmd {
 }
 
 pub fn start(conf: WorkerConfig,
+             aes_support: AESSupport,
              share_tx: Sender<stratum::StratumCmd>,
              metric_resolution: u64,
              metric_tx: Sender<u64>) -> WorkerPool {
@@ -40,9 +43,10 @@ pub fn start(conf: WorkerConfig,
         let (tx, rx) = channel();
         let share_tx_thread = share_tx.clone();
         let metric_tx_thread = metric_tx.clone();
+        let aes_support_thread = aes_support.clone();
         thread_chan.push(tx);
         thread::spawn(move || {
-            work(rx, share_tx_thread, metric_resolution, metric_tx_thread)
+            work(rx, share_tx_thread, aes_support_thread, metric_resolution, metric_tx_thread)
         });
     }
     return WorkerPool{thread_chan, num_threads: conf.num_threads};
@@ -80,8 +84,11 @@ pub fn num_bits(num_threads: u64) -> u8 {
 
 fn work(rcv: Receiver<WorkerCmd>,
         share_tx: Sender<stratum::StratumCmd>,
+        aes_support: AESSupport,
         metric_resolution: u64,
         metric_tx: Sender<u64>) {
+
+    let aes = aes::new(aes_support);
 
     loop {
         let job_blocking = rcv.recv();
@@ -90,7 +97,7 @@ fn work(rcv: Receiver<WorkerCmd>,
             //channel was dropped, terminate thread
             return;
         } else {
-            work_job(job_blocking.unwrap(), &rcv, &share_tx, metric_resolution, &metric_tx);
+            work_job(job_blocking.unwrap(), &rcv, &share_tx, &aes, metric_resolution, &metric_tx);
             //if work_job returns the received WorkerCmd was not a job cmd
             //or the nonce space was exhausted. We have to wait blocking for
             //a new job and "idle".
@@ -107,6 +114,7 @@ pub fn with_nonce(blob: String, nonce: String) -> String {
 fn work_job(job: WorkerCmd,
     rcv: &Receiver<WorkerCmd>,
     share_tx: &Sender<stratum::StratumCmd>,
+    aes: &AES,
     metric_resolution: u64,
     metric_tx: &Sender<u64>) {
     match job {
@@ -125,7 +133,7 @@ fn work_job(job: WorkerCmd,
                             let hash_in = with_nonce(job_data.blob.clone(), nonce.clone());
                             let bytes_in = byte_string::string_to_u8_array(&hash_in);
 
-                            let hash_result = hash::hash(&bytes_in);
+                            let hash_result = hash::hash(&bytes_in, aes);
                             let hash_val = byte_string::hex2_u64_le(&hash_result[48..]);
 
                             if hash_val < num_target {

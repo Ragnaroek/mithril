@@ -11,6 +11,8 @@ use mithril::worker::worker_pool::{WorkerConfig};
 use mithril::metric::metric;
 use mithril::metric::metric::{MetricConfig};
 use mithril::cryptonight::hash;
+use mithril::cryptonight::aes;
+use mithril::cryptonight::aes::{AESSupport};
 use mithril::byte_string;
 use std::sync::mpsc::{channel};
 use std::path::Path;
@@ -22,13 +24,14 @@ fn main() {
 
     env_logger::init().unwrap();
 
-    sanity_check();
-
     //Read config
     let config = read_config().unwrap();
     let pool_conf = pool_config(&config).unwrap();
     let worker_conf = worker_config(&config).unwrap();
     let metric_conf = metric_config(&config).unwrap();
+    let hw_conf = hardware_config(&config).unwrap();
+
+    sanity_check(hw_conf.aes_support.clone());
 
     //Stratum start
     let (stratum_tx, stratum_rx) = channel();
@@ -42,7 +45,7 @@ fn main() {
     metric::start(metric_conf.clone(), metric_rx);
 
     //worker pool start
-    let pool = &worker_pool::start(worker_conf, share_tx, metric_conf.resolution, metric_tx);
+    let pool = &worker_pool::start(worker_conf, hw_conf.aes_support, share_tx, metric_conf.resolution, metric_tx);
 
     loop {
         let received = stratum_rx.recv();
@@ -62,6 +65,10 @@ fn main() {
             }
         }
     }
+}
+
+pub struct HardwareConfig {
+    pub aes_support: AESSupport
 }
 
 fn pool_config(conf: &Config) -> Result<PoolConfig, ConfigError> {
@@ -92,6 +99,17 @@ fn metric_config(conf: &Config) -> Result<MetricConfig, ConfigError> {
     }
 }
 
+fn hardware_config(conf: &Config) -> Result<HardwareConfig, ConfigError> {
+    let has_aes = conf.get_bool("hardware.has_aes")?;
+    let aes_support;
+    if has_aes {
+        aes_support = AESSupport::HW;
+    } else {
+        aes_support = AESSupport::SW;
+    }
+    return Ok(HardwareConfig{aes_support});
+}
+
 fn get_u64_no_zero(conf: &Config, field: &str) -> Result<u64, ConfigError> {
     let val = conf.get_int(field)?;
     if val <= 0 {
@@ -111,9 +129,12 @@ fn read_config() -> Result<Config, ConfigError> {
     return Err(ConfigError::Message("config file not found".to_string()));
 }
 
-fn sanity_check() {
-    let result0 = hash::hash(&byte_string::string_to_u8_array(""));
-    let result1 = hash::hash(&b"This is a test"[0..]);
+fn sanity_check(aes_support: AESSupport) {
+
+    let aes = aes::new(aes_support);
+
+    let result0 = hash::hash(&byte_string::string_to_u8_array(""), &aes);
+    let result1 = hash::hash(&b"This is a test"[0..], &aes);
     if result0 != "eb14e8a833fac6fe9a43b57b336789c46ffe93f2868452240720607b14387e11" ||
        result1 != "a084f01d1437a09c6985401b60d43554ae105802c5f5d8a9b3253649c0be6605" {
         panic!("hash sanity check failed, please report this at https://github.com/Ragnaroek/mithril/issues");

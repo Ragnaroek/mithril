@@ -1,93 +1,62 @@
-//taken from https://github.com/RustCrypto/block-ciphers and modified for Cryptonight
+
+use super::hw_aes;
+use super::sw_aes;
 
 use u64x2::u64x2;
 
-macro_rules! gen_key {
-    ($round:expr, $ib:expr, $key:ident, $input0:ident, $input1:ident) => {
-        asm!(concat!("
-            aeskeygenassist xmm2, xmm1, ", $round,
-            "
-            pshufd xmm2, xmm2, ", $ib,
-            "
-            movdqa xmm4, xmm3
-            pslldq xmm4, 0x4
-            pxor xmm3, xmm4
-
-            pslldq xmm4, 0x4
-            pxor xmm3, xmm4
-
-            pslldq xmm4, 0x4
-            pxor xmm3, xmm4
-
-            pxor xmm3, xmm2"
-            )
-            : "={xmm3}"($key)
-            : "{xmm1}"($input1),"{xmm3}"($input0)
-            : "xmm4", "xmm2"
-            : "intel", "alignstack", "volatile"
-        );
-    }
+#[derive(Clone)]
+pub enum AESSupport{
+    HW,
+    SW
 }
 
-macro_rules! aes_enc {
-    ($data:ident, $key:ident, $result:ident) => {
-        asm!("aesenc xmm1, xmm2"
-            : "={xmm1}"($result)
-            : "{xmm1}"($data),"{xmm2}"($key)
-            :
-            : "intel", "alignstack", "volatile"
-        );
-    }
+pub struct AES {
+    gen_key_0x01_f: fn(u64x2, u64x2) -> (u64x2, u64x2),
+    gen_key_0x02_f: fn(u64x2, u64x2) -> (u64x2, u64x2),
+    gen_key_0x04_f: fn(u64x2, u64x2) -> (u64x2, u64x2),
+    gen_key_0x08_f: fn(u64x2, u64x2) -> (u64x2, u64x2),
+    aes_round_f:    fn(u64x2, u64x2) -> u64x2,
 }
 
-#[inline(always)]
-pub fn gen_key_0x01(input0: u64x2, input1: u64x2) -> (u64x2, u64x2) {
-    let r0;
-    let r1;
-    unsafe {
-        gen_key!("0x01", "0xFF", r0, input0, input1);
-        gen_key!("0x00", "0xAA", r1, input1, r0);
-    }
-    return (r0, r1);
+pub fn new(aes: AESSupport) -> AES {
+    let gen_key_0x01_f = match aes {
+        AESSupport::SW => sw_aes::gen_key_0x01,
+        AESSupport::HW => hw_aes::gen_key_0x01,
+    };
+    let gen_key_0x02_f = match aes {
+        AESSupport::SW => sw_aes::gen_key_0x02,
+        AESSupport::HW => hw_aes::gen_key_0x02,
+    };
+    let gen_key_0x04_f = match aes {
+        AESSupport::SW => sw_aes::gen_key_0x04,
+        AESSupport::HW => hw_aes::gen_key_0x04,
+    };
+    let gen_key_0x08_f = match aes {
+        AESSupport::SW => sw_aes::gen_key_0x08,
+        AESSupport::HW => hw_aes::gen_key_0x08,
+    };
+    let aes_round_f = match aes {
+        AESSupport::SW => sw_aes::aes_round,
+        AESSupport::HW => hw_aes::aes_round,
+    };
+
+    return AES{gen_key_0x01_f, gen_key_0x02_f, gen_key_0x04_f, gen_key_0x08_f, aes_round_f}
 }
 
-#[inline(always)]
-pub fn gen_key_0x02(input0: u64x2, input1: u64x2) -> (u64x2, u64x2) {
-    let r0;
-    let r1;
-    unsafe {
-        gen_key!("0x02", "0xFF", r0, input0, input1);
-        gen_key!("0x00", "0xAA", r1, input1, r0);
+impl AES {
+    pub fn gen_key_0x01(&self, input0: u64x2, input1: u64x2) -> (u64x2, u64x2) {
+        return (self.gen_key_0x01_f)(input0, input1);
     }
-    return (r0, r1);
-}
-
-#[inline(always)]
-pub fn gen_key_0x04(input0: u64x2, input1: u64x2) -> (u64x2, u64x2) {
-    let r0;
-    let r1;
-    unsafe {
-        gen_key!("0x04", "0xFF", r0, input0, input1);
-        gen_key!("0x00", "0xAA", r1, input1, r0);
+    pub fn gen_key_0x02(&self, input0: u64x2, input1: u64x2) -> (u64x2, u64x2) {
+        return (self.gen_key_0x02_f)(input0, input1);
     }
-    return (r0, r1);
-}
-
-#[inline(always)]
-pub fn gen_key_0x08(input0: u64x2, input1: u64x2) -> (u64x2, u64x2) {
-    let r0;
-    let r1;
-    unsafe {
-        gen_key!("0x08", "0xFF", r0, input0, input1);
-        gen_key!("0x00", "0xAA", r1, input1, r0);
+    pub fn gen_key_0x04(&self, input0: u64x2, input1: u64x2) -> (u64x2, u64x2) {
+        return (self.gen_key_0x04_f)(input0, input1);
     }
-    return (r0, r1);
-}
-
-pub fn aes_round(block: u64x2, key: u64x2) -> u64x2 {
-    let r;
-    unsafe {
-        aes_enc!(block, key, r);
+    pub fn gen_key_0x08(&self, input0: u64x2, input1: u64x2) -> (u64x2, u64x2) {
+        return (self.gen_key_0x08_f)(input0, input1);
     }
-    return r;
+    pub fn aes_round(&self, block: u64x2, key: u64x2) -> u64x2 {
+        return (self.aes_round_f)(block, key);
+    }
 }
