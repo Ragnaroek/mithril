@@ -105,6 +105,7 @@ fn hardware_config(conf: &Config) -> Result<HardwareConfig, ConfigError> {
     if has_aes {
         aes_support = AESSupport::HW;
     } else {
+        panic!("Software AES support is currently implemented, only hardware support can be enabled atm");
         aes_support = AESSupport::SW;
     }
     return Ok(HardwareConfig{aes_support});
