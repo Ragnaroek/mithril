@@ -40,6 +40,12 @@ pub fn hex2_u64_le(hex: &str) -> u64 {
     return result;
 }
 
+pub fn hex2_u64x2_be(hex: &str) -> u64x2 {
+    let u1 = hex2_u64_be(&hex[0..16]);
+    let u2 = hex2_u64_be(&hex[16..32]);
+    return u64x2(u2, u1);
+}
+
 pub fn hex2_u64_be(hex: &str) -> u64 {
     return u64::from_str_radix(hex, 16).unwrap();
 }

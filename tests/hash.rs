@@ -5,7 +5,6 @@ use mithril::cryptonight::hash;
 use mithril::cryptonight::keccak;
 use mithril::cryptonight::aes;
 use mithril::cryptonight::aes::{AESSupport};
-use mithril::u64x2::u64x2;
 
 #[test]
 fn test_init_scratchpad() {
