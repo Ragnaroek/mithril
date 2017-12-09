@@ -41,6 +41,7 @@ macro_rules! mm_cvtsi128_si32 {
     }
 }
 
+#[inline(always)]
 pub fn _mm_cvtsi128_si32(v: u64x2) -> u32 {
     let r;
     unsafe {
