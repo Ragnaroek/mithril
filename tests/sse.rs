@@ -1,7 +1,6 @@
 extern crate mithril;
 
 use mithril::cryptonight::sse;
-use mithril::u64x2::{u64x2};
 use mithril::byte_string;
 
 #[test]
@@ -20,4 +19,13 @@ fn test_mm_shuffle_epi32_0xff() {
 
     u_in = byte_string::hex2_u64x2_be("96d2027bf576310f69b2b1ab81f7f007");
     assert_eq!(byte_string::hex2_u64x2_be("96d2027b96d2027b96d2027b96d2027b"), sse::_mm_shuffle_epi32_0xff(u_in));
+}
+
+#[test]
+fn test_mm_cvtsi128_si32() {
+    let mut u_in = byte_string::hex2_u64x2_be("396d009f396d009f396d009f396d009f");
+    assert_eq!(0x396d009f, sse::_mm_cvtsi128_si32(u_in));
+
+    u_in = byte_string::hex2_u64x2_be("f90cc069f90cc069f90cc069f90cc069");
+    assert_eq!(0xf90cc069, sse::_mm_cvtsi128_si32(u_in));
 }
