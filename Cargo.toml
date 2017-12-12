@@ -7,7 +7,6 @@ authors = ["Michael Bohn <spaceodyssey@gmx.de>"]
 name = "mithril"
 
 [dependencies]
-aesti = "0.3.0"
 groestl = "0.3.0"
 blake = "2.0.0"
 jh-ffi = "0.0.2"

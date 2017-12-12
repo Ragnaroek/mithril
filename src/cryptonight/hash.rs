@@ -2,7 +2,6 @@ extern crate groestl;
 extern crate blake;
 extern crate jhffi;
 extern crate skeinffi;
-extern crate aesti;
 
 use super::keccak;
 use super::aes::{AES};
