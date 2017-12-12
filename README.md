@@ -7,7 +7,8 @@ TODOs:
 - [x] implement cryptonight hashing function
 - [x] implement stratum protocol (for pooled mining support)
 - [x] use a naive parallelisation scheme
-- [ ] measure hash performance
+- [x] measure hash performance
+- [] implement software AES (current work)
 - [ ] optimise cryptonight hashing function
 - [ ] auto-optimisation via bandit algorithms
 
