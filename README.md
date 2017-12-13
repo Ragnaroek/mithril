@@ -10,7 +10,9 @@ TODOs:
 - [x] measure hash performance
 - [ ] implement software AES (current work)
 - [ ] optimise cryptonight hashing function
+
 - [ ] auto-optimisation via bandit algorithms
+- [ ] integrate gpu mining (ATI, Nvidia)
 
 # current status (2017-11-14)
 
