@@ -11,6 +11,7 @@ TODOs:
 - [ ] implement software AES (current work)
 - [ ] optimise cryptonight hashing function
 
+Middle-Term TODOs:
 - [ ] auto-optimisation via bandit algorithms
 - [ ] integrate gpu mining (ATI, Nvidia)
 
