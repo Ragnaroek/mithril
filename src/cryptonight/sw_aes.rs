@@ -36,6 +36,32 @@ pub fn rotr(value: u32, amount: u32) -> u32 {
     return u32::rotate_right(value, amount);
 }
 
+//TODO Test for sl_xor
+//TODO impl _mm_xor_si128
+pub fn sl_xor(value: u64x2) -> u64x2 {
+
+    /*
+    /*printf("x-or-input: ");
+	printm128i(tmp1);*/
+	__m128i tmp4;
+	tmp4 = _mm_slli_si128(tmp1, 0x04);
+	tmp1 = _mm_xor_si128(tmp1, tmp4);
+	/*printf("xor-1: ");
+	printm128i(tmp1);*/
+	tmp4 = _mm_slli_si128(tmp4, 0x04);
+	tmp1 = _mm_xor_si128(tmp1, tmp4);
+	/*printf("xor-2: ");
+	printm128i(tmp1);*/
+	tmp4 = _mm_slli_si128(tmp4, 0x04);
+	tmp1 = _mm_xor_si128(tmp1, tmp4);
+	/*printf("xor-3: ");
+	printm128i(tmp1);*/
+	return tmp1;
+    */
+
+    return u64x2(0, 0);
+}
+
 pub fn aes_keygenassist(key: u64x2, rcon: u8) -> u64x2 {
     let w1 = sub_word(sse::_mm_cvtsi128_si32(sse::_mm_shuffle_epi32_0x55(key)));
     let w2 = sub_word(sse::_mm_cvtsi128_si32(sse::_mm_shuffle_epi32_0xff(key)));
@@ -45,8 +71,25 @@ pub fn aes_keygenassist(key: u64x2, rcon: u8) -> u64x2 {
     return u64x2(p1, p2);
 }
 
-fn aes_keygenassist_sub(key0: u64x2, key1: u64x2, rcon: u8) -> (u64x2, u64x2) {
-    return (u64x2(0, 0), u64x2(0, 0));
+pub fn aes_keygenassist_sub(key0: u64x2, key1: u64x2, rcon: u8) -> (u64x2, u64x2) {
+    let mut out1 = aes_keygenassist(key1, rcon);
+    out1 = sse::_mm_shuffle_epi32_0xff(out1);
+
+    let mut out2 = aes_keygenassist(key1, 0x00);
+    out2 = sse::_mm_shuffle_epi32_0xaa(out2);
+
+    return (out1, out2);
+/*
+    __m128i xout1 = soft_aeskeygenassist(*xout2, rcon);
+	xout1 = _mm_shuffle_epi32(xout1, 0xFF); // see PSHUFD, set all elems to 4th elem
+	*xout0 = sl_xor(*xout0);
+	*xout0 = _mm_xor_si128(*xout0, xout1);
+
+	xout1 = soft_aeskeygenassist(*xout0, 0x00);
+	xout1 = _mm_shuffle_epi32(xout1, 0xAA); // see PSHUFD, set all elems to 3rd elem
+	*xout2 = sl_xor(*xout2);
+	*xout2 = _mm_xor_si128(*xout2, xout1);
+*/
 }
 
 #[inline(always)]

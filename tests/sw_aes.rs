@@ -17,7 +17,6 @@ fn test_rotr() {
 
 #[test]
 fn test_aeskeygenassist() {
-
     let mut u_in = byte_string::hex2_u64x2_be("e6cba1621beee65388b7bfb9053a7182");
     assert_eq!(byte_string::hex2_u64x2_be("aa8e1f368e1f32aa56c4a90cc4a90856"), sw_aes::aes_keygenassist(u_in, 4));
 
@@ -26,4 +25,65 @@ fn test_aeskeygenassist() {
 
     u_in = byte_string::hex2_u64x2_be("e99669e60f5dc88414b32ed79c04916e");
     assert_eq!(byte_string::hex2_u64x2_be("8e1e90f11e90f98e0efa6d39fa6d310e"), sw_aes::aes_keygenassist(u_in, 8));
+}
+
+//#[test] TODO Run Test!
+fn test_aes_keygenassist_sub_0x01() {
+
+    let u_in0 = byte_string::hex2_u64x2_be("2380b05aea3f02a15e85e227dba2f942");
+    let u_in1 = byte_string::hex2_u64x2_be("f263052a5f97ad26494e3849429f9844");
+    let (out0, out1) = sw_aes::aes_keygenassist_sub(u_in0, u_in1, 0x01);
+    assert_eq!(byte_string::hex2_u64x2_be("a91152f48a91e2ae60aee00f3e2b0228"), out0);
+    assert_eq!(byte_string::hex2_u64x2_be("75a708be87c40d94d853a0b2911d98fb"), out1);
+
+    let u_in0 = byte_string::hex2_u64x2_be("92ea2321c65589e53bebc98a5261712d");
+    let u_in1 = byte_string::hex2_u64x2_be("6cad579bcf337a05078e4cfd10e0ef29");
+    let (out0, out1) = sw_aes::aes_keygenassist_sub(u_in0, u_in1, 0x01);
+    assert_eq!(byte_string::hex2_u64x2_be("29658739bb8fa4187dda2dfd4631e477"), out0);
+    assert_eq!(byte_string::hex2_u64x2_be("11bd99587d10cec3b223b4c6b5adf83b"), out1);
+
+    /*
+    xout0.in=2380b05aea3f02a15e85e227dba2f942
+xout2.in=f263052a5f97ad26494e3849429f9844
+xout0.out=a91152f48a91e2ae60aee00f3e2b0228
+xout2.out=75a708be87c40d94d853a0b2911d98fb
+
+xout0.in=92ea2321c65589e53bebc98a5261712d
+xout2.in=6cad579bcf337a05078e4cfd10e0ef29
+xout0.out=29658739bb8fa4187dda2dfd4631e477
+xout2.out=11bd99587d10cec3b223b4c6b5adf83b
+
+xout0.in=536ac33231544d67ee9991cab134b7be
+xout2.in=ba978ea9edfa06e2bb4a51774694d1ba
+xout0.out=ee672039bd0de30b8c59ae6c62c03fa6
+xout2.out=8236bf9438a1313dd55b37df6e1166a8
+*/
+}
+
+//#[test] //TODO Run Test!
+fn test_aes_keygenassist_sub_0x08() {
+
+    let u_in0 = byte_string::hex2_u64x2_be("270ae071408cc2a4c2683ddbc8a857a0");
+    let u_in1 = byte_string::hex2_u64x2_be("9b54322927ef223dc692c35e73b244c2");
+    let (out0, out1) = sw_aes::aes_keygenassist_sub(u_in0, u_in1, 0x08);
+    assert_eq!(byte_string::hex2_u64x2_be("c8526885ef5888f4afd44a506dbc778b"), out0);
+    assert_eq!(byte_string::hex2_u64x2_be("e19bd21f7acfe0365d20c20b9bb20155"), out1);
+
+    let u_in0 = byte_string::hex2_u64x2_be("61398f2024a3b0b907f76bd29c07d5b6");
+    let u_in1 = byte_string::hex2_u64x2_be("7524ba9924ef09ed2bf4163501bf99cc");
+    let (out0, out1) = sw_aes::aes_keygenassist_sub(u_in0, u_in1, 0x08);
+    assert_eq!(byte_string::hex2_u64x2_be("30f7b70151ce3821756d8898729ae34a"), out0);
+    assert_eq!(byte_string::hex2_u64x2_be("7fe895f10acc2f682e23268505d730b0"), out1);
+
+    /*
+    xout0.in.0x08=270ae071408cc2a4c2683ddbc8a857a0
+    xout2.in.0x08=9b54322927ef223dc692c35e73b244c2
+    xout0.out.0x08=c8526885ef5888f4afd44a506dbc778b
+    xout2.out.0x08=e19bd21f7acfe0365d20c20b9bb20155
+
+    xout0.in.0x08=61398f2024a3b0b907f76bd29c07d5b6
+    xout2.in.0x08=7524ba9924ef09ed2bf4163501bf99cc
+    xout0.out.0x08=30f7b70151ce3821756d8898729ae34a
+    xout2.out.0x08=7fe895f10acc2f682e23268505d730b0
+*/
 }
