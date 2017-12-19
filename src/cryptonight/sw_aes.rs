@@ -4,13 +4,22 @@ use cryptonight::sse;
 
 pub fn gen_round_keys(input0: u64x2, input1: u64x2) -> [u64x2;10] {
 
-/*
-    let mut k : [u8;16] = [0;16];
-    input0.write(&mut k);
-    let aes = aesti::Aes::with_key(&mut k).unwrap();
-    println!("key_enc={:?}", aes.key_enc[0]);
-*/
-    let r : [u64x2;10] = [u64x2(0,0);10];
+    let mut r : [u64x2;10] = [u64x2(0,0);10];
+    r[0] = input0;
+    r[1] = input1;
+
+    let (r2, r3) = aes_keygenassist_sub(input0, input1, 0x01);
+    r[2] = r2;
+    r[3] = r3;
+    let (r4, r5) = aes_keygenassist_sub(r2, r3, 0x02);
+    r[4] = r4;
+    r[5] = r5;
+    let (r6, r7) = aes_keygenassist_sub(r4, r5, 0x04);
+    r[6] = r6;
+    r[7] = r7;
+    let (r8, r9) = aes_keygenassist_sub(r6, r7, 0x08);
+    r[8] = r8;
+    r[9] = r9;
     return r;
 }
 

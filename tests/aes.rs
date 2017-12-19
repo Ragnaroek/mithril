@@ -43,7 +43,6 @@ fn test_aes_round_keys_hardware() {
     assert_eq!(byte_string::u64x2_to_string(keys[9]), "278251bd1171fedc338012fcae284a11");
 }
 
-/*
 #[test]
 fn test_aes_round_keys_software() {
     let input = byte_string::string_to_u8_array("05059fa5a8cc05b2df5d8fa271bb2d0304d4b1842f0f50844b735746db97ee5c196c647c3a5adc0c000000640680be903f504e896daebe42cdbe11e1a938d5c7fb2d64baa6356fe6fbacb704");
@@ -63,4 +62,4 @@ fn test_aes_round_keys_software() {
     assert_eq!(byte_string::u64x2_to_string(keys[7]), "36f3af6122f1ec209da858eda41065ae");
     assert_eq!(byte_string::u64x2_to_string(keys[8]), "a3764ef44da82dfe35fb183250602933");
     assert_eq!(byte_string::u64x2_to_string(keys[9]), "278251bd1171fedc338012fcae284a11");
-}*/
+}
