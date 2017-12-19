@@ -36,30 +36,18 @@ pub fn rotr(value: u32, amount: u32) -> u32 {
     return u32::rotate_right(value, amount);
 }
 
-//TODO Test for sl_xor
-//TODO impl _mm_xor_si128
 pub fn sl_xor(value: u64x2) -> u64x2 {
 
-    /*
-    /*printf("x-or-input: ");
-	printm128i(tmp1);*/
-	__m128i tmp4;
-	tmp4 = _mm_slli_si128(tmp1, 0x04);
-	tmp1 = _mm_xor_si128(tmp1, tmp4);
-	/*printf("xor-1: ");
-	printm128i(tmp1);*/
-	tmp4 = _mm_slli_si128(tmp4, 0x04);
-	tmp1 = _mm_xor_si128(tmp1, tmp4);
-	/*printf("xor-2: ");
-	printm128i(tmp1);*/
-	tmp4 = _mm_slli_si128(tmp4, 0x04);
-	tmp1 = _mm_xor_si128(tmp1, tmp4);
-	/*printf("xor-3: ");
-	printm128i(tmp1);*/
-	return tmp1;
-    */
+    let t4 = sse::_mm_slli_si128_0x04(value);
+    let t1 = sse::_mm_xor_si128(value, t4);
 
-    return u64x2(0, 0);
+    let t4 = sse::_mm_slli_si128_0x04(t4);
+    let t1 = sse::_mm_xor_si128(t1, t4);
+
+    let t4 = sse::_mm_slli_si128_0x04(t4);
+    let t1 = sse::_mm_xor_si128(t1, t4);
+
+    return t1;
 }
 
 pub fn aes_keygenassist(key: u64x2, rcon: u8) -> u64x2 {
@@ -71,25 +59,18 @@ pub fn aes_keygenassist(key: u64x2, rcon: u8) -> u64x2 {
     return u64x2(p1, p2);
 }
 
-pub fn aes_keygenassist_sub(key0: u64x2, key1: u64x2, rcon: u8) -> (u64x2, u64x2) {
-    let mut out1 = aes_keygenassist(key1, rcon);
-    out1 = sse::_mm_shuffle_epi32_0xff(out1);
+pub fn aes_keygenassist_sub(x0: u64x2, x2: u64x2, rcon: u8) -> (u64x2, u64x2) {
+    let out1 = aes_keygenassist(x2, rcon);
+    let out1 = sse::_mm_shuffle_epi32_0xff(out1);
+    let out0 = sl_xor(x0);
+    let out0 = sse::_mm_xor_si128(out0, out1);
 
-    let mut out2 = aes_keygenassist(key1, 0x00);
-    out2 = sse::_mm_shuffle_epi32_0xaa(out2);
+    let out1 = aes_keygenassist(out0, 0x00);
+    let out1 = sse::_mm_shuffle_epi32_0xaa(out1);
+    let out2 = sl_xor(x2);
+    let out2 = sse::_mm_xor_si128(out2, out1);
 
-    return (out1, out2);
-/*
-    __m128i xout1 = soft_aeskeygenassist(*xout2, rcon);
-	xout1 = _mm_shuffle_epi32(xout1, 0xFF); // see PSHUFD, set all elems to 4th elem
-	*xout0 = sl_xor(*xout0);
-	*xout0 = _mm_xor_si128(*xout0, xout1);
-
-	xout1 = soft_aeskeygenassist(*xout0, 0x00);
-	xout1 = _mm_shuffle_epi32(xout1, 0xAA); // see PSHUFD, set all elems to 3rd elem
-	*xout2 = sl_xor(*xout2);
-	*xout2 = _mm_xor_si128(*xout2, xout1);
-*/
+    return (out0, out2);
 }
 
 #[inline(always)]

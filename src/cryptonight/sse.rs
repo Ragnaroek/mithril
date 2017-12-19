@@ -78,3 +78,23 @@ pub fn _mm_slli_si128_0x04(v: u64x2) -> u64x2 {
     }
     return r;
 }
+
+macro_rules! mm_xor_si128 {
+    ($v0:expr, $v1:expr, $result:ident) => {
+        asm!("pxor xmm1, xmm2"
+            : "={xmm1}"($result)
+            : "{xmm1}"($v0), "{xmm2}"($v1)
+            :
+            : "intel", "alignstack", "volatile"
+        );
+    }
+}
+
+#[inline(always)]
+pub fn _mm_xor_si128(v0: u64x2, v1: u64x2) -> u64x2 {
+    let r;
+    unsafe {
+        mm_xor_si128!(v0, v1, r)
+    }
+    return r;
+}

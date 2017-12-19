@@ -49,10 +49,13 @@ fn test_mm_slli_si128_0x04() {
     assert_eq!(byte_string::hex2_u64x2_be("9cc480a4e84541acc62fdabf00000000"), sse::_mm_slli_si128_0x04(u_in));
 }
 
-/*
-x-or-input: 2d95fc16cc409d24141bbc7d4cd3d577
-x-or-output: cc409d24141bbc7d4cd3d57700000000
+#[test]
+fn test_mm_xor_si128() {
+    let u_in0 = byte_string::hex2_u64x2_be("cdd61469a07994f7672a138623d3ee57");
+    let u_in1 = byte_string::hex2_u64x2_be("a07994f7672a138623d3ee5700000000");
+    assert_eq!(byte_string::hex2_u64x2_be("6daf809ec753877144f9fdd123d3ee57"), sse::_mm_xor_si128(u_in0, u_in1));
 
-x-or-input: 63a433749cc480a4e84541acc62fdabf
-x-or-output: 9cc480a4e84541acc62fdabf00000000
-*/
+    let u_in0 = byte_string::hex2_u64x2_be("f6816d7c96db4a8a5f872d620824e4da");
+    let u_in1 = byte_string::hex2_u64x2_be("96db4a8a5f872d620824e4da00000000");
+    assert_eq!(byte_string::hex2_u64x2_be("605a27f6c95c67e857a3c9b80824e4da"), sse::_mm_xor_si128(u_in0, u_in1));
+}
