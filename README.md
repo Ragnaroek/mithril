@@ -8,7 +8,7 @@ TODOs:
 - [x] implement stratum protocol (for pooled mining support)
 - [x] use a naive parallelisation scheme
 - [x] measure hash performance
-- [ ] implement software AES (current work)
+- [x] implement software AES (current work)
 - [ ] optimise cryptonight hashing function
 
 Middle-Term TODOs:
