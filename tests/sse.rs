@@ -30,7 +30,6 @@ fn test_mm_shuffle_epi32_0xaa() {
     assert_eq!(byte_string::hex2_u64x2_be("ef1273b7ef1273b7ef1273b7ef1273b7"), sse::_mm_shuffle_epi32_0xaa(u_in));
 }
 
-
 #[test]
 fn test_mm_cvtsi128_si32() {
     let u_in = byte_string::hex2_u64x2_be("396d009f396d009f396d009f396d009f");
