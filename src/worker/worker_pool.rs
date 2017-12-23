@@ -104,6 +104,7 @@ fn work(rcv: Receiver<WorkerCmd>,
             //if work_job returns the received WorkerCmd was not a job cmd
             //or the nonce space was exhausted. We have to wait blocking for
             //a new job and "idle".
+            warn!("nonce space exhausted, thread idle");
         }
     }
 }
