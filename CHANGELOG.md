@@ -4,6 +4,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.5]
+- double efficiency by fixing a stupid bug
+
 ## [0.3.0]
 - optimisation scratchpad allocation
 

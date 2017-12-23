@@ -1,6 +1,6 @@
 [package]
 name = "mithril"
-version = "0.3.0"
+version = "0.3.5"
 authors = ["Michael Bohn <spaceodyssey@gmx.de>"]
 
 [lib]
