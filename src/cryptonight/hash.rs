@@ -14,10 +14,16 @@ use super::super::byte_string;
 pub const MEM_SIZE : usize = 2097152 / 16;
 const ITERATIONS : u32 = 524288;
 
-pub fn hash(input: &[u8], aes: &AES) -> String {
+/// This is mainly for testing, allocates a new scratchpad on every hash
+pub fn hash_alloc_scratchpad(input: &[u8], aes: &AES) -> String {
+    let mut scratchpad : Box<[u64x2; MEM_SIZE]> = box [u64x2(0,0); MEM_SIZE];
+    return hash(&mut scratchpad, input, aes);
+}
+
+pub fn hash(mut scratchpad : &mut Box<[u64x2; MEM_SIZE]>, input: &[u8], aes: &AES) -> String {
     //scratchpad init
     let mut state = keccak::keccak(input);
-    let mut scratchpad = init_scratchpad(&state, &aes);
+    init_scratchpad(&mut scratchpad, &state, &aes);
 
     let mut a = u64x2::read(&state[0..16]) ^ u64x2::read(&state[32..48]);
     let mut b = u64x2::read(&state[16..32]) ^ u64x2::read(&state[48..64]);
@@ -100,7 +106,7 @@ pub fn scratchpad_addr(u: &u64x2) -> usize {
     return ((u.0 & 0x1FFFF0) >> 4) as usize;
 }
 
-pub fn finalise_scratchpad(scratchpad: Box<[u64x2; MEM_SIZE]>, keccak_state: &[u8; 200], aes: &AES) -> [u64x2; 8] {
+pub fn finalise_scratchpad(scratchpad: &mut Box<[u64x2; MEM_SIZE]>, keccak_state: &[u8; 200], aes: &AES) -> [u64x2; 8] {
     let input0 = u64x2::read(&keccak_state[32..(32+16)]);
     let input1 = u64x2::read(&keccak_state[(32+16)..(32+32)]);
     let keys = aes.gen_round_keys(input0, input1);
@@ -130,12 +136,11 @@ pub fn finalise_scratchpad(scratchpad: Box<[u64x2; MEM_SIZE]>, keccak_state: &[u
     return state;
 }
 
-pub fn init_scratchpad(state: &[u8; 200], aes: &AES) -> Box<[u64x2; MEM_SIZE]>{
+pub fn init_scratchpad(scratchpad : &mut Box<[u64x2; MEM_SIZE]>, state: &[u8; 200], aes: &AES) {
     let input0 = u64x2::read(&state[0..16]);
     let input1 = u64x2::read(&state[16..32]);
     let keys = aes.gen_round_keys(input0, input1);
 
-    let mut scratchpad : Box<[u64x2; MEM_SIZE]> = box [u64x2(0,0); MEM_SIZE];
     for i in 0..8 {
         let offset = i*16;
         let mut block = u64x2::read(&state[64+offset..64+offset+16]);
@@ -154,6 +159,4 @@ pub fn init_scratchpad(state: &[u8; 200], aes: &AES) -> Box<[u64x2; MEM_SIZE]>{
             scratchpad[i+8] = block
         }
     }
-
-    return scratchpad;
 }

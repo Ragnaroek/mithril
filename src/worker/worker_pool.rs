@@ -1,11 +1,13 @@
 use std::thread;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use super::super::cryptonight::hash;
+use super::super::cryptonight::hash::{MEM_SIZE};
 use super::super::cryptonight::aes;
 use super::super::cryptonight::aes::{AES, AESSupport};
 use super::super::stratum::stratum;
 use super::super::stratum::stratum_data;
 use super::super::byte_string;
+use super::super::u64x2::{u64x2};
 
 pub struct WorkerPool {
     thread_chan : Vec<Sender<WorkerCmd>>,
@@ -89,6 +91,7 @@ fn work(rcv: Receiver<WorkerCmd>,
         metric_tx: Sender<u64>) {
 
     let aes = aes::new(aes_support);
+    let mut scratchpad : Box<[u64x2; MEM_SIZE]> = box [u64x2(0,0); MEM_SIZE];
 
     loop {
         let job_blocking = rcv.recv();
@@ -97,7 +100,7 @@ fn work(rcv: Receiver<WorkerCmd>,
             //channel was dropped, terminate thread
             return;
         } else {
-            work_job(job_blocking.unwrap(), &rcv, &share_tx, &aes, metric_resolution, &metric_tx);
+            work_job(&mut scratchpad, job_blocking.unwrap(), &rcv, &share_tx, &aes, metric_resolution, &metric_tx);
             //if work_job returns the received WorkerCmd was not a job cmd
             //or the nonce space was exhausted. We have to wait blocking for
             //a new job and "idle".
@@ -111,7 +114,8 @@ pub fn with_nonce(blob: String, nonce: String) -> String {
     return format!("{}{}{}", a, nonce, b);
 }
 
-fn work_job(job: WorkerCmd,
+fn work_job(scratchpad : &mut Box<[u64x2; MEM_SIZE]>,
+    job: WorkerCmd,
     rcv: &Receiver<WorkerCmd>,
     share_tx: &Sender<stratum::StratumCmd>,
     aes: &AES,
@@ -133,7 +137,7 @@ fn work_job(job: WorkerCmd,
                             let hash_in = with_nonce(job_data.blob.clone(), nonce.clone());
                             let bytes_in = byte_string::string_to_u8_array(&hash_in);
 
-                            let hash_result = hash::hash(&bytes_in, aes);
+                            let hash_result = hash::hash(scratchpad, &bytes_in, aes);
                             let hash_val = byte_string::hex2_u64_le(&hash_result[48..]);
 
                             if hash_val < num_target {

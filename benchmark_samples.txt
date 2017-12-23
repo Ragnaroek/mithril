@@ -1,0 +1,14 @@
+#### v0.3 with scratchpad allocation per thread
+test bench_hash_with_hardware ... bench:  68,249,395 ns/iter (+/- 6,219,061)
+test bench_hash_with_software ... bench: 125,221,735 ns/iter (+/- 8,232,491)
+
+test bench_hash_with_hardware ... bench:  70,047,818 ns/iter (+/- 6,242,595)
+test bench_hash_with_software ... bench: 127,486,662 ns/iter (+/- 9,413,116)
+
+#### v0.2 with new mem allocation on every hash
+
+test bench_hash_with_hardware ... bench:  72,854,660 ns/iter (+/- 6,826,594)
+test bench_hash_with_software ... bench: 127,593,253 ns/iter (+/- 11,354,581)
+
+test bench_hash_with_hardware ... bench:  71,520,833 ns/iter (+/- 9,280,947)
+test bench_hash_with_software ... bench: 129,525,927 ns/iter (+/- 12,151,962)
