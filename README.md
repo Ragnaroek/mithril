@@ -15,13 +15,29 @@ Middle-Term TODOs:
 - [ ] auto-optimisation via bandit algorithms
 - [ ] integrate gpu mining (ATI, Nvidia)
 
-# current status (2017-11-14)
+
+# HowTo Compile, Configure and Run
+
+You need the Rust nightly version to compile Mithril, since it uses inline assembler which is only available
+in the nightly version of Rust. The nightly version is best installed with [rustup](https://www.rustup.rs/).
+Once you have the nightly version installed, type `cargo build --release` for an optimised binary.
+The binary can be found in the `target/release/` folder.
+
+Mithril expects a `config.toml` in the working directory. Copy the `default_config.toml` as `config.toml` to the Mithril
+working directory. You need at least configure your Monero address in the `[pool]` section for the reward and the `num_threads` depending on your machine (a good start is to use 2x number of your cores on your machine).
+
+If you get a `wrong instruction set` kind of error you can try to disable hardware AES with the `has_aes` flag in the
+`[hardware]` section.
+
+If you find any issues, please report them here: [Mithril Issues](https://github.com/Ragnaroek/mithril/issues)
+
+# Current Status (2017-11-14)
 
 The error with wrong submitted shares has been resolved. Mithril is now actually ready to mine Monero!
 Performance is probably not yet comparable to other miners, but this will be the next step.
 
-# help wanted
+# Help Wanted
 
-The goal of this project is to build a `pure` Rust monero miner implementation. Currently the 
+The goal of this project is to build a `pure` Rust monero miner implementation. Currently the
 Skein and JH hash functions are used as FFI C-Bindings, because there is not Rust implementation available (or I have not found any). A pure Skein or JH Rust implentation would be very welcomed. Notify me if you did implement one of these hashing
 functions and I will gladly use them in mithril!
