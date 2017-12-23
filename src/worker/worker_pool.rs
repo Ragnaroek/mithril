@@ -35,6 +35,12 @@ pub enum WorkerCmd {
     },
 }
 
+#[derive(PartialEq)]
+enum WorkerExit {
+    NonceSpaceExhausted,
+    NewJob,
+}
+
 pub fn start(conf: WorkerConfig,
              aes_support: AESSupport,
              share_tx: Sender<stratum::StratumCmd>,
@@ -100,11 +106,13 @@ fn work(rcv: Receiver<WorkerCmd>,
             //channel was dropped, terminate thread
             return;
         } else {
-            work_job(&mut scratchpad, job_blocking.unwrap(), &rcv, &share_tx, &aes, metric_resolution, &metric_tx);
-            //if work_job returns the received WorkerCmd was not a job cmd
-            //or the nonce space was exhausted. We have to wait blocking for
-            //a new job and "idle".
-            warn!("nonce space exhausted, thread idle");
+            let exit_reason = work_job(&mut scratchpad, job_blocking.unwrap(), &rcv, &share_tx, &aes, metric_resolution, &metric_tx);
+            //if work_job returns the received WorkerCmd was not a job cmd,
+            //the nonce space was exhausted or a new job was received.
+            //In case the nonce space was exhausted, we have to wait blocking for a new job and "idle".
+            if exit_reason == WorkerExit::NonceSpaceExhausted {
+                warn!("nonce space exhausted, thread idle");
+            }
         }
     }
 }
@@ -121,7 +129,7 @@ fn work_job(scratchpad : &mut Box<[u64x2; MEM_SIZE]>,
     share_tx: &Sender<stratum::StratumCmd>,
     aes: &AES,
     metric_resolution: u64,
-    metric_tx: &Sender<u64>) {
+    metric_tx: &Sender<u64>) -> WorkerExit {
     match job {
         WorkerCmd::NewJob{job_data} => {
             let num_target = target_u64(byte_string::hex2_u32_le(&job_data.target));
@@ -169,7 +177,7 @@ fn work_job(scratchpad : &mut Box<[u64x2; MEM_SIZE]>,
                                 if send_result.is_err() { //flush hash_count
                                     error!("metric submit failed {:?}", send_result);
                                 }
-                                return
+                                return WorkerExit::NewJob;
                             }
                         }
                     }
@@ -177,6 +185,7 @@ fn work_job(scratchpad : &mut Box<[u64x2; MEM_SIZE]>,
             }
         }
     }
+    return WorkerExit::NonceSpaceExhausted;
 }
 
 fn new_job_available(rcv: &Receiver<WorkerCmd>) -> bool {
