@@ -18,7 +18,7 @@ pub struct WorkerConfig {
     pub num_threads: u64
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct JobData {
     pub miner_id: String,
     pub blob: String,
@@ -35,10 +35,12 @@ pub enum WorkerCmd {
     },
 }
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 enum WorkerExit {
     NonceSpaceExhausted,
-    NewJob,
+    NewJob {
+        job_data: JobData
+    },
 }
 
 pub fn start(conf: WorkerConfig,
@@ -99,20 +101,34 @@ fn work(rcv: Receiver<WorkerCmd>,
     let aes = aes::new(aes_support);
     let mut scratchpad : Box<[u64x2; MEM_SIZE]> = box [u64x2(0,0); MEM_SIZE];
 
+    let first_job = rcv.recv();
+    if first_job.is_err() {
+        error!("job channel was droppped: {:?}", first_job);
+        return;
+    }
+    let mut job = match first_job.unwrap() {
+        WorkerCmd::NewJob{job_data} => job_data
+    };
+
     loop {
-        let job_blocking = rcv.recv();
-        if job_blocking.is_err() {
-            error!("job channel was droppped: {:?}", job_blocking);
-            //channel was dropped, terminate thread
-            return;
-        } else {
-            let exit_reason = work_job(&mut scratchpad, job_blocking.unwrap(), &rcv, &share_tx, &aes, metric_resolution, &metric_tx);
-            //if work_job returns the received WorkerCmd was not a job cmd,
-            //the nonce space was exhausted or a new job was received.
-            //In case the nonce space was exhausted, we have to wait blocking for a new job and "idle".
-            if exit_reason == WorkerExit::NonceSpaceExhausted {
+        let exit_reason = work_job(&mut scratchpad, job, &rcv, &share_tx, &aes, metric_resolution, &metric_tx);
+        //if work_job returns the nonce space was exhausted or a new job was received.
+        //In case the nonce space was exhausted, we have to wait blocking for a new job and "idle".
+        match exit_reason {
+            WorkerExit::NonceSpaceExhausted => {
                 warn!("nonce space exhausted, thread idle");
-            }
+                let job_blocking = rcv.recv();
+                if job_blocking.is_err() {
+                    error!("job channel was droppped: {:?}", job_blocking);
+                    return;
+                }
+                job = match job_blocking.unwrap() {
+                    WorkerCmd::NewJob{job_data} => job_data
+                };
+            },
+            WorkerExit::NewJob{job_data} => {
+                job = job_data;
+            },
         }
     }
 }
@@ -124,62 +140,60 @@ pub fn with_nonce(blob: String, nonce: String) -> String {
 }
 
 fn work_job(scratchpad : &mut Box<[u64x2; MEM_SIZE]>,
-    job: WorkerCmd,
+    job: JobData,
     rcv: &Receiver<WorkerCmd>,
     share_tx: &Sender<stratum::StratumCmd>,
     aes: &AES,
     metric_resolution: u64,
     metric_tx: &Sender<u64>) -> WorkerExit {
-    match job {
-        WorkerCmd::NewJob{job_data} => {
-            let num_target = target_u64(byte_string::hex2_u32_le(&job_data.target));
-            let first_byte = job_data.nonce_partition << (8 - job_data.nonce_partition_num_bits);
 
-            let mut hash_count : u64 = 0;
+    let num_target = target_u64(byte_string::hex2_u32_le(&job.target));
+    let first_byte = job.nonce_partition << (8 - job.nonce_partition_num_bits);
 
-            for i in 0..2^(8 - job_data.nonce_partition_num_bits) {
-                for j in 0..u8::max_value() {
-                    for k in 0..u8::max_value() {
-                        for l in 0..u8::max_value() {
+    let mut hash_count : u64 = 0;
 
-                            let nonce = format!("{:02x}{:02x}{:02x}{:02x}", first_byte | i, j, k, l);
-                            let hash_in = with_nonce(job_data.blob.clone(), nonce.clone());
-                            let bytes_in = byte_string::string_to_u8_array(&hash_in);
+    for i in 0..2^(8 - job.nonce_partition_num_bits) {
+        for j in 0..u8::max_value() {
+            for k in 0..u8::max_value() {
+                for l in 0..u8::max_value() {
 
-                            let hash_result = hash::hash(scratchpad, &bytes_in, aes);
-                            let hash_val = byte_string::hex2_u64_le(&hash_result[48..]);
+                    let nonce = format!("{:02x}{:02x}{:02x}{:02x}", first_byte | i, j, k, l);
+                    let hash_in = with_nonce(job.blob.clone(), nonce.clone());
+                    let bytes_in = byte_string::string_to_u8_array(&hash_in);
 
-                            if hash_val < num_target {
-                                let share = stratum_data::Share{
-                                    miner_id: job_data.miner_id.clone(),
-                                    job_id: job_data.job_id.clone(),
-                                    nonce: nonce,
-                                    hash: hash_result
-                                };
+                    let hash_result = hash::hash(scratchpad, &bytes_in, aes);
+                    let hash_val = byte_string::hex2_u64_le(&hash_result[48..]);
 
-                                let submit_result = stratum::submit_share(share_tx, share);
-                                if submit_result.is_err() {
-                                    error!("submitting share failed: {:?}", submit_result);
-                                }
-                            }
+                    if hash_val < num_target {
+                        let share = stratum_data::Share{
+                            miner_id: job.miner_id.clone(),
+                            job_id: job.job_id.clone(),
+                            nonce: nonce,
+                            hash: hash_result
+                        };
 
-                            hash_count += 1;
-                            if hash_count % metric_resolution == 0 {
-                                let send_result = metric_tx.send(hash_count);
-                                if send_result.is_err() {
-                                    error!("metric submit failed {:?}", send_result);
-                                }
-                                hash_count = 0;
-                            }
-
-                            if new_job_available(rcv) {
-                                let send_result = metric_tx.send(hash_count);
-                                if send_result.is_err() { //flush hash_count
-                                    error!("metric submit failed {:?}", send_result);
-                                }
-                                return WorkerExit::NewJob;
-                            }
+                        let submit_result = stratum::submit_share(share_tx, share);
+                        if submit_result.is_err() {
+                            error!("submitting share failed: {:?}", submit_result);
                         }
+                    }
+
+                    hash_count += 1;
+                    if hash_count % metric_resolution == 0 {
+                        let send_result = metric_tx.send(hash_count);
+                        if send_result.is_err() {
+                            error!("metric submit failed {:?}", send_result);
+                        }
+                        hash_count = 0;
+                    }
+
+                    let new_job = check_new_job_available(rcv);
+                    if new_job.is_some() {
+                        let send_result = metric_tx.send(hash_count);
+                        if send_result.is_err() { //flush hash_count
+                            error!("metric submit failed {:?}", send_result);
+                        }
+                        return WorkerExit::NewJob{job_data: new_job.unwrap()};
                     }
                 }
             }
@@ -188,11 +202,11 @@ fn work_job(scratchpad : &mut Box<[u64x2; MEM_SIZE]>,
     return WorkerExit::NonceSpaceExhausted;
 }
 
-fn new_job_available(rcv: &Receiver<WorkerCmd>) -> bool {
+fn check_new_job_available(rcv: &Receiver<WorkerCmd>) -> Option<JobData> {
     let try_result = rcv.try_recv();
     match try_result {
-        Ok(WorkerCmd::NewJob{job_data: _job_data}) => return true,
-        _ => return false
+        Ok(WorkerCmd::NewJob{job_data}) => return Some(job_data),
+        _ => return None
     }
 }
 

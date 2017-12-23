@@ -58,7 +58,7 @@ pub fn start(conf: MetricConfig, hash_cnt_receiver: Receiver<u64>) {
                     error!("err flushing metric file");
                 }
             } else {
-                error!("could not open metric file"); 
+                error!("could not open metric file");
             }
         }
     });
