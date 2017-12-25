@@ -14,6 +14,7 @@ pub struct WorkerPool {
     num_threads: u64
 }
 
+#[derive(Clone)]
 pub struct WorkerConfig {
     pub num_threads: u64
 }

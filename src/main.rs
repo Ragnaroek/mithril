@@ -1,3 +1,5 @@
+#![feature(mpsc_select)]
+
 extern crate mithril;
 extern crate config;
 #[macro_use]
@@ -7,15 +9,18 @@ extern crate env_logger;
 use mithril::stratum::stratum_data::{PoolConfig};
 use mithril::stratum::stratum::{StratumClient, StratumAction};
 use mithril::worker::worker_pool;
-use mithril::worker::worker_pool::{WorkerConfig};
+use mithril::worker::worker_pool::{WorkerConfig, WorkerPool};
 use mithril::metric::metric;
 use mithril::metric::metric::{MetricConfig};
 use mithril::cryptonight::hash;
 use mithril::cryptonight::aes;
 use mithril::cryptonight::aes::{AESSupport};
 use mithril::byte_string;
-use std::sync::mpsc::{channel};
+use std::sync::mpsc::{channel, Select, Receiver};
 use std::path::Path;
+use std::io::{Error};
+use std::thread;
+use std::time::{Duration};
 use config::{Config, ConfigError, File};
 
 const CONFIG_FILE_NAME : &'static str = "config.toml";
@@ -33,40 +38,65 @@ fn main() {
 
     sanity_check(hw_conf.aes_support.clone());
 
-    //Stratum start
-    let (stratum_tx, stratum_rx) = channel();
-
-    let mut client = StratumClient::new(pool_conf, vec![stratum_tx]);
-    client.login();
-
-    let share_tx = client.new_cmd_channel().unwrap();
     let (metric_tx, metric_rx) = channel();
-
     metric::start(metric_conf.clone(), metric_rx);
 
-    //worker pool start
-    let pool = &worker_pool::start(worker_conf, hw_conf.aes_support, share_tx, metric_conf.resolution, metric_tx);
+    loop {
+        //Stratum start
+        let (stratum_tx, stratum_rx) = channel();
+        let (client_err_tx, client_err_rx) = channel();
+
+        let mut client = StratumClient::new(pool_conf.clone(), client_err_tx, vec![stratum_tx]);
+        client.login();
+        let share_tx = client.new_cmd_channel().unwrap();
+
+        //worker pool start
+        let pool = &worker_pool::start(worker_conf.clone(), hw_conf.clone().aes_support,
+            share_tx, metric_conf.resolution, metric_tx.clone());
+
+        start_main_event_loop(&pool, &client_err_rx, &stratum_rx);
+
+        error!("stratum connection lost, restarting connection after 60 seconds");
+        thread::sleep(Duration::from_secs(60));
+    }
+}
+
+/// This function terminates if a non-recoverable error was detected (i.e. connection lost)
+fn start_main_event_loop(pool: &WorkerPool, client_err_rx: &Receiver<Error>, stratum_rx: &Receiver<StratumAction>) {
+    //Test impl, select setup
+    let select = Select::new();
+    let mut err_hnd = select.handle(&client_err_rx);
+    unsafe {err_hnd.add()};
+    let mut rcv_hnd = select.handle(&stratum_rx);
+    unsafe {rcv_hnd.add()};
 
     loop {
-        let received = stratum_rx.recv();
-        if received.is_err() {
-            error!("Lost connection to stratum client: {:?}", received);
+        let id = select.wait();
+        if id == rcv_hnd.id() {
+            let received = rcv_hnd.recv();
+            if received.is_err() {
+                return
+            }
+            match received.unwrap() {
+                StratumAction::Job{miner_id, blob, job_id, target} => {
+                    pool.job_change(miner_id, blob, job_id, target);
+                },
+                StratumAction::Error{err} => {
+                    error!("Received stratum error: {}", err);
+                }
+                StratumAction::Ok => {
+                    info!("Received stratum ok");
+                }
+            }
+        } else if id == err_hnd.id() {
+            let received = client_err_rx.recv();
+            error!("error received {:?}", received);
             return
-        }
-        match received.unwrap() {
-            StratumAction::Job{miner_id, blob, job_id, target} => {
-                pool.job_change(miner_id, blob, job_id, target);
-            },
-            StratumAction::Error{err} => {
-                error!("Received stratum error: {}", err);
-            }
-            StratumAction::Ok => {
-                info!("Received stratum ok");
-            }
         }
     }
 }
 
+#[derive(Clone)]
 pub struct HardwareConfig {
     pub aes_support: AESSupport
 }

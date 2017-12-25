@@ -6,7 +6,8 @@ use std::thread;
 use std::sync::mpsc::{channel, Receiver, Sender, SendError};
 use std::sync::{Arc, Mutex};
 use std::net::TcpStream;
-use std::io::{BufReader, BufRead, BufWriter, Write};
+use std::io::{BufReader, BufRead, BufWriter, Write, Error};
+use std::time::{Duration};
 
 /// command send to the stratum server
 #[derive(Debug)]
@@ -42,12 +43,13 @@ pub struct StratumClient {
     rcv_thread: Option<thread::JoinHandle<()>>,
     action_rcvs: Vec<Sender<StratumAction>>,
     pool_conf: stratum_data::PoolConfig,
-    miner_id: Arc<Mutex<Option<String>>>
+    miner_id: Arc<Mutex<Option<String>>>,
+    err_receiver: Sender<Error>,
 }
 
 /// All operation in the client are async
 impl StratumClient {
-    pub fn new(pool_conf: stratum_data::PoolConfig, action_rcvs: Vec<Sender<StratumAction>>) -> StratumClient {
+    pub fn new(pool_conf: stratum_data::PoolConfig, err_receiver: Sender<Error>, action_rcvs: Vec<Sender<StratumAction>>) -> StratumClient {
         return StratumClient{
             is_init: false,
             tx_cmd : Option::None,
@@ -55,29 +57,42 @@ impl StratumClient {
             rcv_thread: Option::None,
             action_rcvs: action_rcvs,
             pool_conf: pool_conf,
-            miner_id: Arc::new(Mutex::new(Option::None))
+            miner_id: Arc::new(Mutex::new(Option::None)),
+            err_receiver: err_receiver
         };
     }
 
     fn init(self: &mut Self) {
 
         let stream = TcpStream::connect(self.pool_conf.clone().pool_address).unwrap();
+        stream.set_read_timeout(None).unwrap();
+        stream.set_write_timeout(Some(Duration::from_secs(10))).unwrap();
+
         let reader = BufReader::new(stream.try_clone().unwrap());
         let writer = BufWriter::new(stream);
 
         let (tx, rx) = channel();
 
         let pool_conf = self.pool_conf.clone();
+        let err_send_tx = self.err_receiver.clone();
         let send_thread = thread::spawn(move || {
-            handle_stratum_send(rx, writer, pool_conf);
+            let result = handle_stratum_send(rx, writer, pool_conf);
+            if result.is_err() {
+                err_send_tx.send(result.err().unwrap()).unwrap();
+            }
         });
         self.tx_cmd = Option::Some(tx);
         self.send_thread = Option::Some(send_thread);
 
         let rcvs = self.action_rcvs.clone();
         let rcv_miner_id = self.miner_id.clone();
+        let err_rcv_tx = self.err_receiver.clone();
         let rcv_thread = thread::spawn(move || {
-            handle_stratum_receive(reader, rcvs, rcv_miner_id);
+            let result = handle_stratum_receive(reader, rcvs, rcv_miner_id);
+            if result.is_err() {
+                println!("receive loop terminated {:?}", result);
+                err_rcv_tx.send(result.err().unwrap()).unwrap();
+            }
         });
         self.rcv_thread = Option::Some(rcv_thread);
         self.is_init = true;
@@ -118,16 +133,16 @@ pub fn submit_share(tx: &Sender<StratumCmd>, share: stratum_data::Share) -> Resu
     return tx.send(StratumCmd::SubmitShare{share});
 }
 
-fn handle_stratum_send(rx: Receiver<StratumCmd>, mut writer: BufWriter<TcpStream>, pool_conf: stratum_data::PoolConfig) -> () {
+fn handle_stratum_send(rx: Receiver<StratumCmd>, mut writer: BufWriter<TcpStream>, pool_conf: stratum_data::PoolConfig) -> Result<(), Error> {
     loop {
         match rx.recv().unwrap() {
-            StratumCmd::Login{} => do_stratum_login(&mut writer, &pool_conf),
-            StratumCmd::SubmitShare{share} => do_stratum_submit_share(&mut writer, share)
+            StratumCmd::Login{} => do_stratum_login(&mut writer, &pool_conf)?,
+            StratumCmd::SubmitShare{share} => do_stratum_submit_share(&mut writer, share)?
         }
     }
 }
 
-fn do_stratum_submit_share(writer: &mut BufWriter<TcpStream>, share: stratum_data::Share) {
+fn do_stratum_submit_share(writer: &mut BufWriter<TcpStream>, share: stratum_data::Share) -> Result<(), Error> {
     let submit_req = stratum_data::SubmitRequest{
         id: 1,
         method: "submit".to_string(),
@@ -139,23 +154,31 @@ fn do_stratum_submit_share(writer: &mut BufWriter<TcpStream>, share: stratum_dat
         }
     };
     let json = serde_json::to_string(&submit_req).unwrap();
-    write!(writer, "{}\n", json).unwrap();
+    write!(writer, "{}\n", json)?;
     writer.flush().unwrap();
+    return Ok(());
 }
 
-fn do_stratum_login(writer: &mut BufWriter<TcpStream>, pool_conf: &stratum_data::PoolConfig) {
+fn do_stratum_login(writer: &mut BufWriter<TcpStream>, pool_conf: &stratum_data::PoolConfig) -> Result<(), Error> {
     //TODO create login json with serde
     write!(writer, "{{\"id\": 1, \"method\": \"login\", \"params\": {{\"login\": \"{}\", \"pass\":\"{}\"}}}}\n",
-        pool_conf.wallet_address, pool_conf.pool_password).unwrap();
+        pool_conf.wallet_address, pool_conf.pool_password)?;
     writer.flush().unwrap();
+    return Ok(());
 }
 
-fn handle_stratum_receive(mut reader: BufReader<TcpStream>, rcvs: Vec<Sender<StratumAction>>, miner_id: Arc<Mutex<Option<String>>>) -> () {
+fn handle_stratum_receive(mut reader: BufReader<TcpStream>, rcvs: Vec<Sender<StratumAction>>, miner_id: Arc<Mutex<Option<String>>>) -> Result<(), Error> {
     loop {
         let mut line = String::new();
         match reader.read_line(&mut line) {
-            Ok(_) => parse_line_dispatch_result(&line, &rcvs, &miner_id),
-            Err(e) => error!("read_line error: {:?}", e), //TODO Err handling??
+            Ok(_) => {
+                parse_line_dispatch_result(&line, &rcvs, &miner_id);
+            },
+            Err(e) => {
+                //read_line fails (maybe connection lost, dispatch err to channel)
+                //=> Terminate loop
+                return Err(e);
+            }
         };
     }
 }
