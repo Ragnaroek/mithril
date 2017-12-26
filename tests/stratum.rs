@@ -52,7 +52,7 @@ fn test_parse_line_dispatch_result_error() {
     let result = rx.recv().unwrap();
 
     match result {
-        stratum::StratumAction::Error{err} => assert_eq!(err, "error received: Low difficulty share (code -1)".to_string()),
+        stratum::StratumAction::Error{err} => assert_eq!(err, "error received: Low difficulty share (code -1, raw json {\"id\":1,\"jsonrpc\":\"2.0\",\"error\":{\"code\":-1,\"message\":\"Low difficulty share\"}})".to_string()),
         _ => assert!(false, "Wrong result returned: {:?}", result)
     }
 }
@@ -177,7 +177,7 @@ fn test_parse_line_dispatch_job_method() {
     let result = rx.recv().unwrap();
     match result {
         stratum::StratumAction::Job{miner_id, blob, job_id, target} => {
-            assert_eq!(miner_id, "test_miner_id"); 
+            assert_eq!(miner_id, "test_miner_id");
             assert_eq!(blob, "0606fcb29bcf051b9c7bfc60c98885de404ef48f721f09b8f51d37faf280470880bd120d4e9e0500000000577192c076fed53a24372bc43a3bed1d448a061ad06a262ac5e7f6803a28ccc705");
             assert_eq!(job_id, "878440772206522");
             assert_eq!(target, "169f0200");
@@ -227,4 +227,19 @@ fn test_parse_line_dispatch_job_ok_result_share_submit() {
 
     let result = rx.recv().unwrap();
     assert_eq!(stratum::StratumAction::Ok, result);
+}
+
+#[test]
+fn test_parse_line_dispatch_keepalive() {
+    let (tx, rx) = channel();
+    let miner_id_mutex = Arc::new(Mutex::new(Option::Some("test_miner_id".to_string())));
+
+    let line = r#"{"id":1,"jsonrpc":"2.0","error":null,"result":{"status":"KEEPALIVED"}}"#;
+
+    thread::spawn(move || {
+        stratum::parse_line_dispatch_result(line, &vec![tx], &miner_id_mutex);
+    });
+
+    let result = rx.recv().unwrap();
+    assert_eq!(stratum::StratumAction::KeepAliveOk, result);
 }

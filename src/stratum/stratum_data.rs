@@ -38,13 +38,13 @@ pub struct LoginResponse {
     pub result: LoginResult
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct OkResult {
     pub id: Option<String>,
     pub status: String
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct OkResponse {
     pub id: u32,
     pub result: OkResult
@@ -56,6 +56,19 @@ pub struct JobResponse {
 }
 
 
+
+
+#[derive(Serialize)]
+pub struct KeepAliveParams {
+    pub id: String
+}
+
+#[derive(Serialize)]
+pub struct KeepAliveRequest {
+    pub id: u32,
+    pub method: String,
+    pub params: KeepAliveParams
+}
 
 #[derive(Serialize)]
 pub struct SubmitParams {

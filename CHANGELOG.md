@@ -3,6 +3,7 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+- keep alive check via stratum protocol
 
 ## [0.3.5]
 - double efficiency by fixing a stupid bug

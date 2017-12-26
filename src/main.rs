@@ -83,9 +83,12 @@ fn start_main_event_loop(pool: &WorkerPool, client_err_rx: &Receiver<Error>, str
                 },
                 StratumAction::Error{err} => {
                     error!("Received stratum error: {}", err);
-                }
+                },
                 StratumAction::Ok => {
                     info!("Received stratum ok");
+                },
+                StratumAction::KeepAliveOk => {
+                    info!("Received keep alive ok");
                 }
             }
         } else if id == err_hnd.id() {

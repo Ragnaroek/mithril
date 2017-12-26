@@ -15,7 +15,10 @@ pub enum StratumCmd {
     Login {},
     SubmitShare{
         share: stratum_data::Share
-    }
+    },
+    KeepAlive{
+        miner_id: String
+    },
 }
 
 /// something received from the stratum server
@@ -31,6 +34,7 @@ pub enum StratumAction {
         err: String
     },
     Ok,
+    KeepAliveOk,
 }
 
 pub enum StratumError {
@@ -81,7 +85,7 @@ impl StratumClient {
                 err_send_tx.send(result.err().unwrap()).unwrap();
             }
         });
-        self.tx_cmd = Option::Some(tx);
+
         self.send_thread = Option::Some(send_thread);
 
         let rcvs = self.action_rcvs.clone();
@@ -90,11 +94,28 @@ impl StratumClient {
         let rcv_thread = thread::spawn(move || {
             let result = handle_stratum_receive(reader, rcvs, rcv_miner_id);
             if result.is_err() {
-                println!("receive loop terminated {:?}", result);
                 err_rcv_tx.send(result.err().unwrap()).unwrap();
             }
         });
         self.rcv_thread = Option::Some(rcv_thread);
+
+        //keep alive check thread
+        let cmd_alive = tx.clone();
+        let alive_miner_id = self.miner_id.clone();
+        thread::spawn(move || {
+            loop {
+
+                thread::sleep(Duration::from_secs(60));
+
+                let miner_id_guard = &*alive_miner_id.lock().unwrap();
+                if !miner_id_guard.is_none() {
+                    let miner_id = miner_id_guard.clone().unwrap();
+                    cmd_alive.send(StratumCmd::KeepAlive{miner_id}).expect("KeepAlive send failed");
+                }
+            }
+        });
+
+        self.tx_cmd = Option::Some(tx);
         self.is_init = true;
     }
 
@@ -137,9 +158,25 @@ fn handle_stratum_send(rx: Receiver<StratumCmd>, mut writer: BufWriter<TcpStream
     loop {
         match rx.recv().unwrap() {
             StratumCmd::Login{} => do_stratum_login(&mut writer, &pool_conf)?,
-            StratumCmd::SubmitShare{share} => do_stratum_submit_share(&mut writer, share)?
+            StratumCmd::SubmitShare{share} => do_stratum_submit_share(&mut writer, share)?,
+            StratumCmd::KeepAlive{miner_id} => do_stratum_keep_alive(&mut writer, miner_id)?,
         }
     }
+}
+
+fn do_stratum_keep_alive(writer: &mut BufWriter<TcpStream>, miner_id: String) -> Result<(), Error> {
+    let keep_alive_req = stratum_data::KeepAliveRequest{
+        id: 1,
+        method: "keepalived".to_string(),
+        params: stratum_data::KeepAliveParams {
+            id: miner_id
+        }
+    };
+
+    let json = serde_json::to_string(&keep_alive_req).unwrap();
+    write!(writer, "{}\n", json)?;
+    writer.flush().unwrap();
+    return Ok(());
 }
 
 fn do_stratum_submit_share(writer: &mut BufWriter<TcpStream>, share: stratum_data::Share) -> Result<(), Error> {
@@ -183,12 +220,16 @@ fn handle_stratum_receive(mut reader: BufReader<TcpStream>, rcvs: Vec<Sender<Str
     }
 }
 
-fn is_generic_ok(result: Result<stratum_data::OkResponse, serde_json::Error>) -> bool {
+fn is_known_ok(result: Result<stratum_data::OkResponse, serde_json::Error>) -> Option<StratumAction> {
     if result.is_ok() {
         let unwrapped = result.unwrap();
-        return unwrapped.result.status == "OK" && unwrapped.result.id.is_none()
+        if unwrapped.result.status == "OK" && unwrapped.result.id.is_none() {
+            return Some(StratumAction::Ok);
+        } else if unwrapped.result.status == "KEEPALIVED" && unwrapped.result.id.is_none() {
+            return Some(StratumAction::KeepAliveOk);
+        }
     }
-    return false;
+    return None;
 }
 
 //TODO Refactor this method (it is very ugly) - its probably better to use generic value parsing and not using struct for every case
@@ -200,13 +241,14 @@ pub fn parse_line_dispatch_result(line: &str, rcvs: &Vec<Sender<StratumAction>>,
     if error.is_ok() {
         match error.unwrap() {
             stratum_data::ErrorResult{error: err_details} => {
-                action = StratumAction::Error{err: format!("error received: {} (code {})", err_details.message, err_details.code)}
+                action = StratumAction::Error{err: format!("error received: {} (code {}, raw json {})", err_details.message, err_details.code, line)}
             }
         }
     } else {
         let ok_result : Result<stratum_data::OkResponse, serde_json::Error> = serde_json::from_str(line);
-        if is_generic_ok(ok_result) {
-            action = StratumAction::Ok
+        let known_ok = is_known_ok(ok_result);
+        if known_ok.is_some() {
+            action = known_ok.unwrap();
         } else {
             let result : Result<stratum_data::Method, serde_json::Error> = serde_json::from_str(line);
             if result.is_ok() {
