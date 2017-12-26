@@ -197,9 +197,16 @@ fn do_stratum_submit_share(writer: &mut BufWriter<TcpStream>, share: stratum_dat
 }
 
 fn do_stratum_login(writer: &mut BufWriter<TcpStream>, pool_conf: &stratum_data::PoolConfig) -> Result<(), Error> {
-    //TODO create login json with serde
-    write!(writer, "{{\"id\": 1, \"method\": \"login\", \"params\": {{\"login\": \"{}\", \"pass\":\"{}\"}}}}\n",
-        pool_conf.wallet_address, pool_conf.pool_password)?;
+    let login_req = stratum_data::LoginRequest {
+        id: 1,
+        method: "login".to_string(),
+        params: stratum_data::LoginParams {
+            login: pool_conf.wallet_address.clone(),
+            pass: pool_conf.pool_password.clone()
+        }
+    };
+    let json = serde_json::to_string(&login_req).unwrap();
+    write!(writer, "{}\n",json)?;
     writer.flush().unwrap();
     return Ok(());
 }

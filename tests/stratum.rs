@@ -26,6 +26,20 @@ fn test_ser_submit_json() {
 }
 
 #[test]
+fn test_ser_login_json() {
+    let login_req = stratum_data::LoginRequest {
+        id: 1,
+        method: "login".to_string(),
+        params: stratum_data::LoginParams {
+            login: "foo".to_string(),
+            pass: "bar".to_string()
+        }
+    };
+
+    assert_eq!(serde_json::to_string(&login_req).unwrap(), "{\"id\":1,\"method\":\"login\",\"params\":{\"login\":\"foo\",\"pass\":\"bar\"}}");
+}
+
+#[test]
 fn test_parse_method_with_method_field() {
     let method : stratum_data::Method = serde_json::from_str("{\"jsonrpc\":\"2.0\",\"method\":\"job\",\"params\":{}}").unwrap();
     assert_eq!(method.method, "job".to_string());

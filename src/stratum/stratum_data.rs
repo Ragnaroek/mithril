@@ -56,7 +56,18 @@ pub struct JobResponse {
 }
 
 
+#[derive(Serialize)]
+pub struct LoginParams {
+    pub login: String,
+    pub pass: String
+}
 
+#[derive(Serialize)]
+pub struct LoginRequest {
+    pub id: u32,
+    pub method: String,
+    pub params: LoginParams,
+}
 
 #[derive(Serialize)]
 pub struct KeepAliveParams {
