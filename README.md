@@ -10,6 +10,7 @@ TODOs:
 - [x] measure hash performance
 - [x] implement software AES (current work)
 - [ ] optimise cryptonight hashing function
+- [ ] ARM support (Raspberry, Pine64)
 
 Middle-Term TODOs:
 - [ ] auto-optimisation via bandit algorithms
@@ -30,6 +31,15 @@ If you get a `wrong instruction set` kind of error you can try to disable hardwa
 `[hardware]` section.
 
 If you find any issues, please report them here: [Mithril Issues](https://github.com/Ragnaroek/mithril/issues)
+
+## Supported Platforms
+Mithril was tested on this Platform/architecture combinations so far:
+- macOS 10.13/x64
+- Windows/x64
+
+Please notify me, if you tested mithril on one other platform (Linux would be intersting, since I'm on macOS only) and it is running stable.
+
+ARM support (Raspberry, Pine64) is a short term goal I am working on.
 
 # Current Status (2017-11-14)
 
