@@ -122,7 +122,8 @@ pub fn finalise_scratchpad(scratchpad: &mut Box<[u64x2; MEM_SIZE]>, keccak_state
         state[i] = block;
     }
 
-    for k in (8..MEM_SIZE).step_by(8) {
+    let mut k = 8;
+    while k < MEM_SIZE {
         for i in 0..8 {
             let mut block = scratchpad[k+i];
             block = state[i] ^ block;
@@ -131,8 +132,8 @@ pub fn finalise_scratchpad(scratchpad: &mut Box<[u64x2; MEM_SIZE]>, keccak_state
             }
             state[i] = block;
         }
+        k += 8;
     }
-
     return state;
 }
 
@@ -150,7 +151,8 @@ pub fn init_scratchpad(scratchpad : &mut Box<[u64x2; MEM_SIZE]>, state: &[u8; 20
         scratchpad[i] = block;
     }
 
-    for k in (0..(MEM_SIZE-8)).step_by(8) {
+    let mut k = 0;
+    while k < (MEM_SIZE-8) {
         for i in k..(k+8) {
             let mut block = scratchpad[i];
             for j in 0..10 {
@@ -158,5 +160,6 @@ pub fn init_scratchpad(scratchpad : &mut Box<[u64x2; MEM_SIZE]>, state: &[u8; 20
             }
             scratchpad[i+8] = block
         }
+        k += 8;
     }
 }

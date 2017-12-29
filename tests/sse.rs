@@ -58,3 +58,10 @@ fn test_mm_xor_si128() {
     let u_in1 = byte_string::hex2_u64x2_be("96db4a8a5f872d620824e4da00000000");
     assert_eq!(byte_string::hex2_u64x2_be("605a27f6c95c67e857a3c9b80824e4da"), sse::_mm_xor_si128(u_in0, u_in1));
 }
+
+#[test]
+fn test_mm_mul_su32() {
+    let u_in0 = byte_string::hex2_u64x2_be("00000000000000000000000000000005");
+    let u_in1 = byte_string::hex2_u64x2_be("0000000000000000000000000000000A");
+    assert_eq!( byte_string::hex2_u64x2_be("00000000000000000000000000000032"), sse::_mm_mul_su32(u_in0, u_in1));
+}

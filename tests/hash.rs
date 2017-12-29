@@ -4,11 +4,12 @@ extern crate mithril;
 
 use mithril::byte_string;
 use mithril::cryptonight::hash;
-use mithril::cryptonight::hash::{MEM_SIZE};
+use mithril::cryptonight::hash::{MEM_SIZE, ebyte_mul};
 use mithril::cryptonight::keccak;
 use mithril::cryptonight::aes;
 use mithril::cryptonight::aes::{AESSupport};
 use mithril::u64x2::{u64x2};
+use std::u64;
 
 #[test]
 fn test_init_scratchpad() {
@@ -116,4 +117,19 @@ fn test_hash_from_cryptonote_white_paper_hardware() {
 
     let input2 = b"This is a test";
     assert_eq!(hash::hash_alloc_scratchpad(&input2[0..], &aes), "a084f01d1437a09c6985401b60d43554ae105802c5f5d8a9b3253649c0be6605");
+}
+
+#[test]
+fn test_ebyte_mul() {
+    let u1 = u64x2(5, 42);
+    let u2 = u64x2(10, 32);
+    assert_eq!(ebyte_mul(&u1, &u2), u64x2(0, 50));
+
+    let u1 = u64x2(0, 42);
+    let u2 = u64x2(0, 32);
+    assert_eq!(ebyte_mul(&u1, &u2), u64x2(0, 0));
+
+    let u1 = u64x2(u64::MAX, 42);
+    let u2 = u64x2(u64::MAX, 32);
+    assert_eq!(ebyte_mul(&u1, &u2), u64x2(u64::MAX-1, 1));
 }
