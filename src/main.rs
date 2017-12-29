@@ -138,6 +138,7 @@ fn hardware_config(conf: &Config) -> Result<HardwareConfig, ConfigError> {
     if has_aes {
         aes_support = AESSupport::HW;
     } else {
+        warn!("software AES enabled: hashing performance will be low");
         aes_support = AESSupport::SW;
     }
     return Ok(HardwareConfig{aes_support});
