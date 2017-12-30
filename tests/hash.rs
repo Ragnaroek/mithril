@@ -15,10 +15,10 @@ use std::u64;
 fn test_init_scratchpad() {
     let input = byte_string::string_to_u8_array("0505988ab3cc05c725e9fe211fb23e9ccd442829a684d9a887d097ec33dbfd6085e70068ee779714000000cd484698d1fa1981993198f995e2c4fea6f31b6b3f8fbcf742b32ce2d5951cdd07");
     let aes = aes::new(AESSupport::HW);
-    let a = keccak::keccak(&input);
+    let mut a = keccak::keccak(&input);
     let mut scratchpad : Box<[u64x2; MEM_SIZE]> = box [u64x2(0,0); MEM_SIZE];
 
-    hash::init_scratchpad(&mut scratchpad, &a, &aes);
+    hash::init_scratchpad(&mut scratchpad, &mut a, &aes);
     assert_eq!(byte_string::u64x2_to_string(scratchpad[0]), "f4e41f8bb21278bf69fef5414eedbd5d");
     assert_eq!(byte_string::u64x2_to_string(scratchpad[1]), "d49d9e57821fa5220426015c6d9f218f");
     assert_eq!(byte_string::u64x2_to_string(scratchpad[2]), "44c7e927a427b335d76fb01c18cb7629");
@@ -51,10 +51,10 @@ fn test_init_scratchpad() {
 fn test_init_scratchpad_tail() {
     let input = byte_string::string_to_u8_array("0505a9e6c9cc0529b1608dbf9840e20164ee24efd67979e6a937ce174f9aff423a96a7cc5bdcd504008000ca5d84112bf941d3df2c44132b2df08fb766ebf0cc0ad4ccc4012b0929e4edeb04");
     let aes = aes::new(AESSupport::HW);
-    let a = keccak::keccak(&input);
+    let mut a = keccak::keccak(&input);
     let mut scratchpad : Box<[u64x2; MEM_SIZE]> = box [u64x2(0,0); MEM_SIZE];
 
-    hash::init_scratchpad(&mut scratchpad, &a, &aes);
+    hash::init_scratchpad(&mut scratchpad, &mut a, &aes);
     assert_eq!(byte_string::u64x2_to_string(scratchpad[hash::MEM_SIZE-16]), "c7a1f8660d2cf76f652e90e067f41e30");
     assert_eq!(byte_string::u64x2_to_string(scratchpad[hash::MEM_SIZE-15]), "29f328053cb5ce9a3144fedcebeb0455");
     assert_eq!(byte_string::u64x2_to_string(scratchpad[hash::MEM_SIZE-14]), "e3592994985e0937fc0b43c1a6ac738c");
