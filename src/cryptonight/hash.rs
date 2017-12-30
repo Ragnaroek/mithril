@@ -28,7 +28,8 @@ pub fn hash(mut scratchpad : &mut Box<[u64x2; MEM_SIZE]>, input: &[u8], aes: &AE
     let mut a = u64x2::read(&state[0..16]) ^ u64x2::read(&state[32..48]);
     let mut b = u64x2::read(&state[16..32]) ^ u64x2::read(&state[48..64]);
 
-    for _ in 0..ITERATIONS {
+    let mut i = 0;
+    while i < ITERATIONS {
         let mut ix = scratchpad_addr(&a);
         let aes_result = aes.aes_round(scratchpad[ix], a);
         scratchpad[ix] = b ^ aes_result;
@@ -40,14 +41,18 @@ pub fn hash(mut scratchpad : &mut Box<[u64x2; MEM_SIZE]>, input: &[u8], aes: &AE
 
         a = add_r ^ mem;
         b = aes_result;
+
+        i += 1;
     }
 
     let final_result = finalise_scratchpad(scratchpad, &mut state, &aes);
 
-    for k in 0..8 {
+    let mut k = 0;
+    while k < 8 {
         let block = final_result[k];
         let offset = 64+(k<<4);
         block.write(&mut state[offset..offset+16]);
+        k += 1;
     }
 
     let state_64 = transmute_u64(&mut state);
@@ -114,29 +119,33 @@ pub fn finalise_scratchpad(scratchpad: &mut Box<[u64x2; MEM_SIZE]>, keccak_state
     let keys = aes.gen_round_keys(input0, input1);
 
     let mut state : [u64x2; 8] = [u64x2(0,0); 8];
-
     let mut i = 0;
     while i < 8 {
         let offset = i*2;
         let mut block = u64x2(t_state[8+offset], t_state[8+offset+1]);
         block = scratchpad[i] ^ block;
-        for k in 0..10 {
+        let mut k = 0;
+        while k < 10 {
             block = aes.aes_round(block, keys[k]);
+            k += 1;
         }
         state[i] = block;
-
         i += 1;
     }
 
     let mut k = 8;
     while k < MEM_SIZE {
-        for i in 0..8 {
+        let mut i = 0;
+        while i < 8 {
             let mut block = scratchpad[k+i];
             block = state[i] ^ block;
-            for j in 0..10 {
+            let mut j = 0;
+            while j < 10 {
                 block = aes.aes_round(block, keys[j]);
+                j += 1;
             }
             state[i] = block;
+            i += 1;
         }
         k += 8;
     }
@@ -153,22 +162,27 @@ pub fn init_scratchpad(scratchpad : &mut Box<[u64x2; MEM_SIZE]>, state: &mut [u8
     while i < 8 {
         let offset = i*2;
         let mut block = u64x2(t_state[8+offset], t_state[8+offset+1]);
-        for k in 0..10 {
+        let mut k = 0;
+        while k < 10 {
             block = aes.aes_round(block, keys[k]);
+            k += 1;
         }
         scratchpad[i] = block;
-
         i += 1;
     }
 
     let mut k = 0;
     while k < (MEM_SIZE-8) {
-        for i in k..(k+8) {
+        let mut i = k;
+        while i < (k+8) {
             let mut block = scratchpad[i];
-            for j in 0..10 {
+            let mut j = 0;
+            while j < 10 {
                 block = aes.aes_round(block, keys[j]);
+                j += 1;
             }
-            scratchpad[i+8] = block
+            scratchpad[i+8] = block;
+            i += 1;
         }
         k += 8;
     }
