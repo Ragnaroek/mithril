@@ -4,6 +4,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.5.0]
+- various performance improvements, removing for loops with ranges seemed to be
+  the biggest gain
+
 ## [0.4.0]
 - keep alive check via stratum protocol
 
