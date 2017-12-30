@@ -1,8 +1,8 @@
 //taken from https://github.com/RustCrypto/block-ciphers and modified for Cryptonight
-
 use std::ptr::copy_nonoverlapping;
 use std::mem;
 use std::ops::BitXor;
+use super::cryptonight::sse;
 
 #[allow(non_camel_case_types)]
 #[repr(simd)]
@@ -74,6 +74,6 @@ impl BitXor for u64x2 {
     type Output = Self;
 
     fn bitxor(self, rhs: Self) -> Self {
-        return u64x2(self.0 ^ rhs.0, self.1 ^ rhs.1);
+        return sse::_mm_xor_si128(self, rhs);
     }
 }
