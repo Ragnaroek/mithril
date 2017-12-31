@@ -63,7 +63,8 @@ If you want to donate directly to support further development, this is my Monero
 48y3RCT5SzSS4jumHm9rRL91eWWzd6xcVGSCF1KUZGWYJ6npqwFxHee4xkLLNUqY4NjiswdJhxFALeRqzncHoToeJMg2bhL
 ```
 
-## Support on Beerpay
-Hey dude! Help me out for a couple of :beers:!
+or support the project on Beerpay:
 
 [![Beerpay](https://beerpay.io/Ragnaroek/mithril/badge.svg?style=beer-square)](https://beerpay.io/Ragnaroek/mithril)  [![Beerpay](https://beerpay.io/Ragnaroek/mithril/make-wish.svg?style=flat-square)](https://beerpay.io/Ragnaroek/mithril?focus=wish)
+
+
