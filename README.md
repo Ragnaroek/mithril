@@ -41,10 +41,14 @@ Please notify me, if you tested mithril on one other platform (Linux would be in
 
 ARM support (Raspberry, Pine64) is a short term goal I am working on.
 
-# Current Status (2017-11-14)
+# Current Status (2017-12-31)
 
-The error with wrong submitted shares has been resolved. Mithril is now actually ready to mine Monero!
-Performance is probably not yet comparable to other miners, but this will be the next step.
+Obvious ineffieciencies have been removed. Mithril should now generate a decent hash rate.
+
+Some measurements from my dev notebook can be found here:
+https://docs.google.com/spreadsheets/d/1ZAqV4JXxO-L9sNFzW__wBytgfZKNniK9WUKJk6tl5wI/edit?usp=sharing
+
+Average hash-rate is 183 H/sec with a Intel Core i7 running with 8 threads.
 
 # Help Wanted
 
