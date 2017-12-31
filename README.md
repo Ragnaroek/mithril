@@ -55,3 +55,10 @@ Average hash-rate is 183 H/sec with a Intel Core i7 running with 8 threads.
 The goal of this project is to build a `pure` Rust monero miner implementation. Currently the
 Skein and JH hash functions are used as FFI C-Bindings, because there is not Rust implementation available (or I have not found any). A pure Skein or JH Rust implentation would be very welcomed. Notify me if you did implement one of these hashing
 functions and I will gladly use them in mithril!
+
+# Support
+
+If you want to donate directly to support further development, this is my Monero donation address:
+```
+48y3RCT5SzSS4jumHm9rRL91eWWzd6xcVGSCF1KUZGWYJ6npqwFxHee4xkLLNUqY4NjiswdJhxFALeRqzncHoToeJMg2bhL
+```
