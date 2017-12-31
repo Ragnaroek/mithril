@@ -9,7 +9,7 @@ TODOs:
 - [x] use a naive parallelisation scheme
 - [x] measure hash performance
 - [x] implement software AES (current work)
-- [ ] optimise cryptonight hashing function
+- [x] optimise cryptonight hashing function
 - [ ] ARM support (Raspberry, Pine64)
 
 Middle-Term TODOs:
