@@ -36,8 +36,10 @@ If you find any issues, please report them here: [Mithril Issues](https://github
 Mithril was tested on this Platform/architecture combinations so far:
 - macOS 10.13/x64
 - Windows/x64
+- Linux
+  - CentOS 7 64bit
 
-Please notify me, if you tested mithril on one other platform (Linux would be intersting, since I'm on macOS only) and it is running stable.
+Please notify me, if you tested mithril on one other platform and it is running stable.
 
 ARM support (Raspberry, Pine64) is a short term goal I am working on.
 
