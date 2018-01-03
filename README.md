@@ -10,10 +10,10 @@ TODOs:
 - [x] measure hash performance
 - [x] implement software AES (current work)
 - [x] optimise cryptonight hashing function
-- [ ] ARM support (Raspberry, Pine64)
+- [ ] auto-optimisation via bandit algorithms
 
 Middle-Term TODOs:
-- [ ] auto-optimisation via bandit algorithms
+- [ ] ARM support (Raspberry, Pine64)
 - [ ] integrate gpu mining (ATI, Nvidia)
 
 
