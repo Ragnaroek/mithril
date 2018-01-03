@@ -32,6 +32,20 @@ If you get a `wrong instruction set` kind of error you can try to disable hardwa
 
 If you find any issues, please report them here: [Mithril Issues](https://github.com/Ragnaroek/mithril/issues)
 
+## Hash-Rate Logging
+
+Mithril has basic support for logging the hash rate of the miner (in order to tune it). Hash-Rate Logging has to be
+enabled in the `[metric]` section and is disabled in the default configuration:
+`
+enabled = false
+resolution = 100 #determines how often a hash result is reported
+sample_interval_seconds = 60
+report_file = "/path/to/hash/report/file.csv"
+`
+The most important configuration option is `report_file`. You can configure an absolute path to a csv file where the hash rate is logged. Each `sample_interval_seconds` a new line with `<unix-timestamp>;<#hashes since last sample>` is appended to this file. You can calculate the average hash rate (for a given time interval) from this file with external tools (e.g. Google Drive).
+
+The `resolution` option determines how often a hash count is measured internally. Every `resolution` hashes the result is published to a metric sub-thread in the program. Setting this to a low value will increase the overhead for measuring.
+
 ## Supported Platforms
 Mithril was tested on this Platform/architecture combinations so far:
 - macOS 10.13/x64
