@@ -1,6 +1,6 @@
 
 [pool]
-pool_address = "mine.moneropool.com:3333"
+pool_address = "iron-pool.com:5555"
 wallet_address = ""
 pool_password = ""
 
