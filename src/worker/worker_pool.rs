@@ -212,5 +212,5 @@ fn check_new_job_available(rcv: &Receiver<WorkerCmd>) -> Option<JobData> {
 }
 
 pub fn target_u64(t: u32) -> u64 {
-    return u64::max_value() / (u32::max_value() as u64 / t as u64)
+    return u64::max_value() / (u64::from(u32::max_value()) / u64::from(t))
 }

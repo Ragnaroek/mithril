@@ -139,7 +139,7 @@ fn test_parse_line_dispatch_result_initial_job_with_non_ok_result() {
     let result = rx.recv().unwrap();
 
     match result {
-        stratum::StratumAction::Error{err: _} => assert!(true),
+        stratum::StratumAction::Error{..} => assert!(true),
         _ => assert!(false, "Wrong result returned: {:?}", result)
     }
 }
@@ -164,7 +164,7 @@ fn test_parse_line_dispatch_unknown_method() {
     let result = rx.recv().unwrap();
 
     match result {
-        stratum::StratumAction::Error{err: _} => assert!(true),
+        stratum::StratumAction::Error{..} => assert!(true),
         _ => assert!(false, "Wrong result returned: {:?}", result)
     }
 }

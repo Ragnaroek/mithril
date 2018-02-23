@@ -23,7 +23,7 @@ use std::thread;
 use std::time::{Duration};
 use config::{Config, ConfigError, File};
 
-const CONFIG_FILE_NAME : &'static str = "config.toml";
+const CONFIG_FILE_NAME : &str = "config.toml";
 
 fn main() {
 
@@ -54,7 +54,7 @@ fn main() {
         let pool = &worker_pool::start(worker_conf.clone(), hw_conf.clone().aes_support,
             share_tx, metric_conf.resolution, metric_tx.clone());
 
-        start_main_event_loop(&pool, &client_err_rx, &stratum_rx);
+        start_main_event_loop(pool, &client_err_rx, &stratum_rx);
 
         error!("stratum connection lost, restarting connection after 60 seconds");
         thread::sleep(Duration::from_secs(60));
@@ -65,9 +65,9 @@ fn main() {
 fn start_main_event_loop(pool: &WorkerPool, client_err_rx: &Receiver<Error>, stratum_rx: &Receiver<StratumAction>) {
     //Test impl, select setup
     let select = Select::new();
-    let mut err_hnd = select.handle(&client_err_rx);
+    let mut err_hnd = select.handle(client_err_rx);
     unsafe {err_hnd.add()};
-    let mut rcv_hnd = select.handle(&stratum_rx);
+    let mut rcv_hnd = select.handle(stratum_rx);
     unsafe {rcv_hnd.add()};
 
     loop {
@@ -108,7 +108,7 @@ fn pool_config(conf: &Config) -> Result<PoolConfig, ConfigError> {
     let pool_address = conf.get_str("pool.pool_address")?;
     let wallet_address = conf.get_str("pool.wallet_address")?;
     let pool_password = conf.get_str("pool.pool_password")?;
-    return Ok(PoolConfig{pool_address, wallet_address, pool_password});
+    Ok(PoolConfig{pool_address, wallet_address, pool_password})
 }
 
 fn worker_config(conf: &Config) -> Result<WorkerConfig, ConfigError> {
@@ -116,7 +116,7 @@ fn worker_config(conf: &Config) -> Result<WorkerConfig, ConfigError> {
     if num_threads <= 0 {
         return Err(ConfigError::Message("num_threads hat to be > 0".to_string()));
     }
-    return Ok(WorkerConfig{num_threads: num_threads as u64});
+    Ok(WorkerConfig{num_threads: num_threads as u64})
 }
 
 fn metric_config(conf: &Config) -> Result<MetricConfig, ConfigError> {
@@ -125,23 +125,22 @@ fn metric_config(conf: &Config) -> Result<MetricConfig, ConfigError> {
         let resolution = get_u64_no_zero(conf, "metric.resolution")?;
         let sample_interval_seconds = get_u64_no_zero(conf, "metric.sample_interval_seconds")?;
         let report_file = conf.get_str("metric.report_file")?;
-        return Ok(MetricConfig{enabled, resolution, sample_interval_seconds, report_file});
+        Ok(MetricConfig{enabled, resolution, sample_interval_seconds, report_file})
     } else {
-        return Ok(MetricConfig{enabled: false, resolution: std::u64::MAX,
-                               sample_interval_seconds: std::u64::MAX, report_file: "/dev/null".to_string()});
+        Ok(MetricConfig{enabled: false, resolution: std::u64::MAX,
+                        sample_interval_seconds: std::u64::MAX, report_file: "/dev/null".to_string()})
     }
 }
 
 fn hardware_config(conf: &Config) -> Result<HardwareConfig, ConfigError> {
     let has_aes = conf.get_bool("hardware.has_aes")?;
-    let aes_support;
-    if has_aes {
-        aes_support = AESSupport::HW;
+    let aes_support = if has_aes {
+        AESSupport::HW
     } else {
         warn!("software AES enabled: hashing performance will be low");
-        aes_support = AESSupport::SW;
-    }
-    return Ok(HardwareConfig{aes_support});
+        AESSupport::SW
+    };
+    Ok(HardwareConfig{aes_support})
 }
 
 fn get_u64_no_zero(conf: &Config, field: &str) -> Result<u64, ConfigError> {
@@ -149,7 +148,7 @@ fn get_u64_no_zero(conf: &Config, field: &str) -> Result<u64, ConfigError> {
     if val <= 0 {
         return Err(ConfigError::Message(format!("{} has to be > 0", field)));
     }
-    return Ok(val as u64);
+    Ok(val as u64)
 }
 
 fn read_config() -> Result<Config, ConfigError> {
@@ -160,7 +159,7 @@ fn read_config() -> Result<Config, ConfigError> {
         conf.merge(File::with_name(CONFIG_FILE_NAME))?;
         return Ok(conf);
     }
-    return Err(ConfigError::Message("config file not found".to_string()));
+    Err(ConfigError::Message("config file not found".to_string()))
 }
 
 fn sanity_check(aes_support: AESSupport) {

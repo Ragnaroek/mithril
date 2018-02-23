@@ -42,7 +42,7 @@ pub fn start(conf: MetricConfig, hash_cnt_receiver: Receiver<u64>) {
                 return;
             }
             let timestamp = timestamp_result.unwrap();
-            let millis = timestamp.as_secs() * 1_000 + (timestamp.subsec_nanos() / 1_000_000) as u64;
+            let millis = timestamp.as_secs() * 1_000 + u64::from(timestamp.subsec_nanos() / 1_000_000);
 
             let file_result = OpenOptions::new()
                              .create(true)
