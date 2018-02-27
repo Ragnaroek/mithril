@@ -112,7 +112,7 @@ fn work(rcv: Receiver<WorkerCmd>,
     };
 
     loop {
-        let exit_reason = work_job(&mut scratchpad, job, &rcv, &share_tx, &aes, metric_resolution, &metric_tx);
+        let exit_reason = work_job(&mut scratchpad, &job, &rcv, &share_tx, &aes, metric_resolution, &metric_tx);
         //if work_job returns the nonce space was exhausted or a new job was received.
         //In case the nonce space was exhausted, we have to wait blocking for a new job and "idle".
         match exit_reason {
@@ -134,14 +134,14 @@ fn work(rcv: Receiver<WorkerCmd>,
     }
 }
 
-pub fn with_nonce(blob: String, nonce: String) -> String {
+pub fn with_nonce(blob: &str, nonce: &str) -> String {
     let (a, _) = blob.split_at(78);
     let (_, b) = blob.split_at(86);
     return format!("{}{}{}", a, nonce, b);
 }
 
-fn work_job(scratchpad : &mut Box<[u64x2; MEM_SIZE]>,
-    job: JobData,
+fn work_job(scratchpad : &mut [u64x2; MEM_SIZE],
+    job: &JobData,
     rcv: &Receiver<WorkerCmd>,
     share_tx: &Sender<stratum::StratumCmd>,
     aes: &AES,
@@ -159,7 +159,7 @@ fn work_job(scratchpad : &mut Box<[u64x2; MEM_SIZE]>,
                 for l in 0..u8::max_value() {
 
                     let nonce = format!("{:02x}{:02x}{:02x}{:02x}", first_byte | i, j, k, l);
-                    let hash_in = with_nonce(job.blob.clone(), nonce.clone());
+                    let hash_in = with_nonce(&job.blob, &nonce);
                     let bytes_in = byte_string::string_to_u8_array(&hash_in);
 
                     let hash_result = hash::hash(scratchpad, &bytes_in, aes);

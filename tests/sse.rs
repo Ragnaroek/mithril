@@ -1,3 +1,5 @@
+#![allow(unreadable_literal)]
+
 extern crate mithril;
 
 use mithril::cryptonight::sse;

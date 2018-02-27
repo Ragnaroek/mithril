@@ -1,3 +1,5 @@
+#![allow(unreadable_literal)]
+
 extern crate mithril;
 
 use mithril::worker::worker_pool;
@@ -21,8 +23,8 @@ fn test_target_u64() {
 
 #[test]
 fn test_with_nonce() {
-    let blob = "0606cbe692d005ecfebc7d2249d2b43535c237c02359e888b8b05d2e980c1405779241ac3ab48500000000e62a06e71559c98a37e7b6743465f4f72e42784c5719411c935dc002e347826b05".to_string();
-    let nonce = "12345678".to_string();
+    let blob = "0606cbe692d005ecfebc7d2249d2b43535c237c02359e888b8b05d2e980c1405779241ac3ab48500000000e62a06e71559c98a37e7b6743465f4f72e42784c5719411c935dc002e347826b05";
+    let nonce = "12345678";
     assert_eq!("0606cbe692d005ecfebc7d2249d2b43535c237c02359e888b8b05d2e980c1405779241ac3ab48512345678e62a06e71559c98a37e7b6743465f4f72e42784c5719411c935dc002e347826b05",
                worker_pool::with_nonce(blob, nonce));
 }

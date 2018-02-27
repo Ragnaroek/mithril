@@ -20,7 +20,7 @@ pub fn hash_alloc_scratchpad(input: &[u8], aes: &AES) -> String {
     return hash(&mut scratchpad, input, aes);
 }
 
-pub fn hash(mut scratchpad : &mut Box<[u64x2; MEM_SIZE]>, input: &[u8], aes: &AES) -> String {
+pub fn hash(mut scratchpad : &mut [u64x2; MEM_SIZE], input: &[u8], aes: &AES) -> String {
     //scratchpad init
     let mut state = keccak::keccak(input);
     init_scratchpad(&mut scratchpad, &mut state, &aes);
@@ -111,7 +111,7 @@ pub fn scratchpad_addr(u: &u64x2) -> usize {
     return ((u.0 & 0x1FFFF0) >> 4) as usize;
 }
 
-pub fn finalise_scratchpad(scratchpad: &mut Box<[u64x2; MEM_SIZE]>, keccak_state: &mut [u8; 200], aes: &AES) -> [u64x2; 8] {
+pub fn finalise_scratchpad(scratchpad: &mut [u64x2; MEM_SIZE], keccak_state: &mut [u8; 200], aes: &AES) -> [u64x2; 8] {
     let t_state = transmute_u64(keccak_state);
     let input0 = u64x2(t_state[4], t_state[5]);
     let input1 = u64x2(t_state[6], t_state[7]);
@@ -152,7 +152,7 @@ pub fn finalise_scratchpad(scratchpad: &mut Box<[u64x2; MEM_SIZE]>, keccak_state
     return state;
 }
 
-pub fn init_scratchpad(scratchpad : &mut Box<[u64x2; MEM_SIZE]>, state: &mut [u8; 200], aes: &AES) {
+pub fn init_scratchpad(scratchpad : &mut [u64x2; MEM_SIZE], state: &mut [u8; 200], aes: &AES) {
     let t_state = transmute_u64(state);
     let input0 = u64x2(t_state[0], t_state[1]);
     let input1 = u64x2(t_state[2], t_state[3]);
