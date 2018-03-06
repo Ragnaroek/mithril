@@ -51,7 +51,7 @@ fn gen_key_0x01(input0: u64x2, input1: u64x2) -> (u64x2, u64x2) {
         gen_key!("0x01", "0xFF", r0, input0, input1);
         gen_key!("0x00", "0xAA", r1, input1, r0);
     }
-    return (r0, r1);
+    (r0, r1)
 }
 
 #[inline(always)]
@@ -62,7 +62,7 @@ fn gen_key_0x02(input0: u64x2, input1: u64x2) -> (u64x2, u64x2) {
         gen_key!("0x02", "0xFF", r0, input0, input1);
         gen_key!("0x00", "0xAA", r1, input1, r0);
     }
-    return (r0, r1);
+    (r0, r1)
 }
 
 #[inline(always)]
@@ -73,7 +73,7 @@ fn gen_key_0x04(input0: u64x2, input1: u64x2) -> (u64x2, u64x2) {
         gen_key!("0x04", "0xFF", r0, input0, input1);
         gen_key!("0x00", "0xAA", r1, input1, r0);
     }
-    return (r0, r1);
+    (r0, r1)
 }
 
 #[inline(always)]
@@ -84,7 +84,7 @@ fn gen_key_0x08(input0: u64x2, input1: u64x2) -> (u64x2, u64x2) {
         gen_key!("0x08", "0xFF", r0, input0, input1);
         gen_key!("0x00", "0xAA", r1, input1, r0);
     }
-    return (r0, r1);
+    (r0, r1)
 }
 
 pub fn gen_round_keys(input0: u64x2, input1: u64x2) -> [u64x2;10] {
@@ -109,7 +109,7 @@ pub fn gen_round_keys(input0: u64x2, input1: u64x2) -> [u64x2;10] {
     r[8] = input0;
     r[9] = input1;
 
-    return r;
+    r
 }
 
 pub fn aes_round(block: u64x2, key: u64x2) -> u64x2 {
@@ -117,5 +117,5 @@ pub fn aes_round(block: u64x2, key: u64x2) -> u64x2 {
     unsafe {
         aes_enc!(block, key, r);
     }
-    return r;
+    r
 }

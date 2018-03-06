@@ -24,14 +24,14 @@ pub fn new(aes: AESSupport) -> AES {
         AESSupport::SW => sw_aes::aes_round,
         AESSupport::HW => hw_aes::aes_round,
     };
-    return AES{gen_aes_round_keys_f, aes_round_f}
+    AES{gen_aes_round_keys_f, aes_round_f}
 }
 
 impl AES {
     pub fn gen_round_keys(&self, input0: u64x2, input1: u64x2) -> [u64x2;10] {
-        return (self.gen_aes_round_keys_f)(input0, input1);
+        (self.gen_aes_round_keys_f)(input0, input1)
     }
     pub fn aes_round(&self, block: u64x2, key: u64x2) -> u64x2 {
-        return (self.aes_round_f)(block, key);
+        (self.aes_round_f)(block, key)
     }
 }

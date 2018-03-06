@@ -1,5 +1,6 @@
 #![allow(unknown_lints)]
 #![allow(inline_always)]
+#![allow(unreadable_literal)]
 
 use u64x2::u64x2;
 use cryptonight::sse;
@@ -22,7 +23,7 @@ pub fn gen_round_keys(input0: u64x2, input1: u64x2) -> [u64x2;10] {
     let (r8, r9) = aes_keygenassist_sub(r6, r7, 0x08);
     r[8] = r8;
     r[9] = r9;
-    return r;
+    r
 }
 
 pub fn aes_round(block: u64x2, key: u64x2) -> u64x2 {
@@ -37,7 +38,7 @@ pub fn aes_round(block: u64x2, key: u64x2) -> u64x2 {
     let u4 = u64::from(FN[0][(x0 & 0xff) as usize] ^ FN[1][((x1 >> 8) & 0xff) as usize] ^ FN[2][((x2 >> 16) & 0xff) as usize] ^ FN[3][(x3 >> 24) as usize]);
 
     let r = u64x2((u3 << 32) | u4, (u1 << 32) | u2);
-    return sse::_mm_xor_si128(r, key);
+    sse::_mm_xor_si128(r, key)
 }
 
 fn transmute_u8(u: u32) -> [u8; 4] {
@@ -52,11 +53,11 @@ fn transmute_u32(u: [u8;4]) -> u32 {
 pub fn sub_word(w: u32) -> u32 {
     let a = transmute_u8(w);
     let r = [sbox(a[0]), sbox(a[1]), sbox(a[2]), sbox(a[3])];
-    return transmute_u32(r);
+    transmute_u32(r)
 }
 
 pub fn rotr(value: u32, amount: u32) -> u32 {
-    return u32::rotate_right(value, amount);
+    u32::rotate_right(value, amount)
 }
 
 pub fn sl_xor(value: u64x2) -> u64x2 {
@@ -68,9 +69,7 @@ pub fn sl_xor(value: u64x2) -> u64x2 {
     let t1 = sse::_mm_xor_si128(t1, t4);
 
     let t4 = sse::_mm_slli_si128_0x04(t4);
-    let t1 = sse::_mm_xor_si128(t1, t4);
-
-    return t1;
+    sse::_mm_xor_si128(t1, t4)
 }
 
 pub fn aes_keygenassist(key: u64x2, rcon: u8) -> u64x2 {
@@ -81,7 +80,7 @@ pub fn aes_keygenassist(key: u64x2, rcon: u8) -> u64x2 {
 
     let p2 = u64::from(rotr(w2, 8) ^ rcon_32) << 32 | u64::from(w2);
     let p1 = u64::from(rotr(w1, 8) ^ rcon_32) << 32 | u64::from(w1);
-    return u64x2(p1, p2);
+    u64x2(p1, p2)
 }
 
 pub fn aes_keygenassist_sub(x0: u64x2, x2: u64x2, rcon: u8) -> (u64x2, u64x2) {
@@ -95,12 +94,12 @@ pub fn aes_keygenassist_sub(x0: u64x2, x2: u64x2, rcon: u8) -> (u64x2, u64x2) {
     let out2 = sl_xor(x2);
     let out2 = sse::_mm_xor_si128(out2, out1);
 
-    return (out0, out2);
+    (out0, out2)
 }
 
 #[inline(always)]
 fn sbox(i: u8) -> u8{
-    return SBOX[i as usize];
+    SBOX[i as usize]
 }
 
 static FN: [[u32;256];4] = [

@@ -66,7 +66,7 @@ impl u64x2 {
         let mut r = u128::from(self.1);
         r <<= 64;
         r |= u128::from(self.0);
-        return r;
+        r
     }
 }
 
@@ -74,6 +74,6 @@ impl BitXor for u64x2 {
     type Output = Self;
 
     fn bitxor(self, rhs: Self) -> Self {
-        return sse::_mm_xor_si128(self, rhs);
+        sse::_mm_xor_si128(self, rhs)
     }
 }

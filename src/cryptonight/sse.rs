@@ -20,7 +20,7 @@ pub fn _mm_shuffle_epi32_0x55(key: u64x2) -> u64x2 {
     unsafe {
         mm_shuffle_epi32!(key, 0x55, r)
     }
-    return r;
+    r
 }
 
 #[inline(always)]
@@ -29,7 +29,7 @@ pub fn _mm_shuffle_epi32_0xff(key: u64x2) -> u64x2 {
     unsafe {
         mm_shuffle_epi32!(key, 0xFF, r)
     }
-    return r;
+    r
 }
 
 #[inline(always)]
@@ -38,7 +38,7 @@ pub fn _mm_shuffle_epi32_0xaa(key: u64x2) -> u64x2 {
     unsafe {
         mm_shuffle_epi32!(key, 0xAA, r)
     }
-    return r;
+    r
 }
 
 macro_rules! mm_cvtsi128_si32 {
@@ -58,7 +58,7 @@ pub fn _mm_cvtsi128_si32(v: u64x2) -> u32 {
     unsafe {
         mm_cvtsi128_si32!(v, r)
     }
-    return r;
+    r
 }
 
 macro_rules! mm_slli_si128 {
@@ -78,7 +78,7 @@ pub fn _mm_slli_si128_0x04(v: u64x2) -> u64x2 {
     unsafe {
         mm_slli_si128!(v, 0x04, r)
     }
-    return r;
+    r
 }
 
 macro_rules! mm_xor_si128 {
@@ -98,7 +98,7 @@ pub fn _mm_xor_si128(v0: u64x2, v1: u64x2) -> u64x2 {
     unsafe {
         mm_xor_si128!(v0, v1, r)
     }
-    return r;
+    r
 }
 
 macro_rules! mm_mul_su32 {
@@ -118,5 +118,5 @@ pub fn _mm_mul_su32(v0: u64x2, v1: u64x2) -> u64x2 {
     unsafe {
         mm_mul_su32!(v0, v1, r)
     }
-    return r;
+    r
 }

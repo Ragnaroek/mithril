@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 use mithril::stratum::stratum_data;
-use mithril::stratum::stratum;
+use mithril::stratum;
 
 #[test]
 fn test_ser_submit_json() {

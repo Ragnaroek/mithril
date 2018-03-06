@@ -7,11 +7,11 @@ extern crate log;
 extern crate env_logger;
 
 use mithril::stratum::stratum_data::{PoolConfig};
-use mithril::stratum::stratum::{StratumClient, StratumAction};
+use mithril::stratum::{StratumClient, StratumAction};
 use mithril::worker::worker_pool;
 use mithril::worker::worker_pool::{WorkerConfig, WorkerPool};
-use mithril::metric::metric;
-use mithril::metric::metric::{MetricConfig};
+use mithril::metric;
+use mithril::metric::{MetricConfig};
 use mithril::cryptonight::hash;
 use mithril::cryptonight::aes;
 use mithril::cryptonight::aes::{AESSupport};

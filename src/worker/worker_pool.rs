@@ -4,7 +4,7 @@ use super::super::cryptonight::hash;
 use super::super::cryptonight::hash::{MEM_SIZE};
 use super::super::cryptonight::aes;
 use super::super::cryptonight::aes::{AES, AESSupport};
-use super::super::stratum::stratum;
+use super::super::stratum;
 use super::super::stratum::stratum_data;
 use super::super::byte_string;
 use super::super::u64x2::{u64x2};
@@ -60,7 +60,7 @@ pub fn start(conf: WorkerConfig,
             work(&rx, &share_tx_thread, aes_support_thread, metric_resolution, &metric_tx_thread)
         });
     }
-    return WorkerPool{thread_chan, num_threads: conf.num_threads};
+    WorkerPool{thread_chan, num_threads: conf.num_threads}
 }
 
 impl WorkerPool {
@@ -85,9 +85,9 @@ impl WorkerPool {
 
 pub fn num_bits(num_threads: u64) -> u8 {
     match num_threads {
-        0 => return 0,
-        1 => return 1,
-        x => return (x as f64).log2().ceil() as u8
+        0 => 0,
+        1 => 1,
+        x => (x as f64).log2().ceil() as u8
     }
 }
 
@@ -200,17 +200,17 @@ fn work_job(scratchpad : &mut [u64x2; MEM_SIZE],
             }
         }
     }
-    return WorkerExit::NonceSpaceExhausted;
+    WorkerExit::NonceSpaceExhausted
 }
 
 fn check_new_job_available(rcv: &Receiver<WorkerCmd>) -> Option<JobData> {
     let try_result = rcv.try_recv();
     match try_result {
-        Ok(WorkerCmd::NewJob{job_data}) => return Some(job_data),
-        _ => return None
+        Ok(WorkerCmd::NewJob{job_data}) => Some(job_data),
+        _ => None
     }
 }
 
 pub fn target_u64(t: u32) -> u64 {
-    return u64::max_value() / (u64::from(u32::max_value()) / u64::from(t))
+    u64::max_value() / (u64::from(u32::max_value()) / u64::from(t))
 }

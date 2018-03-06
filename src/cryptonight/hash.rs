@@ -11,13 +11,13 @@ use std::boxed::Box;
 use self::groestl::{Digest, Groestl256};
 use super::super::byte_string;
 
-pub const MEM_SIZE : usize = 2097152 / 16;
-const ITERATIONS : u32 = 524288;
+pub const MEM_SIZE : usize = 2_097_152 / 16;
+const ITERATIONS : u32 = 524_288;
 
 /// This is mainly for testing, allocates a new scratchpad on every hash
 pub fn hash_alloc_scratchpad(input: &[u8], aes: &AES) -> String {
     let mut scratchpad : Box<[u64x2; MEM_SIZE]> = box [u64x2(0,0); MEM_SIZE];
-    return hash(&mut scratchpad, input, aes);
+    hash(&mut scratchpad, input, aes)
 }
 
 pub fn hash(mut scratchpad : &mut [u64x2; MEM_SIZE], input: &[u8], aes: &AES) -> String {
@@ -58,11 +58,11 @@ pub fn hash(mut scratchpad : &mut [u64x2; MEM_SIZE], input: &[u8], aes: &AES) ->
     let state_64 = transmute_u64(&mut state);
     keccak::keccakf(state_64);
 
-    return final_hash(transmute_u8(state_64));
+    final_hash(transmute_u8(state_64))
 }
 
 fn final_hash(keccak_state: &[u8; 200]) -> String {
-    let hash_result = match keccak_state[0] & 3 {
+    match keccak_state[0] & 3 {
         0 => {
               let mut result = [0; 32];
               blake::hash(256, keccak_state, &mut result).unwrap();
@@ -84,8 +84,7 @@ fn final_hash(keccak_state: &[u8; 200]) -> String {
               byte_string::u8_array_to_string(&result)
         },
         _ => panic!("hash select error")
-    };
-    return hash_result;
+    }
 }
 
 fn transmute_u64(t: &mut [u8; 200]) -> &mut [u64; 25] {
@@ -100,15 +99,15 @@ pub fn ebyte_mul(a: &u64x2, b: &u64x2) -> u64x2 {
     let r0 = u128::from(a.0);
     let r1 = u128::from(b.0);
     let r = r0 * r1;
-    return u64x2((r >> 64) as u64, r as u64);
+    u64x2((r >> 64) as u64, r as u64)
 }
 
 pub fn ebyte_add(a: &u64x2, b: &u64x2) -> u64x2 {
-    return u64x2(a.0.wrapping_add(b.0), a.1.wrapping_add(b.1));
+    u64x2(a.0.wrapping_add(b.0), a.1.wrapping_add(b.1))
 }
 
 pub fn scratchpad_addr(u: &u64x2) -> usize {
-    return ((u.0 & 0x1FFFF0) >> 4) as usize;
+    ((u.0 & 0x1F_FFF0) >> 4) as usize
 }
 
 pub fn finalise_scratchpad(scratchpad: &mut [u64x2; MEM_SIZE], keccak_state: &mut [u8; 200], aes: &AES) -> [u64x2; 8] {
@@ -149,7 +148,7 @@ pub fn finalise_scratchpad(scratchpad: &mut [u64x2; MEM_SIZE], keccak_state: &mu
         }
         k += 8;
     }
-    return state;
+    state
 }
 
 pub fn init_scratchpad(scratchpad : &mut [u64x2; MEM_SIZE], state: &mut [u8; 200], aes: &AES) {

@@ -1,4 +1,6 @@
 #![allow(unknown_lints)]
+#![allow(unreadable_literal)]
+
 //code taken from https://github.com/debris/tiny-keccak (and modified)
 
 const PLEN: usize = 25;
@@ -61,6 +63,7 @@ macro_rules! FOR5 {
 }
 
 /// keccak-f[1600]
+#[allow(many_single_char_names)]
 pub fn keccakf(a: &mut [u64; PLEN]) {
     let mut b: [u64; 5] = [0; 5];
     let mut t: u64;
@@ -155,5 +158,5 @@ pub fn keccak(input: &[u8]) -> [u8; 200] {
     keccakf(&mut a);
 
     let t8 = transmute_u8(&mut a);
-    return *t8;
+    *t8
 }
