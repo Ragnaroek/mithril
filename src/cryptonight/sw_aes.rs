@@ -1,3 +1,5 @@
+#![allow(unknown_lints)]
+#![allow(inline_always)]
 
 use u64x2::u64x2;
 use cryptonight::sse;
@@ -29,10 +31,10 @@ pub fn aes_round(block: u64x2, key: u64x2) -> u64x2 {
     let x2 = sse::_mm_cvtsi128_si32(sse::_mm_shuffle_epi32_0xaa(block));
     let x3 = sse::_mm_cvtsi128_si32(sse::_mm_shuffle_epi32_0xff(block));
 
-    let u1 = (FN[0][(x3 & 0xff) as usize] ^ FN[1][((x0 >> 8) & 0xff) as usize] ^ FN[2][((x1 >> 16) & 0xff) as usize] ^ FN[3][(x2 >> 24) as usize]) as u64;
-    let u2 = (FN[0][(x2 & 0xff) as usize] ^ FN[1][((x3 >> 8) & 0xff) as usize] ^ FN[2][((x0 >> 16) & 0xff) as usize] ^ FN[3][(x1 >> 24) as usize]) as u64;
-    let u3 = (FN[0][(x1 & 0xff) as usize] ^ FN[1][((x2 >> 8) & 0xff) as usize] ^ FN[2][((x3 >> 16) & 0xff) as usize] ^ FN[3][(x0 >> 24) as usize]) as u64;
-    let u4 = (FN[0][(x0 & 0xff) as usize] ^ FN[1][((x1 >> 8) & 0xff) as usize] ^ FN[2][((x2 >> 16) & 0xff) as usize] ^ FN[3][(x3 >> 24) as usize]) as u64;
+    let u1 = u64::from(FN[0][(x3 & 0xff) as usize] ^ FN[1][((x0 >> 8) & 0xff) as usize] ^ FN[2][((x1 >> 16) & 0xff) as usize] ^ FN[3][(x2 >> 24) as usize]);
+    let u2 = u64::from(FN[0][(x2 & 0xff) as usize] ^ FN[1][((x3 >> 8) & 0xff) as usize] ^ FN[2][((x0 >> 16) & 0xff) as usize] ^ FN[3][(x1 >> 24) as usize]);
+    let u3 = u64::from(FN[0][(x1 & 0xff) as usize] ^ FN[1][((x2 >> 8) & 0xff) as usize] ^ FN[2][((x3 >> 16) & 0xff) as usize] ^ FN[3][(x0 >> 24) as usize]);
+    let u4 = u64::from(FN[0][(x0 & 0xff) as usize] ^ FN[1][((x1 >> 8) & 0xff) as usize] ^ FN[2][((x2 >> 16) & 0xff) as usize] ^ FN[3][(x3 >> 24) as usize]);
 
     let r = u64x2((u3 << 32) | u4, (u1 << 32) | u2);
     return sse::_mm_xor_si128(r, key);
@@ -43,6 +45,7 @@ fn transmute_u8(u: u32) -> [u8; 4] {
 }
 
 fn transmute_u32(u: [u8;4]) -> u32 {
+    #[allow(misaligned_transmute)]
     unsafe { ::std::mem::transmute(u) }
 }
 
@@ -74,8 +77,10 @@ pub fn aes_keygenassist(key: u64x2, rcon: u8) -> u64x2 {
     let w1 = sub_word(sse::_mm_cvtsi128_si32(sse::_mm_shuffle_epi32_0x55(key)));
     let w2 = sub_word(sse::_mm_cvtsi128_si32(sse::_mm_shuffle_epi32_0xff(key)));
 
-    let p2 = ((rotr(w2, 8) ^ rcon as u32) as u64) << 32 | w2 as u64;
-    let p1 = ((rotr(w1, 8) ^ rcon as u32) as u64) << 32 | w1 as u64;
+    let rcon_32 = u32::from(rcon);
+
+    let p2 = u64::from(rotr(w2, 8) ^ rcon_32) << 32 | u64::from(w2);
+    let p1 = u64::from(rotr(w1, 8) ^ rcon_32) << 32 | u64::from(w1);
     return u64x2(p1, p2);
 }
 

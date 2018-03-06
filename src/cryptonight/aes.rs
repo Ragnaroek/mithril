@@ -4,7 +4,7 @@ use super::sw_aes;
 
 use u64x2::u64x2;
 
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 pub enum AESSupport{
     HW,
     SW

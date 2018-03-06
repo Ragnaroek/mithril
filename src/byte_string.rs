@@ -52,8 +52,8 @@ pub fn hex2_u64_be(hex: &str) -> u64 {
 
 pub fn u8_array_to_string(a: &[u8]) -> String {
     let mut str = String::new();
-    for i in 0..a.len() {
-        str.push_str(&format!("{:02x}", a[i]));
+    for a_i in a {
+        str.push_str(&format!("{:02x}", a_i));
     }
     return str;
 }

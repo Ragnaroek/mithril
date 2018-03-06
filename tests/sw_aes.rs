@@ -1,4 +1,6 @@
+#![allow(unknown_lints)]
 #![allow(unreadable_literal)]
+#![allow(inline_always)]
 
 extern crate mithril;
 

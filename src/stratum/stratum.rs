@@ -59,10 +59,10 @@ impl StratumClient {
             tx_cmd : Option::None,
             send_thread: Option::None,
             rcv_thread: Option::None,
-            action_rcvs: action_rcvs,
-            pool_conf: pool_conf,
+            action_rcvs,
+            pool_conf,
             miner_id: Arc::new(Mutex::new(Option::None)),
-            err_receiver: err_receiver
+            err_receiver
         };
     }
 
@@ -80,7 +80,7 @@ impl StratumClient {
         let pool_conf = self.pool_conf.clone();
         let err_send_tx = self.err_receiver.clone();
         let send_thread = thread::spawn(move || {
-            let result = handle_stratum_send(rx, writer, pool_conf);
+            let result = handle_stratum_send(&rx, writer, &pool_conf);
             if result.is_err() {
                 err_send_tx.send(result.err().unwrap()).unwrap();
             }
@@ -92,7 +92,7 @@ impl StratumClient {
         let rcv_miner_id = self.miner_id.clone();
         let err_rcv_tx = self.err_receiver.clone();
         let rcv_thread = thread::spawn(move || {
-            let result = handle_stratum_receive(reader, rcvs, rcv_miner_id);
+            let result = handle_stratum_receive(reader, &rcvs, &rcv_miner_id);
             if result.is_err() {
                 err_rcv_tx.send(result.err().unwrap()).unwrap();
             }
@@ -154,10 +154,10 @@ pub fn submit_share(tx: &Sender<StratumCmd>, share: stratum_data::Share) -> Resu
     return tx.send(StratumCmd::SubmitShare{share});
 }
 
-fn handle_stratum_send(rx: Receiver<StratumCmd>, mut writer: BufWriter<TcpStream>, pool_conf: stratum_data::PoolConfig) -> Result<(), Error> {
+fn handle_stratum_send(rx: &Receiver<StratumCmd>, mut writer: BufWriter<TcpStream>, pool_conf: &stratum_data::PoolConfig) -> Result<(), Error> {
     loop {
         match rx.recv().unwrap() {
-            StratumCmd::Login{} => do_stratum_login(&mut writer, &pool_conf)?,
+            StratumCmd::Login{} => do_stratum_login(&mut writer, pool_conf)?,
             StratumCmd::SubmitShare{share} => do_stratum_submit_share(&mut writer, share)?,
             StratumCmd::KeepAlive{miner_id} => do_stratum_keep_alive(&mut writer, miner_id)?,
         }
@@ -211,12 +211,12 @@ fn do_stratum_login(writer: &mut BufWriter<TcpStream>, pool_conf: &stratum_data:
     return Ok(());
 }
 
-fn handle_stratum_receive(mut reader: BufReader<TcpStream>, rcvs: Vec<Sender<StratumAction>>, miner_id: Arc<Mutex<Option<String>>>) -> Result<(), Error> {
+fn handle_stratum_receive(mut reader: BufReader<TcpStream>, rcvs: &[Sender<StratumAction>], miner_id: &Arc<Mutex<Option<String>>>) -> Result<(), Error> {
     loop {
         let mut line = String::new();
         match reader.read_line(&mut line) {
             Ok(_) => {
-                parse_line_dispatch_result(&line, &rcvs, &miner_id);
+                parse_line_dispatch_result(&line, rcvs, miner_id);
             },
             Err(e) => {
                 //read_line fails (maybe connection lost, dispatch err to channel)
@@ -240,7 +240,7 @@ fn is_known_ok(result: Result<stratum_data::OkResponse, serde_json::Error>) -> O
 }
 
 //TODO Refactor this method (it is very ugly) - its probably better to use generic value parsing and not using struct for every case
-pub fn parse_line_dispatch_result(line: &str, rcvs: &Vec<Sender<StratumAction>>, miner_id_mutx: &Arc<Mutex<Option<String>>>) {
+pub fn parse_line_dispatch_result(line: &str, rcvs: &[Sender<StratumAction>], miner_id_mutx: &Arc<Mutex<Option<String>>>) {
 
     let action;
 

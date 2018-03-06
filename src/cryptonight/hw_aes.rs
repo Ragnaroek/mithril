@@ -1,6 +1,9 @@
-//taken from https://github.com/RustCrypto/block-ciphers and modified for Cryptonight
+#![allow(unknown_lints)]
+#![allow(inline_always)]
 
 use u64x2::u64x2;
+
+//taken from https://github.com/RustCrypto/block-ciphers and modified for Cryptonight
 
 macro_rules! gen_key {
     ($round:expr, $ib:expr, $key:ident, $input0:ident, $input1:ident) => {

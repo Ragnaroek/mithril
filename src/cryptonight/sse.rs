@@ -1,3 +1,5 @@
+#![allow(unknown_lints)]
+#![allow(inline_always)]
 
 use u64x2::u64x2;
 

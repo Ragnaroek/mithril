@@ -1,4 +1,4 @@
-
+#![allow(unknown_lints)]
 //code taken from https://github.com/debris/tiny-keccak (and modified)
 
 const PLEN: usize = 25;
@@ -67,6 +67,7 @@ pub fn keccakf(a: &mut [u64; PLEN]) {
     let mut x: usize;
     let mut y: usize;
 
+    #[allow(needless_range_loop)]
     for i in 0..24 {
         // Theta
         FOR5!(x, 1, {
@@ -134,7 +135,7 @@ pub fn keccak(input: &[u8]) -> [u8; 200] {
     //first foldp
     let mut ip = 0;
     let mut l = inlen;
-    while l >= rate { 
+    while l >= rate {
         xorin(&mut transmute_u8(&mut a)[0..][..rate], &input[ip..]);
         keccakf(&mut a);
         ip += rate;

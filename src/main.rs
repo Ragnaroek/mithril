@@ -36,7 +36,7 @@ fn main() {
     let metric_conf = metric_config(&config).unwrap();
     let hw_conf = hardware_config(&config).unwrap();
 
-    sanity_check(hw_conf.aes_support.clone());
+    sanity_check(hw_conf.aes_support);
 
     let (metric_tx, metric_rx) = channel();
     metric::start(metric_conf.clone(), metric_rx);
@@ -51,8 +51,8 @@ fn main() {
         let share_tx = client.new_cmd_channel().unwrap();
 
         //worker pool start
-        let pool = &worker_pool::start(worker_conf.clone(), hw_conf.clone().aes_support,
-            share_tx, metric_conf.resolution, metric_tx.clone());
+        let pool = &worker_pool::start(worker_conf, hw_conf.clone().aes_support,
+            &share_tx, metric_conf.resolution, &metric_tx.clone());
 
         start_main_event_loop(pool, &client_err_rx, &stratum_rx);
 
@@ -79,7 +79,7 @@ fn start_main_event_loop(pool: &WorkerPool, client_err_rx: &Receiver<Error>, str
             }
             match received.unwrap() {
                 StratumAction::Job{miner_id, blob, job_id, target} => {
-                    pool.job_change(miner_id, blob, job_id, target);
+                    pool.job_change(&miner_id, &blob, &job_id, &target);
                 },
                 StratumAction::Error{err} => {
                     error!("Received stratum error: {}", err);

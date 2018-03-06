@@ -60,7 +60,7 @@ fn test_parse_line_dispatch_result_error() {
 
     let mutex_thread = miner_id_mutex.clone();
     thread::spawn(move || {
-        stratum::parse_line_dispatch_result(line, &vec![tx], &mutex_thread);
+        stratum::parse_line_dispatch_result(line, &[tx], &mutex_thread);
     });
 
     let result = rx.recv().unwrap();
@@ -93,7 +93,7 @@ fn test_parse_line_dispatch_result_initial_job() {
 
     let mutex_thread = miner_id_mutex.clone();
     thread::spawn(move || {
-        stratum::parse_line_dispatch_result(line, &vec![tx], &mutex_thread);
+        stratum::parse_line_dispatch_result(line, &[tx], &mutex_thread);
     });
 
     let result = rx.recv().unwrap();
@@ -133,7 +133,7 @@ fn test_parse_line_dispatch_result_initial_job_with_non_ok_result() {
         }}"#;
 
     thread::spawn(move || {
-        stratum::parse_line_dispatch_result(line, &vec![tx], &miner_id_mutex);
+        stratum::parse_line_dispatch_result(line, &[tx], &miner_id_mutex);
     });
 
     let result = rx.recv().unwrap();
@@ -158,7 +158,7 @@ fn test_parse_line_dispatch_unknown_method() {
         }}"#;
 
     thread::spawn(move || {
-        stratum::parse_line_dispatch_result(line, &vec![tx], &miner_id_mutex);
+        stratum::parse_line_dispatch_result(line, &[tx], &miner_id_mutex);
     });
 
     let result = rx.recv().unwrap();
@@ -185,7 +185,7 @@ fn test_parse_line_dispatch_job_method() {
         }}"#;
 
     thread::spawn(move || {
-        stratum::parse_line_dispatch_result(line, &vec![tx], &miner_id_mutex);
+        stratum::parse_line_dispatch_result(line, &[tx], &miner_id_mutex);
     });
 
     let result = rx.recv().unwrap();
@@ -216,7 +216,7 @@ fn test_parse_line_dispatch_job_method_missing_miner_id() {
         }}"#;
 
     thread::spawn(move || {
-        stratum::parse_line_dispatch_result(line, &vec![tx], &miner_id_mutex);
+        stratum::parse_line_dispatch_result(line, &[tx], &miner_id_mutex);
     });
 
     let result = rx.recv().unwrap();
@@ -236,7 +236,7 @@ fn test_parse_line_dispatch_job_ok_result_share_submit() {
     let line = r#"{"id":1,"jsonrpc":"2.0","error":null,"result":{"status":"OK"}}"#;
 
     thread::spawn(move || {
-        stratum::parse_line_dispatch_result(line, &vec![tx], &miner_id_mutex);
+        stratum::parse_line_dispatch_result(line, &[tx], &miner_id_mutex);
     });
 
     let result = rx.recv().unwrap();
@@ -251,7 +251,7 @@ fn test_parse_line_dispatch_keepalive() {
     let line = r#"{"id":1,"jsonrpc":"2.0","error":null,"result":{"status":"KEEPALIVED"}}"#;
 
     thread::spawn(move || {
-        stratum::parse_line_dispatch_result(line, &vec![tx], &miner_id_mutex);
+        stratum::parse_line_dispatch_result(line, &[tx], &miner_id_mutex);
     });
 
     let result = rx.recv().unwrap();

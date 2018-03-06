@@ -14,7 +14,7 @@ pub struct WorkerPool {
     num_threads: u64
 }
 
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 pub struct WorkerConfig {
     pub num_threads: u64
 }
@@ -46,39 +46,39 @@ enum WorkerExit {
 
 pub fn start(conf: WorkerConfig,
              aes_support: AESSupport,
-             share_tx: Sender<stratum::StratumCmd>,
+             share_tx: &Sender<stratum::StratumCmd>,
              metric_resolution: u64,
-             metric_tx: Sender<u64>) -> WorkerPool {
+             metric_tx: &Sender<u64>) -> WorkerPool {
     let mut thread_chan : Vec<Sender<WorkerCmd>> = Vec::with_capacity(conf.num_threads as usize);
     for _ in 0..conf.num_threads {
         let (tx, rx) = channel();
         let share_tx_thread = share_tx.clone();
         let metric_tx_thread = metric_tx.clone();
-        let aes_support_thread = aes_support.clone();
+        let aes_support_thread = aes_support;
         thread_chan.push(tx);
         thread::spawn(move || {
-            work(rx, share_tx_thread, aes_support_thread, metric_resolution, metric_tx_thread)
+            work(&rx, &share_tx_thread, aes_support_thread, metric_resolution, &metric_tx_thread)
         });
     }
     return WorkerPool{thread_chan, num_threads: conf.num_threads};
 }
 
 impl WorkerPool {
-    pub fn job_change(&self, miner_id: String, blob: String, job_id: String, target: String) {
+    pub fn job_change(&self, miner_id: &str, blob: &str, job_id: &str, target: &str) {
         info!("job change, blob {}", blob);
-        let mut partition_ix = 0;
+        //let mut partition_ix = 0;
         let num_bits = num_bits(self.num_threads);
-        for tx in self.thread_chan.clone() {
+        for (partition_ix, tx) in self.thread_chan.iter().enumerate() {
             tx.send(WorkerCmd::NewJob{
                 job_data: JobData {
-                    miner_id: miner_id.clone(),
-                    blob: blob.clone(),
-                    job_id: job_id.clone(),
-                    target: target.clone(),
-                    nonce_partition: partition_ix,
+                    miner_id: miner_id.to_string(),
+                    blob: blob.to_string(),
+                    job_id: job_id.to_string(),
+                    target: target.to_string(),
+                    nonce_partition: partition_ix as u8,
                     nonce_partition_num_bits: num_bits
                 }}).unwrap();
-            partition_ix += 1;
+            //partition_ix += 1;
         }
     }
 }
@@ -93,11 +93,11 @@ pub fn num_bits(num_threads: u64) -> u8 {
 
 //TODO pub fn stop() //stop all workers, for controlled shutdown
 
-fn work(rcv: Receiver<WorkerCmd>,
-        share_tx: Sender<stratum::StratumCmd>,
+fn work(rcv: &Receiver<WorkerCmd>,
+        share_tx: &Sender<stratum::StratumCmd>,
         aes_support: AESSupport,
         metric_resolution: u64,
-        metric_tx: Sender<u64>) {
+        metric_tx: &Sender<u64>) {
 
     let aes = aes::new(aes_support);
     let mut scratchpad : Box<[u64x2; MEM_SIZE]> = box [u64x2(0,0); MEM_SIZE];
@@ -112,7 +112,7 @@ fn work(rcv: Receiver<WorkerCmd>,
     };
 
     loop {
-        let exit_reason = work_job(&mut scratchpad, &job, &rcv, &share_tx, &aes, metric_resolution, &metric_tx);
+        let exit_reason = work_job(&mut scratchpad, &job, rcv, share_tx, &aes, metric_resolution, metric_tx);
         //if work_job returns the nonce space was exhausted or a new job was received.
         //In case the nonce space was exhausted, we have to wait blocking for a new job and "idle".
         match exit_reason {
@@ -169,7 +169,7 @@ fn work_job(scratchpad : &mut [u64x2; MEM_SIZE],
                         let share = stratum_data::Share{
                             miner_id: job.miner_id.clone(),
                             job_id: job.job_id.clone(),
-                            nonce: nonce,
+                            nonce,
                             hash: hash_result
                         };
 

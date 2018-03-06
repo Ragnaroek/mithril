@@ -23,7 +23,7 @@ pub fn hash_alloc_scratchpad(input: &[u8], aes: &AES) -> String {
 pub fn hash(mut scratchpad : &mut [u64x2; MEM_SIZE], input: &[u8], aes: &AES) -> String {
     //scratchpad init
     let mut state = keccak::keccak(input);
-    init_scratchpad(&mut scratchpad, &mut state, &aes);
+    init_scratchpad(&mut scratchpad, &mut state, aes);
 
     let mut a = u64x2::read(&state[0..16]) ^ u64x2::read(&state[32..48]);
     let mut b = u64x2::read(&state[16..32]) ^ u64x2::read(&state[48..64]);
@@ -45,7 +45,7 @@ pub fn hash(mut scratchpad : &mut [u64x2; MEM_SIZE], input: &[u8], aes: &AES) ->
         i += 1;
     }
 
-    let final_result = finalise_scratchpad(scratchpad, &mut state, &aes);
+    let final_result = finalise_scratchpad(scratchpad, &mut state, aes);
 
     let mut k = 0;
     while k < 8 {
