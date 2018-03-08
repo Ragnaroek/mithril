@@ -6,6 +6,11 @@ pool_password = ""
 
 [worker]
 num_threads = 8
+auto_tune = true # if enabled, finds the best configuration for the hardware
+                 # via a multi-armed bandit algorithm. If this is enabled
+                 # the num_threads settings is ignored.
+auto_tune_interval_minutes = 15 # minutes how long a arm is evaluated before a new
+                                # arm is drawn
 
 [metric]
 enabled = false

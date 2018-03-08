@@ -16,7 +16,9 @@ pub struct WorkerPool {
 
 #[derive(Copy, Clone)]
 pub struct WorkerConfig {
-    pub num_threads: u64
+    pub num_threads: u64,
+    pub auto_tune: bool,
+    pub auto_tune_interval_minutes: u64,
 }
 
 #[derive(Debug, PartialEq)]
@@ -34,6 +36,7 @@ pub enum WorkerCmd {
     NewJob {
         job_data: JobData
     },
+    Stop
 }
 
 #[derive(Debug, PartialEq)]
@@ -42,6 +45,7 @@ enum WorkerExit {
     NewJob {
         job_data: JobData
     },
+    Stopped
 }
 
 pub fn start(conf: WorkerConfig,
@@ -66,7 +70,6 @@ pub fn start(conf: WorkerConfig,
 impl WorkerPool {
     pub fn job_change(&self, miner_id: &str, blob: &str, job_id: &str, target: &str) {
         info!("job change, blob {}", blob);
-        //let mut partition_ix = 0;
         let num_bits = num_bits(self.num_threads);
         for (partition_ix, tx) in self.thread_chan.iter().enumerate() {
             tx.send(WorkerCmd::NewJob{
@@ -77,8 +80,15 @@ impl WorkerPool {
                     target: target.to_string(),
                     nonce_partition: partition_ix as u8,
                     nonce_partition_num_bits: num_bits
-                }}).unwrap();
-            //partition_ix += 1;
+                }}).expect("sending new job command");
+        }
+    }
+
+    pub fn stop(&self) {
+        info!("stopping workers");
+
+        for tx in &self.thread_chan {
+            tx.send(WorkerCmd::Stop).expect("sending stop command failed");
         }
     }
 }
@@ -90,8 +100,6 @@ pub fn num_bits(num_threads: u64) -> u8 {
         x => (x as f64).log2().ceil() as u8
     }
 }
-
-//TODO pub fn stop() //stop all workers, for controlled shutdown
 
 fn work(rcv: &Receiver<WorkerCmd>,
         share_tx: &Sender<stratum::StratumCmd>,
@@ -108,7 +116,11 @@ fn work(rcv: &Receiver<WorkerCmd>,
         return;
     }
     let mut job = match first_job.unwrap() {
-        WorkerCmd::NewJob{job_data} => job_data
+        WorkerCmd::NewJob{job_data} => job_data,
+        WorkerCmd::Stop => {
+            info!("Worker immediately stopped");
+            return
+        }
     };
 
     loop {
@@ -124,14 +136,18 @@ fn work(rcv: &Receiver<WorkerCmd>,
                     return;
                 }
                 job = match job_blocking.unwrap() {
-                    WorkerCmd::NewJob{job_data} => job_data
+                    WorkerCmd::NewJob{job_data} => job_data,
+                    WorkerCmd::Stop => break //Terminate thread
                 };
             },
             WorkerExit::NewJob{job_data} => {
                 job = job_data;
             },
+            WorkerExit::Stopped => break //Terminate thread
         }
     }
+
+    info!("Worker stopped")
 }
 
 pub fn with_nonce(blob: &str, nonce: &str) -> String {
@@ -188,13 +204,18 @@ fn work_job(scratchpad : &mut [u64x2; MEM_SIZE],
                         hash_count = 0;
                     }
 
-                    let new_job = check_new_job_available(rcv);
-                    if new_job.is_some() {
-                        let send_result = metric_tx.send(hash_count);
-                        if send_result.is_err() { //flush hash_count
-                            error!("metric submit failed {:?}", send_result);
+                    let cmd = check_command_available(rcv);
+                    if cmd.is_some() {
+                        match cmd.unwrap() {
+                            WorkerCmd::NewJob{job_data} => {
+                                let send_result = metric_tx.send(hash_count);
+                                if send_result.is_err() { //flush hash_count
+                                    error!("metric submit failed {:?}", send_result);
+                                }
+                                return WorkerExit::NewJob{job_data};
+                            },
+                            WorkerCmd::Stop => return WorkerExit::Stopped
                         }
-                        return WorkerExit::NewJob{job_data: new_job.unwrap()};
                     }
                 }
             }
@@ -203,10 +224,10 @@ fn work_job(scratchpad : &mut [u64x2; MEM_SIZE],
     WorkerExit::NonceSpaceExhausted
 }
 
-fn check_new_job_available(rcv: &Receiver<WorkerCmd>) -> Option<JobData> {
+fn check_command_available(rcv: &Receiver<WorkerCmd>) -> Option<WorkerCmd> {
     let try_result = rcv.try_recv();
     match try_result {
-        Ok(WorkerCmd::NewJob{job_data}) => Some(job_data),
+        Ok(cmd) => Some(cmd),
         _ => None
     }
 }

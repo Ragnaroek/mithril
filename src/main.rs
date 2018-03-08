@@ -1,10 +1,12 @@
 #![feature(mpsc_select)]
 
-extern crate mithril;
-extern crate config;
 #[macro_use]
 extern crate log;
+
+extern crate mithril;
+extern crate config;
 extern crate env_logger;
+extern crate chan_signal;
 
 use mithril::stratum::stratum_data::{PoolConfig};
 use mithril::stratum::{StratumClient, StratumAction};
@@ -18,12 +20,17 @@ use mithril::cryptonight::aes::{AESSupport};
 use mithril::byte_string;
 use std::sync::mpsc::{channel, Select, Receiver};
 use std::path::Path;
+use std::io;
 use std::io::{Error};
 use std::thread;
 use std::time::{Duration};
 use config::{Config, ConfigError, File};
 
 const CONFIG_FILE_NAME : &str = "config.toml";
+
+enum MainLoopExit {
+    DrawNewBanditArm
+}
 
 fn main() {
 
@@ -54,28 +61,69 @@ fn main() {
         let pool = &worker_pool::start(worker_conf, hw_conf.clone().aes_support,
             &share_tx, metric_conf.resolution, &metric_tx.clone());
 
-        start_main_event_loop(pool, &client_err_rx, &stratum_rx);
+        let term_result = start_main_event_loop(pool, worker_conf, &client_err_rx, &stratum_rx);
 
-        error!("stratum connection lost, restarting connection after 60 seconds");
-        thread::sleep(Duration::from_secs(60));
+        pool.stop();
+
+        match term_result {
+            Err(err) => {
+                error!("error received, restarting connection after 60 seconds. err was {}", err);
+                thread::sleep(Duration::from_secs(60));
+            },
+            Ok(MainLoopExit::DrawNewBanditArm) => {
+                info!("main loop exit, drawing new bandit arm");
+                //TODO Wait for full pool exit (every thread terminated, check thread handles)
+                //TODO draw new arm (create new worker_conf and reconnect)
+            }
+        }
     }
 }
 
+fn setup_bandit_arm_select_clock(worker_conf: WorkerConfig) -> Receiver<()>{
+    let (clock_tx, clock_rx) = channel();
+
+    let interval = if worker_conf.auto_tune {
+        info!("auto_tune enabled, starting arm clock signaling");
+        60 * worker_conf.auto_tune_interval_minutes
+    } else {
+        info!("auto_tune disabled");
+        std::u64::MAX
+    };
+
+    //if auto_tune is not enabled, never send the clock signal for drawing
+    //a new arm, effectively disabling auto tuning
+    thread::spawn(move ||{
+        loop {
+            thread::sleep(Duration::from_secs(interval));
+            clock_tx.send(()).expect("sending clock signal");
+        }
+    });
+
+    clock_rx
+}
+
 /// This function terminates if a non-recoverable error was detected (i.e. connection lost)
-fn start_main_event_loop(pool: &WorkerPool, client_err_rx: &Receiver<Error>, stratum_rx: &Receiver<StratumAction>) {
-    //Test impl, select setup
+fn start_main_event_loop(pool: &WorkerPool,
+    worker_conf: WorkerConfig,
+    client_err_rx: &Receiver<Error>,
+    stratum_rx: &Receiver<StratumAction>) -> io::Result<MainLoopExit> {
+
+    let bandit_clock_rx = setup_bandit_arm_select_clock(worker_conf);
+
     let select = Select::new();
     let mut err_hnd = select.handle(client_err_rx);
     unsafe {err_hnd.add()};
     let mut rcv_hnd = select.handle(stratum_rx);
     unsafe {rcv_hnd.add()};
+    let mut clock_hnd = select.handle(&bandit_clock_rx);
+    unsafe {clock_hnd.add()};
 
     loop {
         let id = select.wait();
         if id == rcv_hnd.id() {
             let received = rcv_hnd.recv();
             if received.is_err() {
-                return
+                return Err(io::Error::new(io::ErrorKind::ConnectionAborted, "received error"));
             }
             match received.unwrap() {
                 StratumAction::Job{miner_id, blob, job_id, target} => {
@@ -92,9 +140,13 @@ fn start_main_event_loop(pool: &WorkerPool, client_err_rx: &Receiver<Error>, str
                 }
             }
         } else if id == err_hnd.id() {
-            let received = client_err_rx.recv();
-            error!("error received {:?}", received);
-            return
+            let err_received = client_err_rx.recv();
+            io::Error::new(io::ErrorKind::Other, format!("error received {:?}", err_received));
+        } else if id == clock_hnd.id() {
+            let clock_rcv = bandit_clock_rx.recv();
+            println!("clock_rcv {:?}", clock_rcv);
+            info!("bandit clock signal received - time for new arm");
+            return Ok(MainLoopExit::DrawNewBanditArm);
         }
     }
 }
@@ -116,7 +168,17 @@ fn worker_config(conf: &Config) -> Result<WorkerConfig, ConfigError> {
     if num_threads <= 0 {
         return Err(ConfigError::Message("num_threads hat to be > 0".to_string()));
     }
-    Ok(WorkerConfig{num_threads: num_threads as u64})
+
+    let auto_tune = conf.get_bool("worker.auto_tune")?;
+
+    let auto_tune_interval_minutes = conf.get_int("worker.auto_tune_interval_minutes")?;
+    if auto_tune_interval_minutes <= 0 {
+        return Err(ConfigError::Message("auto_tune_interval_minutes hat to be > 0".to_string()));
+    }
+
+    Ok(WorkerConfig{num_threads: num_threads as u64,
+                    auto_tune,
+                    auto_tune_interval_minutes: auto_tune_interval_minutes as u64})
 }
 
 fn metric_config(conf: &Config) -> Result<MetricConfig, ConfigError> {
