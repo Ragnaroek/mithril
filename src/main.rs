@@ -6,7 +6,6 @@ extern crate log;
 extern crate mithril;
 extern crate config;
 extern crate env_logger;
-extern crate chan_signal;
 
 use mithril::stratum::stratum_data::{PoolConfig};
 use mithril::stratum::{StratumClient, StratumAction};
