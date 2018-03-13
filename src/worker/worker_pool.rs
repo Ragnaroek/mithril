@@ -11,6 +11,7 @@ use super::super::u64x2::{u64x2};
 
 pub struct WorkerPool {
     thread_chan : Vec<Sender<WorkerCmd>>,
+    thread_hnd : Vec<thread::JoinHandle<()>>,
     num_threads: u64
 }
 
@@ -53,18 +54,22 @@ pub fn start(conf: WorkerConfig,
              share_tx: &Sender<stratum::StratumCmd>,
              metric_resolution: u64,
              metric_tx: &Sender<u64>) -> WorkerPool {
-    let mut thread_chan : Vec<Sender<WorkerCmd>> = Vec::with_capacity(conf.num_threads as usize);
-    for _ in 0..conf.num_threads {
+    let num_threads = conf.num_threads as usize;
+    let mut thread_chan : Vec<Sender<WorkerCmd>> = Vec::with_capacity(num_threads);
+    let mut thread_hnd : Vec<thread::JoinHandle<()>> = Vec::with_capacity(num_threads);
+    for _ in 0..num_threads {
         let (tx, rx) = channel();
         let share_tx_thread = share_tx.clone();
         let metric_tx_thread = metric_tx.clone();
         let aes_support_thread = aes_support;
-        thread_chan.push(tx);
-        thread::spawn(move || {
+
+        let hnd = thread::spawn(move || {
             work(&rx, &share_tx_thread, aes_support_thread, metric_resolution, &metric_tx_thread)
         });
+        thread_chan.push(tx);
+        thread_hnd.push(hnd);
     }
-    WorkerPool{thread_chan, num_threads: conf.num_threads}
+    WorkerPool{thread_chan, num_threads: conf.num_threads, thread_hnd}
 }
 
 impl WorkerPool {
@@ -89,6 +94,16 @@ impl WorkerPool {
 
         for tx in &self.thread_chan {
             tx.send(WorkerCmd::Stop).expect("sending stop command failed");
+        }
+    }
+
+    //Waits for completing of all threads in the pool
+    pub fn join(self) {
+        for hnd in self.thread_hnd {
+            let join_result = hnd.join();
+            if join_result.is_err() {
+                error!("thread join failed {:?}, waiting for next", join_result)
+            }
         }
     }
 }

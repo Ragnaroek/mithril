@@ -57,10 +57,10 @@ fn main() {
         let share_tx = client.new_cmd_channel().unwrap();
 
         //worker pool start
-        let pool = &worker_pool::start(worker_conf, hw_conf.clone().aes_support,
+        let pool = worker_pool::start(worker_conf, hw_conf.clone().aes_support,
             &share_tx, metric_conf.resolution, &metric_tx.clone());
 
-        let term_result = start_main_event_loop(pool, worker_conf, &client_err_rx, &stratum_rx);
+        let term_result = start_main_event_loop(&pool, worker_conf, &client_err_rx, &stratum_rx);
 
         pool.stop();
 
@@ -71,7 +71,8 @@ fn main() {
             },
             Ok(MainLoopExit::DrawNewBanditArm) => {
                 info!("main loop exit, drawing new bandit arm");
-                //TODO Wait for full pool exit (every thread terminated, check thread handles)
+                pool.join();
+                //TODO Update reward for current arm
                 //TODO draw new arm (create new worker_conf and reconnect)
             }
         }
