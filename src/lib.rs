@@ -7,6 +7,7 @@
 #![feature(box_syntax)]
 #![feature(iterator_step_by)]
 #![feature(integer_atomics)]
+#![feature(mpsc_select)]
 
 #[macro_use]
 extern crate serde_derive;

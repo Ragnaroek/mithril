@@ -44,17 +44,17 @@ fn main() {
 
     sanity_check(hw_conf.aes_support);
 
-    let (metric_tx, metric_rx) = channel();
-    metric::start(metric_conf.clone(), metric_rx);
+    //Stratum start
+    let (stratum_tx, stratum_rx) = channel();
+    let (client_err_tx, client_err_rx) = channel();
+
+    let mut client = StratumClient::new(pool_conf.clone(), client_err_tx, vec![stratum_tx]);
+    client.login();
+    let share_tx = client.new_cmd_channel().expect("command channel setup");
 
     loop {
-        //Stratum start
-        let (stratum_tx, stratum_rx) = channel();
-        let (client_err_tx, client_err_rx) = channel();
-
-        let mut client = StratumClient::new(pool_conf.clone(), client_err_tx, vec![stratum_tx]);
-        client.login();
-        let share_tx = client.new_cmd_channel().unwrap();
+        let (metric_tx, metric_rx) = channel();
+        let metric = metric::start(metric_conf.clone(), metric_rx);
 
         //worker pool start
         let pool = worker_pool::start(worker_conf, hw_conf.clone().aes_support,
@@ -72,6 +72,14 @@ fn main() {
             Ok(MainLoopExit::DrawNewBanditArm) => {
                 info!("main loop exit, drawing new bandit arm");
                 pool.join();
+
+                metric.stop();
+
+                let hashes = metric.hash_count();
+                println!("hashes accumulated {}", hashes);
+
+                metric.join();
+
                 //TODO Update reward for current arm
                 //TODO draw new arm (create new worker_conf and reconnect)
             }
@@ -141,12 +149,15 @@ fn start_main_event_loop(pool: &WorkerPool,
             }
         } else if id == err_hnd.id() {
             let err_received = client_err_rx.recv();
-            io::Error::new(io::ErrorKind::Other, format!("error received {:?}", err_received));
+            return Err(io::Error::new(io::ErrorKind::Other, format!("error received {:?}", err_received)));
         } else if id == clock_hnd.id() {
-            let clock_rcv = bandit_clock_rx.recv();
-            println!("clock_rcv {:?}", clock_rcv);
-            info!("bandit clock signal received - time for new arm");
-            return Ok(MainLoopExit::DrawNewBanditArm);
+            let clock_res = bandit_clock_rx.recv();
+            if clock_res.is_err() {
+                return Err(io::Error::new(io::ErrorKind::Other, format!("error received {:?}", clock_res)));
+            } else {
+                info!("bandit clock signal received - time for new arm");
+                return Ok(MainLoopExit::DrawNewBanditArm)
+            }
         }
     }
 }

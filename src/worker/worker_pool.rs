@@ -93,7 +93,7 @@ impl WorkerPool {
         info!("stopping workers");
 
         for tx in &self.thread_chan {
-            tx.send(WorkerCmd::Stop).expect("sending stop command failed");
+            let _ = tx.send(WorkerCmd::Stop);
         }
     }
 
