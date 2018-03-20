@@ -6,6 +6,7 @@ extern crate log;
 extern crate mithril;
 extern crate config;
 extern crate env_logger;
+extern crate bandit;
 
 use mithril::stratum::stratum_data::{PoolConfig};
 use mithril::stratum::{StratumClient, StratumAction};
@@ -17,6 +18,7 @@ use mithril::cryptonight::hash;
 use mithril::cryptonight::aes;
 use mithril::cryptonight::aes::{AESSupport};
 use mithril::byte_string;
+use mithril::bandit_tools;
 use std::sync::mpsc::{channel, Select, Receiver};
 use std::path::Path;
 use std::io;
@@ -24,6 +26,7 @@ use std::io::{Error};
 use std::thread;
 use std::time::{Duration};
 use config::{Config, ConfigError, File};
+use bandit::MultiArmedBandit;
 
 const CONFIG_FILE_NAME : &str = "config.toml";
 
@@ -52,12 +55,27 @@ fn main() {
     client.login();
     let share_tx = client.new_cmd_channel().expect("command channel setup");
 
+    let mut bandit = if worker_conf.auto_tune {
+        Some(bandit_tools::setup_bandit())
+    } else {
+        None
+    };
+
     loop {
+
+        let (arm, num_threads) = if bandit.is_some() {
+            let selected_arm = bandit.as_ref().unwrap().select_arm();
+            info!("trying arm with {} #threads", selected_arm.num_threads);
+            (Some(selected_arm), selected_arm.num_threads)
+        } else {
+            (None, worker_conf.num_threads)
+        };
+
         let (metric_tx, metric_rx) = channel();
         let metric = metric::start(metric_conf.clone(), metric_rx);
 
         //worker pool start
-        let pool = worker_pool::start(worker_conf, hw_conf.clone().aes_support,
+        let pool = worker_pool::start(num_threads, hw_conf.clone().aes_support,
             &share_tx, metric_conf.resolution, &metric_tx.clone());
 
         let term_result = start_main_event_loop(&pool, worker_conf, &client_err_rx, &stratum_rx);
@@ -74,40 +92,33 @@ fn main() {
                 pool.join();
 
                 metric.stop();
-
                 let hashes = metric.hash_count();
-                println!("hashes accumulated {}", hashes);
-
                 metric.join();
 
-                //TODO Update reward for current arm
-                //TODO draw new arm (create new worker_conf and reconnect)
+                if arm.is_some() && bandit.is_some() {
+                    let bandit_ref = bandit.as_mut().unwrap();
+                    let reward = (hashes as f64 / (worker_conf.auto_tune_interval_minutes as f64 * 60.0)) / 1000.0; /*kH/s*/
+                    info!("adding reward {:?} for arm {:?}", reward, arm);
+                    bandit_ref.update(arm.unwrap(), reward);
+                    save_bandit_state(bandit_ref);
+                }
             }
         }
     }
 }
 
-fn setup_bandit_arm_select_clock(worker_conf: WorkerConfig) -> Receiver<()>{
-    let (clock_tx, clock_rx) = channel();
+fn save_bandit_state(bandit: &mut bandit::softmax::AnnealingSoftmax<bandit_tools::ThreadArm>) {
 
-    let interval = if worker_conf.auto_tune {
-        info!("auto_tune enabled, starting arm clock signaling");
-        60 * worker_conf.auto_tune_interval_minutes
-    } else {
-        info!("auto_tune disabled");
-        std::u64::MAX
-    };
+    let res = bandit_tools::ensure_mithril_folder_exists();
+    if res.is_err() {
+        error!("could not create folder for state file {:?}", res.err());
+    }
 
-    //if auto_tune is not enabled, never send the clock signal for drawing
-    //a new arm, effectively disabling auto tuning
-    thread::spawn(move ||{
-        loop {
-            thread::sleep(Duration::from_secs(interval));
-            clock_tx.send(()).expect("sending clock signal");
-        }
-    });
+    let save_result = bandit.save_bandit(&bandit_tools::state_file());
+    if save_result.is_err() {
+        error!("error saving bandit state {:?}", save_result.err());
+    }
 
-    clock_rx
 }
 
 /// This function terminates if a non-recoverable error was detected (i.e. connection lost)
@@ -116,7 +127,7 @@ fn start_main_event_loop(pool: &WorkerPool,
     client_err_rx: &Receiver<Error>,
     stratum_rx: &Receiver<StratumAction>) -> io::Result<MainLoopExit> {
 
-    let bandit_clock_rx = setup_bandit_arm_select_clock(worker_conf);
+    let bandit_clock_rx = bandit_tools::setup_bandit_arm_select_clock(worker_conf);
 
     let select = Select::new();
     let mut err_hnd = select.handle(client_err_rx);

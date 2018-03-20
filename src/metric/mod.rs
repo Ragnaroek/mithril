@@ -102,7 +102,7 @@ pub fn start(conf: MetricConfig, hash_cnt_receiver: Receiver<u64>) -> Metric {
         }
     });
 
-    return Metric{total_hashes: total_count, cnt_hnd, tick_hnd, stop_tick_tx, stop_cnt_tx};
+    Metric{total_hashes: total_count, cnt_hnd, tick_hnd, stop_tick_tx, stop_cnt_tx}
 }
 
 impl Metric {

@@ -49,14 +49,13 @@ enum WorkerExit {
     Stopped
 }
 
-pub fn start(conf: WorkerConfig,
+pub fn start(num_threads: u64,
              aes_support: AESSupport,
              share_tx: &Sender<stratum::StratumCmd>,
              metric_resolution: u64,
              metric_tx: &Sender<u64>) -> WorkerPool {
-    let num_threads = conf.num_threads as usize;
-    let mut thread_chan : Vec<Sender<WorkerCmd>> = Vec::with_capacity(num_threads);
-    let mut thread_hnd : Vec<thread::JoinHandle<()>> = Vec::with_capacity(num_threads);
+    let mut thread_chan : Vec<Sender<WorkerCmd>> = Vec::with_capacity(num_threads as usize);
+    let mut thread_hnd : Vec<thread::JoinHandle<()>> = Vec::with_capacity(num_threads as usize);
     for _ in 0..num_threads {
         let (tx, rx) = channel();
         let share_tx_thread = share_tx.clone();
@@ -69,7 +68,7 @@ pub fn start(conf: WorkerConfig,
         thread_chan.push(tx);
         thread_hnd.push(hnd);
     }
-    WorkerPool{thread_chan, num_threads: conf.num_threads, thread_hnd}
+    WorkerPool{thread_chan, num_threads, thread_hnd}
 }
 
 impl WorkerPool {
