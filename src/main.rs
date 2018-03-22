@@ -47,14 +47,6 @@ fn main() {
 
     sanity_check(hw_conf.aes_support);
 
-    //Stratum start
-    let (stratum_tx, stratum_rx) = channel();
-    let (client_err_tx, client_err_rx) = channel();
-
-    let mut client = StratumClient::new(pool_conf.clone(), client_err_tx, vec![stratum_tx]);
-    client.login();
-    let share_tx = client.new_cmd_channel().expect("command channel setup");
-
     let mut bandit = if worker_conf.auto_tune {
         Some(bandit_tools::setup_bandit())
     } else {
@@ -62,6 +54,13 @@ fn main() {
     };
 
     loop {
+        //Stratum start
+        let (stratum_tx, stratum_rx) = channel();
+        let (client_err_tx, client_err_rx) = channel();
+
+        let mut client = StratumClient::new(pool_conf.clone(), client_err_tx, vec![stratum_tx]);
+        client.login();
+        let share_tx = client.new_cmd_channel().expect("command channel setup");
 
         let (arm, num_threads) = if bandit.is_some() {
             let selected_arm = bandit.as_ref().unwrap().select_arm();
