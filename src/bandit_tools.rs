@@ -10,7 +10,7 @@ use std::fs::{DirBuilder};
 use std::io;
 
 use self::bandit::softmax::{AnnealingSoftmax, DEFAULT_CONFIG};
-use self::bandit::{Identifiable, DEFAULT_BANDIT_CONFIG};
+use self::bandit::{Identifiable, BanditConfig};
 use worker::worker_pool::{WorkerConfig};
 
 const MAX_THREADS_PER_CPU : usize = 4;
@@ -26,7 +26,7 @@ impl Identifiable for ThreadArm {
     }
 }
 
-pub fn setup_bandit() -> AnnealingSoftmax<ThreadArm> {
+pub fn setup_bandit(log_file: String) -> AnnealingSoftmax<ThreadArm> {
     let num_arms = num_cpus::get() * MAX_THREADS_PER_CPU;
     let mut arms = Vec::with_capacity(num_arms);
     for i in 1..num_arms {
@@ -35,18 +35,22 @@ pub fn setup_bandit() -> AnnealingSoftmax<ThreadArm> {
 
     let state_file = state_file();
 
+    let bandit_config = BanditConfig{
+        log_file: Some(PathBuf::from(log_file))
+    };
+
     if state_file.exists() {
-        let loaded_state = AnnealingSoftmax::load_bandit(arms.clone(), DEFAULT_BANDIT_CONFIG.clone(), &state_file);
+        let loaded_state = AnnealingSoftmax::load_bandit(arms.clone(), bandit_config.clone(), &state_file);
         if loaded_state.is_err() {
             error!("loading bandit state failed, using new bandit. error {:?}", loaded_state);
-            AnnealingSoftmax::new(arms, DEFAULT_BANDIT_CONFIG.clone(), DEFAULT_CONFIG)
+            AnnealingSoftmax::new(arms, bandit_config, DEFAULT_CONFIG)
         } else {
             info!("continuing with loaded bandit state");
             loaded_state.unwrap()
         }
     } else {
         info!("no bandit state file found, using new bandit");
-        AnnealingSoftmax::new(arms, DEFAULT_BANDIT_CONFIG.clone(), DEFAULT_CONFIG)
+        AnnealingSoftmax::new(arms, bandit_config, DEFAULT_CONFIG)
     }
 }
 

@@ -15,11 +15,12 @@ pub struct WorkerPool {
     num_threads: u64
 }
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct WorkerConfig {
     pub num_threads: u64,
     pub auto_tune: bool,
     pub auto_tune_interval_minutes: u64,
+    pub auto_tune_log: String,
 }
 
 #[derive(Debug, PartialEq)]

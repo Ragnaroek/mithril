@@ -11,6 +11,7 @@ auto_tune = true # if enabled, finds the best configuration for the hardware
                  # the num_threads settings is ignored.
 auto_tune_interval_minutes = 15 # minutes how long a arm is evaluated before a new
                                 # arm is drawn
+auto_tune_log = "./bandit.log"
 
 [metric]
 enabled = false

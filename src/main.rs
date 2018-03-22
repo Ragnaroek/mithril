@@ -48,7 +48,7 @@ fn main() {
     sanity_check(hw_conf.aes_support);
 
     let mut bandit = if worker_conf.auto_tune {
-        Some(bandit_tools::setup_bandit())
+        Some(bandit_tools::setup_bandit(worker_conf.auto_tune_log.clone()))
     } else {
         None
     };
@@ -77,7 +77,7 @@ fn main() {
         let pool = worker_pool::start(num_threads, hw_conf.clone().aes_support,
             &share_tx, metric_conf.resolution, &metric_tx.clone());
 
-        let term_result = start_main_event_loop(&pool, worker_conf, &client_err_rx, &stratum_rx);
+        let term_result = start_main_event_loop(&pool, worker_conf.clone(), &client_err_rx, &stratum_rx);
 
         pool.stop();
 
@@ -197,9 +197,12 @@ fn worker_config(conf: &Config) -> Result<WorkerConfig, ConfigError> {
         return Err(ConfigError::Message("auto_tune_interval_minutes hat to be > 0".to_string()));
     }
 
+    let auto_tune_log = conf.get_str("worker.auto_tune_log")?;
+
     Ok(WorkerConfig{num_threads: num_threads as u64,
                     auto_tune,
-                    auto_tune_interval_minutes: auto_tune_interval_minutes as u64})
+                    auto_tune_interval_minutes: auto_tune_interval_minutes as u64,
+                    auto_tune_log})
 }
 
 fn metric_config(conf: &Config) -> Result<MetricConfig, ConfigError> {
