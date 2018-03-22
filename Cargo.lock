@@ -221,7 +221,7 @@ dependencies = [
 
 [[package]]
 name = "mithril"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "bandit 0.11.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "blake 2.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
