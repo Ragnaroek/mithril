@@ -33,7 +33,7 @@ pub fn start(conf: MetricConfig, hash_cnt_receiver: Receiver<u64>) -> Metric {
     let thread_total_count = total_count.clone();
     let (stop_cnt_tx, stop_cnt_rx) = channel();
 
-    let cnt_hnd = thread::spawn(move || {
+    let cnt_hnd = thread::Builder::new().name("metric counting thread".to_string()).spawn(move || {
         let select = Select::new();
         let mut hash_hnd = select.handle(&hash_cnt_receiver);
         unsafe {hash_hnd.add()};
@@ -58,11 +58,11 @@ pub fn start(conf: MetricConfig, hash_cnt_receiver: Receiver<u64>) -> Metric {
                 }
             }
         }
-    });
+    }).expect("metric counting thread handle");
 
     let (stop_tick_tx, stop_tick_rx) = channel();
 
-    let tick_hnd = thread::spawn(move || {
+    let tick_hnd = thread::Builder::new().name("metric sample thread".to_string()).spawn(move || {
         loop {
             let recv_result = stop_tick_rx.recv_timeout(time::Duration::from_secs(conf.sample_interval_seconds));
             match recv_result {
@@ -100,7 +100,7 @@ pub fn start(conf: MetricConfig, hash_cnt_receiver: Receiver<u64>) -> Metric {
                 error!("could not open metric file");
             }
         }
-    });
+    }).expect("metric sample thread handle");
 
     Metric{total_hashes: total_count, cnt_hnd, tick_hnd, stop_tick_tx, stop_cnt_tx}
 }

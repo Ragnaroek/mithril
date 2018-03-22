@@ -56,15 +56,15 @@ pub fn start(num_threads: u64,
              metric_tx: &Sender<u64>) -> WorkerPool {
     let mut thread_chan : Vec<Sender<WorkerCmd>> = Vec::with_capacity(num_threads as usize);
     let mut thread_hnd : Vec<thread::JoinHandle<()>> = Vec::with_capacity(num_threads as usize);
-    for _ in 0..num_threads {
+    for i in 0..num_threads {
         let (tx, rx) = channel();
         let share_tx_thread = share_tx.clone();
         let metric_tx_thread = metric_tx.clone();
         let aes_support_thread = aes_support;
 
-        let hnd = thread::spawn(move || {
+        let hnd = thread::Builder::new().name(format!("worker thread {}", i)).spawn(move || {
             work(&rx, &share_tx_thread, aes_support_thread, metric_resolution, &metric_tx_thread)
-        });
+        }).expect("worker thread handle");
         thread_chan.push(tx);
         thread_hnd.push(hnd);
     }

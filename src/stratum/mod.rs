@@ -80,30 +80,30 @@ impl StratumClient {
 
         let pool_conf = self.pool_conf.clone();
         let err_send_tx = self.err_receiver.clone();
-        let send_thread = thread::spawn(move || {
+        let send_thread = thread::Builder::new().name("Stratum send thread".to_string()).spawn(move || {
             let result = handle_stratum_send(&rx, writer, &pool_conf);
             if result.is_err() {
                 err_send_tx.send(result.err().unwrap()).unwrap();
             }
-        });
+        }).expect("Stratum send thread handle");
 
         self.send_thread = Option::Some(send_thread);
 
         let rcvs = self.action_rcvs.clone();
         let rcv_miner_id = self.miner_id.clone();
         let err_rcv_tx = self.err_receiver.clone();
-        let rcv_thread = thread::spawn(move || {
+        let rcv_thread = thread::Builder::new().name("Stratum receive thread".to_string()).spawn(move || {
             let result = handle_stratum_receive(reader, &rcvs, &rcv_miner_id);
             if result.is_err() {
                 err_rcv_tx.send(result.err().unwrap()).unwrap();
             }
-        });
+        }).expect("Stratum received thread handle");
         self.rcv_thread = Option::Some(rcv_thread);
 
         //keep alive check thread
         let cmd_alive = tx.clone();
         let alive_miner_id = self.miner_id.clone();
-        thread::spawn(move || {
+        thread::Builder::new().name("keep alive thread".to_string()).spawn(move || {
             loop {
 
                 thread::sleep(Duration::from_secs(60));
@@ -114,7 +114,7 @@ impl StratumClient {
                     cmd_alive.send(StratumCmd::KeepAlive{miner_id}).expect("KeepAlive send failed");
                 }
             }
-        });
+        }).expect("keep alive thread handle");
 
         self.tx_cmd = Option::Some(tx);
         self.is_init = true;

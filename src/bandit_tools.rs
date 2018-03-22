@@ -80,12 +80,12 @@ pub fn setup_bandit_arm_select_clock(worker_conf: WorkerConfig) -> Receiver<()>{
 
     //if auto_tune is not enabled, never send the clock signal for drawing
     //a new arm, effectively disabling auto tuning
-    thread::spawn(move ||{
+    thread::Builder::new().name("clock signal thread".to_string()).spawn(move ||{
         loop {
             thread::sleep(Duration::from_secs(interval));
             clock_tx.send(()).expect("sending clock signal");
         }
-    });
+    }).expect("clock signal thread handle");
 
     clock_rx
 }
