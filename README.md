@@ -4,7 +4,7 @@
 rust monero miner (pure Rust is the goal, but the project is not there yet, see help wanted section)
 
 Feature Backlog:
-- [ ] hard-fork update
+- [ ] hard-fork update
 - [ ] ARM support (Raspberry, Pine64)
 - [ ] integrate gpu mining (ATI, Nvidia)
 
