@@ -3,19 +3,18 @@
 # mithril
 rust monero miner (pure Rust is the goal, but the project is not there yet, see help wanted section)
 
-TODOs:
-- [x] implement cryptonight hashing function
-- [x] implement stratum protocol (for pooled mining support)
-- [x] use a naive parallelisation scheme
-- [x] measure hash performance
-- [x] implement software AES (current work)
-- [x] optimise cryptonight hashing function
-- [ ] auto-optimisation via bandit algorithms
-
-Middle-Term TODOs:
+Feature Backlog:
+- [ ] hard-fork update
 - [ ] ARM support (Raspberry, Pine64)
 - [ ] integrate gpu mining (ATI, Nvidia)
 
+DONE:
+- [x] auto-optimisation via bandit algorithms
+- [x] optimise cryptonight hashing function
+- [x] implement software AES (current work)
+- [x] measure hash performance
+- [x] implement stratum protocol (for pooled mining support)
+- [x] implement cryptonight hashing function
 
 # HowTo Compile, Configure and Run
 
