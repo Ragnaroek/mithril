@@ -14,13 +14,18 @@ use super::super::byte_string;
 pub const MEM_SIZE : usize = 2_097_152 / 16;
 const ITERATIONS : u32 = 524_288;
 
-/// This is mainly for testing, allocates a new scratchpad on every hash
-pub fn hash_alloc_scratchpad(input: &[u8], aes: &AES) -> String {
-    let mut scratchpad : Box<[u64x2; MEM_SIZE]> = box [u64x2(0,0); MEM_SIZE];
-    hash(&mut scratchpad, input, aes)
+pub enum HashVersion {
+    Version6,
+    Version7
 }
 
-pub fn hash(mut scratchpad : &mut [u64x2; MEM_SIZE], input: &[u8], aes: &AES) -> String {
+/// This is mainly for testing, allocates a new scratchpad on every hash
+pub fn hash_alloc_scratchpad(input: &[u8], aes: &AES, version: HashVersion) -> String {
+    let mut scratchpad : Box<[u64x2; MEM_SIZE]> = box [u64x2(0,0); MEM_SIZE];
+    hash(&mut scratchpad, input, aes, version)
+}
+
+pub fn hash(mut scratchpad : &mut [u64x2; MEM_SIZE], input: &[u8], aes: &AES, version: HashVersion) -> String {
     //scratchpad init
     let mut state = keccak::keccak(input);
     init_scratchpad(&mut scratchpad, &mut state, aes);

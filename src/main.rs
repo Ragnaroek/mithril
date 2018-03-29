@@ -252,8 +252,8 @@ fn sanity_check(aes_support: AESSupport) {
 
     let aes = aes::new(aes_support);
 
-    let result0 = hash::hash_alloc_scratchpad(&byte_string::string_to_u8_array(""), &aes);
-    let result1 = hash::hash_alloc_scratchpad(&b"This is a test"[0..], &aes);
+    let result0 = hash::hash_alloc_scratchpad(&byte_string::string_to_u8_array(""), &aes, hash::HashVersion::Version6);
+    let result1 = hash::hash_alloc_scratchpad(&b"This is a test"[0..], &aes, hash::HashVersion::Version6);
     if result0 != "eb14e8a833fac6fe9a43b57b336789c46ffe93f2868452240720607b14387e11" ||
        result1 != "a084f01d1437a09c6985401b60d43554ae105802c5f5d8a9b3253649c0be6605" {
         panic!("hash sanity check failed, please report this at https://github.com/Ragnaroek/mithril/issues");

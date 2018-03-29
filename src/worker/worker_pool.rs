@@ -193,7 +193,7 @@ fn work_job(scratchpad : &mut [u64x2; MEM_SIZE],
                     let hash_in = with_nonce(&job.blob, &nonce);
                     let bytes_in = byte_string::string_to_u8_array(&hash_in);
 
-                    let hash_result = hash::hash(scratchpad, &bytes_in, aes);
+                    let hash_result = hash::hash(scratchpad, &bytes_in, aes, hash::HashVersion::Version6);
                     let hash_val = byte_string::hex2_u64_le(&hash_result[48..]);
 
                     if hash_val < num_target {
