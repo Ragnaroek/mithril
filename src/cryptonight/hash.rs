@@ -66,6 +66,13 @@ pub fn hash(mut scratchpad : &mut [u64x2; MEM_SIZE], input: &[u8], aes: &AES, ve
     final_hash(transmute_u8(state_64))
 }
 
+pub fn monero_const(input: &[u8], state: &[u8]) -> u64 {
+    //TODO u64x2 just for first version, create dedicated and faster conversion from u8 -> u64
+    let ip = u64x2::read(&input[35..43]);
+    let ip2 = u64x2::read(&state[(8*24)..(8*24+8)]);
+    return ip.0 ^ ip2.0;
+}
+
 fn final_hash(keccak_state: &[u8; 200]) -> String {
     match keccak_state[0] & 3 {
         0 => {
