@@ -4,8 +4,8 @@
 <img src="https://c5.patreon.com/external/logo/become_a_patron_button@2x.png" height="50">
 </a>
 
-# mithril
-rust monero miner (pure Rust is the goal, but the project is not there yet, see help wanted section)
+# Mithril
+Rust Monero Miner (pure Rust is the goal, but the project is not there yet, see help wanted section)
 
 Feature Backlog:
 - [ ] hard-fork update
