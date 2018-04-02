@@ -136,21 +136,6 @@ fn test_ebyte_mul() {
 
 #[test]
 fn test_monero_const() {
-
-    /*
-    keccak input: 07079faff7d505c8e7a33205e990824c2100443918f5c2c4bba61628118c73973014b285ace21f2510000002db4224571634babd4f631443fe593e71683669822f30cb7a6257f28248b09b01
-    ## USING v7
-    ### 0 = e2
-    ### 1 = 7e
-    ### 2 = f5
-    ### 3 = b8
-    ### 4 = a0
-    ### 5 = f1
-    ### 6 = f0
-    ### 7 = 2
-    ### monero_const 2f0e185a717d267
-    */
-
     let mut state : [u8;200] = [0;200];
     state[24*8] = 0xe2;
     state[24*8+1] = 0x7e;
@@ -166,25 +151,6 @@ fn test_monero_const() {
 
 #[test]
 fn test_monero_const2() {
-    /*
-    keccak input: 07079db3f7d50511c7730e22e560c374bded7bffab18e541cc8cabf869d5b2055db9d363ddff501a100000fbc1ab1b9203952e930532f4ea9e9a04b110fd16dc164ba19355fcac32ec723d01
-    ## USING v7
-    ### monero_const_0 = 101a50ffdd63
-    ### monero_const_1 = 15d3779025910b70
-    ### 0 = 70
-    ### 1 = b
-    ### 2 = 91
-    ### 3 = 25
-    ### 4 = 90
-    ### 5 = 77
-    ### 6 = d3
-    ### 7 = 15
-    ### monero_const 15d3678a756ed613
-    */
-    /*
-    ip=2e9503921babc1fb0000101a50ffdd63
-    ip2=000000010861200015d3779025910b70
-    */
     let mut state : [u8;200] = [0;200];
     state[24*8] = 0x70;
     state[24*8+1] = 0x0b;
@@ -196,4 +162,12 @@ fn test_monero_const2() {
     state[24*8+7] = 0x15;
     let input = byte_string::string_to_u8_array("07079db3f7d50511c7730e22e560c374bded7bffab18e541cc8cabf869d5b2055db9d363ddff501a100000fbc1ab1b9203952e930532f4ea9e9a04b110fd16dc164ba19355fcac32ec723d01");
     assert_eq!(hash::monero_const(&input, &state), 0x15d3678a756ed613);
+}
+
+#[test]
+fn test_cryptonight_monero_tweak() {
+    let tmp = u64x2(0x4d8eec9099c809e7, 0x59ba4cff6ca6f320);
+    let (result0, result1) = hash::cryptonight_monero_tweak(&tmp);
+    assert_eq!(0x59ba4cff6ca6f320, result0, "got {:x}", result0);
+    assert_eq!(0x4d8eec9099c809e7, result1, "got {:x}", result1);
 }
