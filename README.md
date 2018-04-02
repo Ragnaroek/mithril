@@ -1,5 +1,9 @@
 [![Build Status](https://travis-ci.org/Ragnaroek/mithril.svg?branch=master)](https://travis-ci.org/Ragnaroek/mithril)
 
+<a href="https://www.patreon.com/user?u=10095629">
+<img src="https://c5.patreon.com/external/logo/become_a_patron_button@2x.png" height="50">
+</a>
+
 # mithril
 rust monero miner (pure Rust is the goal, but the project is not there yet, see help wanted section)
 
