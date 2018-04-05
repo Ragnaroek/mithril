@@ -5,6 +5,9 @@
 </a>
 
 # Mithril
+
+**Mithril v0.7.0 is ready for the PoW change. You need to update Mithril to the latest version, it will autodetect the correct PoW version.**
+
 Rust Monero Miner (pure Rust is the goal, but the project is not there yet, see help wanted section)
 
 Feature Backlog:
@@ -60,7 +63,9 @@ Please notify me, if you tested mithril on one other platform and it is running 
 
 ARM support (Raspberry, Pine64) is a short term goal I am working on.
 
-# Current Status (2017-12-31)
+# Current Status (2018-04-05)
+
+Pow change has been implemented.
 
 Obvious ineffieciencies have been removed. Mithril should now generate a decent hash rate.
 
