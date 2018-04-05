@@ -14,6 +14,7 @@ use super::super::byte_string;
 pub const MEM_SIZE : usize = 2_097_152 / 16;
 const ITERATIONS : u32 = 524_288;
 
+#[derive(PartialEq)]
 pub enum HashVersion {
     Version6,
     Version7
@@ -33,17 +34,30 @@ pub fn hash(mut scratchpad : &mut [u64x2; MEM_SIZE], input: &[u8], aes: &AES, ve
     let mut a = u64x2::read(&state[0..16]) ^ u64x2::read(&state[32..48]);
     let mut b = u64x2::read(&state[16..32]) ^ u64x2::read(&state[48..64]);
 
+    let monero_const = if version == HashVersion::Version6 {
+        0
+    } else {
+        monero_const(input, &state)
+    };
+
     let mut i = 0;
     while i < ITERATIONS {
         let mut ix = scratchpad_addr(&a);
         let aes_result = aes.aes_round(scratchpad[ix], a);
-        //TODO add monero tweak her
-        scratchpad[ix] = b ^ aes_result;
+        if version == HashVersion::Version6 {
+            scratchpad[ix] = b ^ aes_result;
+        } else {
+            scratchpad[ix] = cryptonight_monero_tweak(&(b ^ aes_result));
+        }
 
         ix = scratchpad_addr(&aes_result);
+
         let mem = scratchpad[ix];
         let add_r = ebyte_add(&a, &ebyte_mul(&aes_result, &mem));
         scratchpad[ix] = add_r;
+        if version == HashVersion::Version7 {
+            scratchpad[ix].1 = add_r.1 ^ monero_const;
+        }
 
         a = add_r ^ mem;
         b = aes_result;
@@ -67,13 +81,12 @@ pub fn hash(mut scratchpad : &mut [u64x2; MEM_SIZE], input: &[u8], aes: &AES, ve
     final_hash(transmute_u8(state_64))
 }
 
-pub fn cryptonight_monero_tweak(tmp: &u64x2) -> (u64, u64) {
-    let r0 = tmp.1;
-    let mut vh = tmp.0;
+pub fn cryptonight_monero_tweak(tmp: &u64x2) -> u64x2 {
+    let mut vh = tmp.1;
     let x = (vh >> 24) as u8;
 	let index = (((x >> 3) & 6) | (x & 1)) << 1;
 	vh ^= ((0x7531 >> index) & 0x3) << 28;
-    return (r0, vh);
+    return u64x2(tmp.0, vh);
 }
 
 pub fn monero_const(input: &[u8], state: &[u8]) -> u64 {

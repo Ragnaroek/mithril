@@ -109,6 +109,17 @@ fn test_hash_hardware() {
 }
 
 #[test]
+fn test_hash_hardware_v7() {
+    let aes = aes::new(AESSupport::HW);
+
+    let input = byte_string::string_to_u8_array("0707cff699d605f7eb4dbdcad3a38b462b52e9b8ecdf06fb4c95bc5b058a177f84d327f27db739430000000363862429fb90c0fc35fcb9f760c484c8532ee5f2a7cbea4e769d44cd12a7f201");
+    assert_eq!(hash::hash_alloc_scratchpad(&input, &aes, hash::HashVersion::Version7), "a01e369927b90e11d2159a85cedc0fed3f4cc9406b677fbe9c2afb810b20f231");
+
+    let input = byte_string::string_to_u8_array("0707cff699d605f7eb4dbdcad3a38b462b52e9b8ecdf06fb4c95bc5b058a177f84d327f27db739420000000363862429fb90c0fc35fcb9f760c484c8532ee5f2a7cbea4e769d44cd12a7f201");
+    assert_eq!(hash::hash_alloc_scratchpad(&input, &aes, hash::HashVersion::Version7), "ecdf8f5c8c0b399709a764257495382fb0230cf6fa55ee02e0667cf3d5be10d6");
+}
+
+#[test]
 fn test_hash_from_cryptonote_white_paper_hardware() {
     let aes = aes::new(AESSupport::HW);
 
@@ -166,8 +177,8 @@ fn test_monero_const2() {
 
 #[test]
 fn test_cryptonight_monero_tweak() {
-    let tmp = u64x2(0x4d8eec9099c809e7, 0x59ba4cff6ca6f320);
-    let (result0, result1) = hash::cryptonight_monero_tweak(&tmp);
-    assert_eq!(0x59ba4cff6ca6f320, result0, "got {:x}", result0);
-    assert_eq!(0x4d8eec9099c809e7, result1, "got {:x}", result1);
+    let tmp = u64x2(0x71ce99a5f3c41980, 0xa86f2347633b3786);
+    let result = hash::cryptonight_monero_tweak(&tmp);
+    assert_eq!(0x71ce99a5f3c41980, result.0, "got {:x}", result.0);
+    assert_eq!(0xa86f2347733b3786, result.1, "got {:x}", result.1);
 }
