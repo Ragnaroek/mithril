@@ -14,7 +14,7 @@ use super::super::byte_string;
 pub const MEM_SIZE : usize = 2_097_152 / 16;
 const ITERATIONS : u32 = 524_288;
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Copy, Clone, Debug)]
 pub enum HashVersion {
     Version6,
     Version7
