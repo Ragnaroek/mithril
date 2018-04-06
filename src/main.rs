@@ -126,7 +126,7 @@ fn start_main_event_loop(pool: &WorkerPool,
     client_err_rx: &Receiver<Error>,
     stratum_rx: &Receiver<StratumAction>) -> io::Result<MainLoopExit> {
 
-    let bandit_clock_rx = bandit_tools::setup_bandit_arm_select_clock(worker_conf);
+    let bandit_clock_rx = bandit_tools::setup_bandit_arm_select_clock(&worker_conf);
 
     let select = Select::new();
     let mut err_hnd = select.handle(client_err_rx);

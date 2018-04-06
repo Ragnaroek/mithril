@@ -109,7 +109,7 @@ impl StratumClient {
                 thread::sleep(Duration::from_secs(60));
 
                 let miner_id_guard = &*alive_miner_id.lock().unwrap();
-                if !miner_id_guard.is_none() {
+                if miner_id_guard.is_some() {
                     let miner_id = miner_id_guard.clone().unwrap();
                     cmd_alive.send(StratumCmd::KeepAlive{miner_id}).expect("KeepAlive send failed");
                 }

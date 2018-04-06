@@ -86,14 +86,14 @@ pub fn cryptonight_monero_tweak(tmp: &u64x2) -> u64x2 {
     let x = (vh >> 24) as u8;
 	let index = (((x >> 3) & 6) | (x & 1)) << 1;
 	vh ^= ((0x7531 >> index) & 0x3) << 28;
-    return u64x2(tmp.0, vh);
+    u64x2(tmp.0, vh)
 }
 
 pub fn monero_const(input: &[u8], state: &[u8]) -> u64 {
     //TODO u64x2 just for first version, create dedicated and faster conversion from u8 -> u64
     let ip = u64x2::read(&input[35..43]);
     let ip2 = u64x2::read(&state[(8*24)..(8*24+8)]);
-    return ip.0 ^ ip2.0;
+    ip.0 ^ ip2.0
 }
 
 fn final_hash(keccak_state: &[u8; 200]) -> String {

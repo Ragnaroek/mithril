@@ -71,7 +71,7 @@ pub fn state_file() -> PathBuf {
     state_file
 }
 
-pub fn setup_bandit_arm_select_clock(worker_conf: WorkerConfig) -> Receiver<()>{
+pub fn setup_bandit_arm_select_clock(worker_conf: &WorkerConfig) -> Receiver<()>{
     let (clock_tx, clock_rx) = channel();
 
     let interval = if worker_conf.auto_tune {
