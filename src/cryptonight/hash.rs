@@ -2,14 +2,15 @@ extern crate groestl;
 extern crate blake;
 extern crate jhffi;
 extern crate skeinffi;
+extern crate byteorder;
 
 use super::keccak;
 use super::aes::{AES};
 use u64x2::u64x2;
 use std::boxed::Box;
-
 use self::groestl::{Digest, Groestl256};
 use super::super::byte_string;
+use self::byteorder::{ByteOrder, LittleEndian};
 
 pub const MEM_SIZE : usize = 2_097_152 / 16;
 const ITERATIONS : u32 = 524_288;
@@ -90,10 +91,9 @@ pub fn cryptonight_monero_tweak(tmp: &u64x2) -> u64x2 {
 }
 
 pub fn monero_const(input: &[u8], state: &[u8]) -> u64 {
-    //TODO u64x2 just for first version, create dedicated and faster conversion from u8 -> u64
-    let ip = u64x2::read(&input[35..43]);
-    let ip2 = u64x2::read(&state[(8*24)..(8*24+8)]);
-    ip.0 ^ ip2.0
+    let ip1 = LittleEndian::read_u64(&input[35..64]);
+    let ip2 = LittleEndian::read_u64(&state[(8*24)..(8*24+8)]);
+    ip1 ^ ip2
 }
 
 fn final_hash(keccak_state: &[u8; 200]) -> String {

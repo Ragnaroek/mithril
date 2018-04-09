@@ -77,7 +77,7 @@ fn main() {
         let pool = worker_pool::start(num_threads, hw_conf.clone().aes_support,
             &share_tx, metric_conf.resolution, &metric_tx.clone());
 
-        let term_result = start_main_event_loop(&pool, worker_conf.clone(), &client_err_rx, &stratum_rx);
+        let term_result = start_main_event_loop(&pool, &worker_conf, &client_err_rx, &stratum_rx);
 
         pool.stop();
 
@@ -122,11 +122,11 @@ fn save_bandit_state(bandit: &mut bandit::softmax::AnnealingSoftmax<bandit_tools
 
 /// This function terminates if a non-recoverable error was detected (i.e. connection lost)
 fn start_main_event_loop(pool: &WorkerPool,
-    worker_conf: WorkerConfig,
+    worker_conf: &WorkerConfig,
     client_err_rx: &Receiver<Error>,
     stratum_rx: &Receiver<StratumAction>) -> io::Result<MainLoopExit> {
 
-    let bandit_clock_rx = bandit_tools::setup_bandit_arm_select_clock(&worker_conf);
+    let bandit_clock_rx = bandit_tools::setup_bandit_arm_select_clock(worker_conf);
 
     let select = Select::new();
     let mut err_hnd = select.handle(client_err_rx);
