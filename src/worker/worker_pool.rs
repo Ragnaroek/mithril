@@ -171,7 +171,7 @@ pub fn with_nonce(blob: &str, nonce: &str) -> String {
     return format!("{}{}{}", a, nonce, b);
 }
 
-fn hash_version(blob: &str) -> hash::HashVersion {
+pub fn hash_version(blob: &str) -> hash::HashVersion {
     if blob.starts_with("0707") {
         hash::HashVersion::Version7
     } else {
