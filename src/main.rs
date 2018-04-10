@@ -4,31 +4,27 @@
 extern crate log;
 
 extern crate mithril;
-extern crate config;
 extern crate env_logger;
 extern crate bandit;
 
-use mithril::stratum::stratum_data::{PoolConfig};
 use mithril::stratum::{StratumClient, StratumAction};
 use mithril::worker::worker_pool;
 use mithril::worker::worker_pool::{WorkerConfig, WorkerPool};
 use mithril::metric;
-use mithril::metric::{MetricConfig};
 use mithril::cryptonight::hash;
 use mithril::cryptonight::aes;
 use mithril::cryptonight::aes::{AESSupport};
 use mithril::byte_string;
 use mithril::bandit_tools;
+use mithril::mithril_config;
 use std::sync::mpsc::{channel, Select, Receiver};
 use std::path::Path;
 use std::io;
 use std::io::{Error};
 use std::thread;
 use std::time::{Duration};
-use config::{Config, ConfigError, File};
-use bandit::MultiArmedBandit;
 
-const CONFIG_FILE_NAME : &str = "config.toml";
+use bandit::MultiArmedBandit;
 
 enum MainLoopExit {
     DrawNewBanditArm
@@ -39,16 +35,13 @@ fn main() {
     env_logger::init().unwrap();
 
     //Read config
-    let config = read_config().unwrap();
-    let pool_conf = pool_config(&config).unwrap();
-    let worker_conf = worker_config(&config).unwrap();
-    let metric_conf = metric_config(&config).unwrap();
-    let hw_conf = hardware_config(&config).unwrap();
+    let cwd_path = &format!("{}{}", "./", mithril_config::CONFIG_FILE_NAME);
+    let config = mithril_config::read_config(Path::new(cwd_path));
 
-    sanity_check(hw_conf.aes_support);
+    sanity_check(config.hw_conf.aes_support);
 
-    let mut bandit = if worker_conf.auto_tune {
-        Some(bandit_tools::setup_bandit(worker_conf.auto_tune_log.clone()))
+    let mut bandit = if config.worker_conf.auto_tune {
+        Some(bandit_tools::setup_bandit(config.worker_conf.auto_tune_log.clone()))
     } else {
         None
     };
@@ -58,7 +51,7 @@ fn main() {
         let (stratum_tx, stratum_rx) = channel();
         let (client_err_tx, client_err_rx) = channel();
 
-        let mut client = StratumClient::new(pool_conf.clone(), client_err_tx, vec![stratum_tx]);
+        let mut client = StratumClient::new(config.pool_conf.clone(), client_err_tx, vec![stratum_tx]);
         client.login();
         let share_tx = client.new_cmd_channel().expect("command channel setup");
 
@@ -67,17 +60,17 @@ fn main() {
             info!("trying arm with {} #threads", selected_arm.num_threads);
             (Some(selected_arm), selected_arm.num_threads)
         } else {
-            (None, worker_conf.num_threads)
+            (None, config.worker_conf.num_threads)
         };
 
         let (metric_tx, metric_rx) = channel();
-        let metric = metric::start(metric_conf.clone(), metric_rx);
+        let metric = metric::start(config.metric_conf.clone(), metric_rx);
 
         //worker pool start
-        let pool = worker_pool::start(num_threads, hw_conf.clone().aes_support,
-            &share_tx, metric_conf.resolution, &metric_tx.clone());
+        let pool = worker_pool::start(num_threads, config.hw_conf.clone().aes_support,
+            &share_tx, config.metric_conf.resolution, &metric_tx.clone());
 
-        let term_result = start_main_event_loop(&pool, &worker_conf, &client_err_rx, &stratum_rx);
+        let term_result = start_main_event_loop(&pool, &config.worker_conf, &client_err_rx, &stratum_rx);
 
         pool.stop();
 
@@ -96,7 +89,7 @@ fn main() {
 
                 if arm.is_some() && bandit.is_some() {
                     let bandit_ref = bandit.as_mut().unwrap();
-                    let reward = (hashes as f64 / (worker_conf.auto_tune_interval_minutes as f64 * 60.0)) / 1000.0; /*kH/s*/
+                    let reward = (hashes as f64 / (config.worker_conf.auto_tune_interval_minutes as f64 * 60.0)) / 1000.0; /*kH/s*/
                     info!("adding reward {:?} for arm {:?}", reward, arm);
                     bandit_ref.update(arm.unwrap(), reward);
                     save_bandit_state(bandit_ref);
@@ -170,82 +163,6 @@ fn start_main_event_loop(pool: &WorkerPool,
             }
         }
     }
-}
-
-#[derive(Clone)]
-pub struct HardwareConfig {
-    pub aes_support: AESSupport
-}
-
-fn pool_config(conf: &Config) -> Result<PoolConfig, ConfigError> {
-    let pool_address = conf.get_str("pool.pool_address")?;
-    let wallet_address = conf.get_str("pool.wallet_address")?;
-    let pool_password = conf.get_str("pool.pool_password")?;
-    Ok(PoolConfig{pool_address, wallet_address, pool_password})
-}
-
-fn worker_config(conf: &Config) -> Result<WorkerConfig, ConfigError> {
-    let num_threads = conf.get_int("worker.num_threads")?;
-    if num_threads <= 0 {
-        return Err(ConfigError::Message("num_threads hat to be > 0".to_string()));
-    }
-
-    let auto_tune = conf.get_bool("worker.auto_tune")?;
-
-    let auto_tune_interval_minutes = conf.get_int("worker.auto_tune_interval_minutes")?;
-    if auto_tune_interval_minutes <= 0 {
-        return Err(ConfigError::Message("auto_tune_interval_minutes hat to be > 0".to_string()));
-    }
-
-    let auto_tune_log = conf.get_str("worker.auto_tune_log")?;
-
-    Ok(WorkerConfig{num_threads: num_threads as u64,
-                    auto_tune,
-                    auto_tune_interval_minutes: auto_tune_interval_minutes as u64,
-                    auto_tune_log})
-}
-
-fn metric_config(conf: &Config) -> Result<MetricConfig, ConfigError> {
-    let enabled = conf.get_bool("metric.enabled")?;
-    if enabled {
-        let resolution = get_u64_no_zero(conf, "metric.resolution")?;
-        let sample_interval_seconds = get_u64_no_zero(conf, "metric.sample_interval_seconds")?;
-        let report_file = conf.get_str("metric.report_file")?;
-        Ok(MetricConfig{enabled, resolution, sample_interval_seconds, report_file})
-    } else {
-        Ok(MetricConfig{enabled: false, resolution: std::u64::MAX,
-                        sample_interval_seconds: std::u64::MAX, report_file: "/dev/null".to_string()})
-    }
-}
-
-fn hardware_config(conf: &Config) -> Result<HardwareConfig, ConfigError> {
-    let has_aes = conf.get_bool("hardware.has_aes")?;
-    let aes_support = if has_aes {
-        AESSupport::HW
-    } else {
-        warn!("software AES enabled: hashing performance will be low");
-        AESSupport::SW
-    };
-    Ok(HardwareConfig{aes_support})
-}
-
-fn get_u64_no_zero(conf: &Config, field: &str) -> Result<u64, ConfigError> {
-    let val = conf.get_int(field)?;
-    if val <= 0 {
-        return Err(ConfigError::Message(format!("{} has to be > 0", field)));
-    }
-    Ok(val as u64)
-}
-
-fn read_config() -> Result<Config, ConfigError> {
-    let cwd_path = &format!("{}{}", "./", CONFIG_FILE_NAME);
-    let cwd_config_file = Path::new(cwd_path);
-    if cwd_config_file.exists() {
-        let mut conf = Config::default();
-        conf.merge(File::with_name(CONFIG_FILE_NAME))?;
-        return Ok(conf);
-    }
-    Err(ConfigError::Message("config file not found".to_string()))
 }
 
 fn sanity_check(aes_support: AESSupport) {
