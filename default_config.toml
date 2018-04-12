@@ -1,6 +1,6 @@
 
 [pool]
-pool_address = "iron-pool.com:5555"
+pool_address = "xmrpool.eu:3333"
 wallet_address = ""
 pool_password = ""
 
