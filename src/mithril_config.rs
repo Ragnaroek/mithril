@@ -19,11 +19,12 @@ pub struct MithrilConfig {
     pub worker_conf: WorkerConfig,
     pub metric_conf: MetricConfig,
     pub hw_conf: HardwareConfig,
+    pub donation_conf: DonationConfig,
 }
 
 #[derive(Clone)]
 pub struct DonationConfig {
-    pub minutes: f32
+    pub percentage: f64
 }
 
 #[derive(Clone)]
@@ -31,15 +32,21 @@ pub struct HardwareConfig {
     pub aes_support: AESSupport
 }
 
-pub fn read_config(conf_file: &Path) -> MithrilConfig {
-    let config = parse_conf(conf_file).unwrap();
+pub fn read_config(conf_file: &Path, filename: &str) -> Result<MithrilConfig, config::ConfigError> {
+    let config = parse_conf(conf_file, filename)?;
 
-    let pool_conf = pool_config(&config).unwrap();
-    let worker_conf = worker_config(&config).unwrap();
-    let metric_conf = metric_config(&config).unwrap();
-    let hw_conf = hardware_config(&config).unwrap();
+    let pool_conf = pool_config(&config)?;
+    let worker_conf = worker_config(&config)?;
+    let metric_conf = metric_config(&config)?;
+    let hw_conf = hardware_config(&config)?;
+    let donation_conf = donation_config(&config)?;
 
-    MithrilConfig{pool_conf, worker_conf, metric_conf, hw_conf}
+    Ok(MithrilConfig{pool_conf, worker_conf, metric_conf, hw_conf, donation_conf})
+}
+
+fn donation_config(conf: &Config) -> Result<DonationConfig, ConfigError> {
+    let percentage = conf.get_float("donation.percentage")?;
+    Ok(DonationConfig{percentage})
 }
 
 fn pool_config(conf: &Config) -> Result<PoolConfig, ConfigError> {
@@ -102,12 +109,10 @@ fn get_u64_no_zero(conf: &Config, field: &str) -> Result<u64, ConfigError> {
     Ok(val as u64)
 }
 
-fn parse_conf(conf_file: &Path) -> Result<Config, ConfigError> {
-    //let cwd_path = &format!("{}{}", "./", CONFIG_FILE_NAME);
-    //let cwd_config_file = Path::new(cwd_path);
+fn parse_conf(conf_file: &Path, filename: &str) -> Result<Config, ConfigError> {
     if conf_file.exists() {
         let mut conf = Config::default();
-        conf.merge(File::with_name(CONFIG_FILE_NAME))?;
+        conf.merge(File::with_name(filename))?;
         return Ok(conf);
     }
     Err(ConfigError::Message("config file not found".to_string()))

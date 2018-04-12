@@ -36,7 +36,7 @@ fn main() {
 
     //Read config
     let cwd_path = &format!("{}{}", "./", mithril_config::CONFIG_FILE_NAME);
-    let config = mithril_config::read_config(Path::new(cwd_path));
+    let config = mithril_config::read_config(Path::new(cwd_path), mithril_config::CONFIG_FILE_NAME).unwrap();
 
     sanity_check(config.hw_conf.aes_support);
 
