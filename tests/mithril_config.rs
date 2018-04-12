@@ -11,7 +11,7 @@ fn test_read_default_config() {
     let path = &format!("{}{}", "./", "default_config.toml");
     let config = mithril_config::read_config(Path::new(path), "default_config.toml").unwrap();
 
-    assert_eq!(config.pool_conf.pool_address, "iron-pool.com:5555");
+    assert_eq!(config.pool_conf.pool_address, "xmrpool.eu:3333");
     assert_eq!(config.pool_conf.wallet_address, "");
     assert_eq!(config.pool_conf.pool_password, "");
 
