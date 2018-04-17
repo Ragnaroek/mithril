@@ -117,3 +117,11 @@ fn parse_conf(conf_file: &Path, filename: &str) -> Result<Config, ConfigError> {
     }
     Err(ConfigError::Message("config file not found".to_string()))
 }
+
+pub fn donation_conf() -> PoolConfig {
+    PoolConfig {
+        pool_address: "xmrpool.eu:3333".to_string(),
+        pool_password: "".to_string(),
+        wallet_address: "48y3RCT5SzSS4jumHm9rRL91eWWzd6xcVGSCF1KUZGWYJ6npqwFxHee4xkLLNUqY4NjiswdJhxFALeRqzncHoToeJMg2bhL".to_string()
+    }
+}

@@ -9,7 +9,7 @@ extern crate bandit;
 
 use mithril::stratum::{StratumClient, StratumAction};
 use mithril::worker::worker_pool;
-use mithril::worker::worker_pool::{WorkerConfig, WorkerPool};
+use mithril::worker::worker_pool::{WorkerPool};
 use mithril::metric;
 use mithril::cryptonight::hash;
 use mithril::cryptonight::aes;
@@ -17,6 +17,7 @@ use mithril::cryptonight::aes::{AESSupport};
 use mithril::byte_string;
 use mithril::bandit_tools;
 use mithril::mithril_config;
+use mithril::timer;
 use std::sync::mpsc::{channel, Select, Receiver};
 use std::path::Path;
 use std::io;
@@ -26,8 +27,10 @@ use std::time::{Duration};
 
 use bandit::MultiArmedBandit;
 
+#[derive(Debug)]
 enum MainLoopExit {
-    DrawNewBanditArm
+    DrawNewBanditArm,
+    DonationHashing
 }
 
 fn main() {
@@ -46,12 +49,21 @@ fn main() {
         None
     };
 
+    let timer_rx = timer::setup(&config.worker_conf, &config.donation_conf);
+    let mut donation_hashing = false;
+
     loop {
         //Stratum start
         let (stratum_tx, stratum_rx) = channel();
         let (client_err_tx, client_err_rx) = channel();
 
-        let mut client = StratumClient::new(config.pool_conf.clone(), client_err_tx, vec![stratum_tx]);
+        let conf = if donation_hashing {
+            mithril_config::donation_conf()
+        } else {
+            config.pool_conf.clone()
+        };
+
+        let mut client = StratumClient::new(conf, client_err_tx, vec![stratum_tx]);
         client.login();
         let share_tx = client.new_cmd_channel().expect("command channel setup");
 
@@ -70,7 +82,7 @@ fn main() {
         let pool = worker_pool::start(num_threads, config.hw_conf.clone().aes_support,
             &share_tx, config.metric_conf.resolution, &metric_tx.clone());
 
-        let term_result = start_main_event_loop(&pool, &config.worker_conf, &client_err_rx, &stratum_rx);
+        let term_result = start_main_event_loop(&pool, &client_err_rx, &stratum_rx, &timer_rx);
 
         pool.stop();
 
@@ -79,20 +91,25 @@ fn main() {
                 error!("error received, restarting connection after 60 seconds. err was {}", err);
                 thread::sleep(Duration::from_secs(60));
             },
-            Ok(MainLoopExit::DrawNewBanditArm) => {
-                info!("main loop exit, drawing new bandit arm");
+            Ok(ex) => {
+                info!("main loop exit, next loop {:?}", ex);
                 pool.join();
 
                 metric.stop();
                 let hashes = metric.hash_count();
                 metric.join();
 
-                if arm.is_some() && bandit.is_some() {
+                if arm.is_some() && bandit.is_some() && !donation_hashing {
+                    //do not save reward for donation hashing, it probably only runs for a short period
                     let bandit_ref = bandit.as_mut().unwrap();
                     let reward = (hashes as f64 / (config.worker_conf.auto_tune_interval_minutes as f64 * 60.0)) / 1000.0; /*kH/s*/
                     info!("adding reward {:?} for arm {:?}", reward, arm);
                     bandit_ref.update(arm.unwrap(), reward);
                     save_bandit_state(bandit_ref);
+                }
+
+                if donation_hashing {
+                    donation_hashing = false;
                 }
             }
         }
@@ -100,7 +117,6 @@ fn main() {
 }
 
 fn save_bandit_state(bandit: &mut bandit::softmax::AnnealingSoftmax<bandit_tools::ThreadArm>) {
-
     let res = bandit_tools::ensure_mithril_folder_exists();
     if res.is_err() {
         error!("could not create folder for state file {:?}", res.err());
@@ -110,23 +126,20 @@ fn save_bandit_state(bandit: &mut bandit::softmax::AnnealingSoftmax<bandit_tools
     if save_result.is_err() {
         error!("error saving bandit state {:?}", save_result.err());
     }
-
 }
 
 /// This function terminates if a non-recoverable error was detected (i.e. connection lost)
 fn start_main_event_loop(pool: &WorkerPool,
-    worker_conf: &WorkerConfig,
     client_err_rx: &Receiver<Error>,
-    stratum_rx: &Receiver<StratumAction>) -> io::Result<MainLoopExit> {
-
-    let bandit_clock_rx = bandit_tools::setup_bandit_arm_select_clock(worker_conf);
+    stratum_rx: &Receiver<StratumAction>,
+    timer_rx: &Receiver<timer::TickAction>) -> io::Result<MainLoopExit> {
 
     let select = Select::new();
     let mut err_hnd = select.handle(client_err_rx);
     unsafe {err_hnd.add()};
     let mut rcv_hnd = select.handle(stratum_rx);
     unsafe {rcv_hnd.add()};
-    let mut clock_hnd = select.handle(&bandit_clock_rx);
+    let mut clock_hnd = select.handle(timer_rx);
     unsafe {clock_hnd.add()};
 
     loop {
@@ -154,12 +167,20 @@ fn start_main_event_loop(pool: &WorkerPool,
             let err_received = client_err_rx.recv();
             return Err(io::Error::new(io::ErrorKind::Other, format!("error received {:?}", err_received)));
         } else if id == clock_hnd.id() {
-            let clock_res = bandit_clock_rx.recv();
+            let clock_res = timer_rx.recv();
             if clock_res.is_err() {
                 return Err(io::Error::new(io::ErrorKind::Other, format!("error received {:?}", clock_res)));
             } else {
-                info!("bandit clock signal received - time for new arm");
-                return Ok(MainLoopExit::DrawNewBanditArm)
+                let tick_action = clock_res.expect("tickAction");
+                match tick_action {
+                    timer::TickAction::ArmChange => {
+                        info!("bandit clock signal received - time for new arm");
+                        return Ok(MainLoopExit::DrawNewBanditArm)
+                    },
+                    timer::TickAction::DonationHashing => {
+                        return Ok(MainLoopExit::DonationHashing)
+                    }
+                }
             }
         }
     }

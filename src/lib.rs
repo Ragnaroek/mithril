@@ -21,3 +21,4 @@ pub mod u64x2;
 pub mod metric;
 pub mod bandit_tools;
 pub mod mithril_config;
+pub mod timer;

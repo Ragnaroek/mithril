@@ -2,16 +2,12 @@ extern crate bandit;
 extern crate num_cpus;
 
 use std;
-use std::sync::mpsc::{channel, Receiver};
-use std::thread;
-use std::time::{Duration};
 use std::path::{PathBuf};
 use std::fs::{DirBuilder};
 use std::io;
 
 use self::bandit::softmax::{AnnealingSoftmax, DEFAULT_CONFIG};
 use self::bandit::{Identifiable, BanditConfig};
-use worker::worker_pool::{WorkerConfig};
 
 const MAX_THREADS_PER_CPU : usize = 4;
 
@@ -69,25 +65,4 @@ pub fn state_file() -> PathBuf {
     let mut state_file = mithril_folder();
     state_file.push("bandit_state.json");
     state_file
-}
-
-pub fn setup_bandit_arm_select_clock(worker_conf: &WorkerConfig) -> Receiver<()>{
-    let (clock_tx, clock_rx) = channel();
-
-    let interval = if worker_conf.auto_tune {
-        info!("auto_tune enabled, starting arm clock signaling");
-        60 * worker_conf.auto_tune_interval_minutes
-    } else {
-        info!("auto_tune disabled");
-        std::u64::MAX
-    };
-
-    //if auto_tune is not enabled, never send the clock signal for drawing
-    //a new arm, effectively disabling auto tuning
-    thread::Builder::new().name("clock signal thread".to_string()).spawn(move ||{
-        thread::sleep(Duration::from_secs(interval));
-        clock_tx.send(()).expect("sending clock signal");
-    }).expect("clock signal thread handle");
-
-    clock_rx
 }
