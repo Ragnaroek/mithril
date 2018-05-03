@@ -43,6 +43,10 @@ fn main() {
 
     sanity_check(config.hw_conf.aes_support);
 
+    if config.donation_conf.percentage > 0.0 {
+        print_donation_hint(config.donation_conf.percentage);
+    }
+
     let mut bandit = if config.worker_conf.auto_tune {
         Some(bandit_tools::setup_bandit(config.worker_conf.auto_tune_log.clone()))
     } else {
@@ -196,4 +200,11 @@ fn sanity_check(aes_support: AESSupport) {
        result1 != "a084f01d1437a09c6985401b60d43554ae105802c5f5d8a9b3253649c0be6605" {
         panic!("hash sanity check failed, please report this at https://github.com/Ragnaroek/mithril/issues");
     }
+}
+
+fn print_donation_hint(percentage: f64) {
+    println!("-------------------------------------------------------------------");
+    println!("Donation Hashing enabled with {}%.", percentage);
+    println!("Thank you for supporting the project with your donation hashes!");
+    println!("-------------------------------------------------------------------");
 }
