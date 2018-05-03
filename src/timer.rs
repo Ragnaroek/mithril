@@ -15,7 +15,6 @@ pub enum TickAction {
     DonationHashing
 }
 
-
 pub fn interval_mod_setup(worker_conf: &WorkerConfig, donation_conf: &DonationConfig) -> (u64, Option<u64>) {
 
     if donation_conf.percentage >= DONATION_THRESHOLD && !worker_conf.auto_tune {
@@ -44,12 +43,14 @@ pub fn setup(worker_conf: &WorkerConfig, donation_conf: &DonationConfig) -> Rece
     let (reg_interval, donation_mod) = interval_mod_setup(worker_conf, donation_conf);
     let mut interval = reg_interval;
 
+    println!("reg_interval = {:?}, donation_mod = {:?}", reg_interval, donation_mod);
+
     let donation_percentage = donation_conf.percentage;
     //if auto_tune is not enabled, never send the clock signal for drawing
     //a new arm, effectively disabling auto tuning
     thread::Builder::new().name("clock signal thread".to_string()).spawn(move ||{
 
-        let mut arm_changes = 0;
+        let mut arm_changes = 1;
         loop {
             thread::sleep(Duration::from_secs(interval));
 

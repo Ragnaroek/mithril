@@ -59,14 +59,14 @@ fn pool_config(conf: &Config) -> Result<PoolConfig, ConfigError> {
 fn worker_config(conf: &Config) -> Result<WorkerConfig, ConfigError> {
     let num_threads = conf.get_int("worker.num_threads")?;
     if num_threads <= 0 {
-        return Err(ConfigError::Message("num_threads hat to be > 0".to_string()));
+        return Err(ConfigError::Message("num_threads has to be > 0".to_string()));
     }
 
     let auto_tune = conf.get_bool("worker.auto_tune")?;
 
     let auto_tune_interval_minutes = conf.get_int("worker.auto_tune_interval_minutes")?;
     if auto_tune_interval_minutes <= 0 {
-        return Err(ConfigError::Message("auto_tune_interval_minutes hat to be > 0".to_string()));
+        return Err(ConfigError::Message("auto_tune_interval_minutes has to be > 0".to_string()));
     }
 
     let auto_tune_log = conf.get_str("worker.auto_tune_log")?;
@@ -121,7 +121,7 @@ fn parse_conf(conf_file: &Path, filename: &str) -> Result<Config, ConfigError> {
 pub fn donation_conf() -> PoolConfig {
     PoolConfig {
         pool_address: "xmrpool.eu:3333".to_string(),
-        pool_password: "".to_string(),
+        pool_password: "x".to_string(),
         wallet_address: "48y3RCT5SzSS4jumHm9rRL91eWWzd6xcVGSCF1KUZGWYJ6npqwFxHee4xkLLNUqY4NjiswdJhxFALeRqzncHoToeJMg2bhL".to_string()
     }
 }
