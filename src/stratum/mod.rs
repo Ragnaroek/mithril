@@ -83,7 +83,7 @@ impl StratumClient {
         let send_thread = thread::Builder::new().name("Stratum send thread".to_string()).spawn(move || {
             let result = handle_stratum_send(&rx, writer, &pool_conf);
             if result.is_err() {
-                err_send_tx.send(result.err().unwrap()).unwrap();
+                err_send_tx.send(result.err().unwrap()).expect("sending error in send thread");
             }
         }).expect("Stratum send thread handle");
 
@@ -95,7 +95,7 @@ impl StratumClient {
         let rcv_thread = thread::Builder::new().name("Stratum receive thread".to_string()).spawn(move || {
             let result = handle_stratum_receive(reader, &rcvs, &rcv_miner_id);
             if result.is_err() {
-                err_rcv_tx.send(result.err().unwrap()).unwrap();
+                err_rcv_tx.send(result.err().unwrap()).expect("sending error in recv thread");
             }
         }).expect("Stratum received thread handle");
         self.rcv_thread = Option::Some(rcv_thread);
@@ -157,7 +157,7 @@ pub fn submit_share(tx: &Sender<StratumCmd>, share: stratum_data::Share) -> Resu
 
 fn handle_stratum_send(rx: &Receiver<StratumCmd>, mut writer: BufWriter<TcpStream>, pool_conf: &stratum_data::PoolConfig) -> Result<(), Error> {
     loop {
-        match rx.recv().unwrap() {
+        match rx.recv().expect("stratum receiver") {
             StratumCmd::Login{} => do_stratum_login(&mut writer, pool_conf)?,
             StratumCmd::SubmitShare{share} => do_stratum_submit_share(&mut writer, share)?,
             StratumCmd::KeepAlive{miner_id} => do_stratum_keep_alive(&mut writer, miner_id)?,
