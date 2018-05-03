@@ -35,7 +35,7 @@ enum MainLoopExit {
 
 fn main() {
 
-    env_logger::init().unwrap();
+    env_logger::init();
 
     //Read config
     let cwd_path = &format!("{}{}", "./", mithril_config::CONFIG_FILE_NAME);
