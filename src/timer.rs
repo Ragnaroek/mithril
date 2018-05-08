@@ -29,7 +29,11 @@ pub fn interval_mod_setup(worker_conf: &WorkerConfig, donation_conf: &DonationCo
         std::u64::MAX
     };
     let donation_mod = if donation_conf.percentage >= DONATION_THRESHOLD {
-        Some((100.0 / worker_conf.auto_tune_interval_minutes as f64).ceil() as u64)
+        if donation_conf.percentage >= 100.0 {
+            Some(1)
+        } else {
+            Some((100.0 / worker_conf.auto_tune_interval_minutes as f64).ceil() as u64)
+        }
     } else {
         None
     };

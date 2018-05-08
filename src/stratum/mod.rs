@@ -69,6 +69,7 @@ impl StratumClient {
 
     fn init(self: &mut Self) {
 
+        info!("connecting to address: {}", self.pool_conf.pool_address);
         let stream = TcpStream::connect(self.pool_conf.clone().pool_address).unwrap();
         stream.set_read_timeout(None).unwrap();
         stream.set_write_timeout(Some(Duration::from_secs(10))).unwrap();

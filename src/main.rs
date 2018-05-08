@@ -27,7 +27,7 @@ use std::time::{Duration};
 
 use bandit::MultiArmedBandit;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum MainLoopExit {
     DrawNewBanditArm,
     DonationHashing
@@ -112,9 +112,7 @@ fn main() {
                     save_bandit_state(bandit_ref);
                 }
 
-                if donation_hashing {
-                    donation_hashing = false;
-                }
+                donation_hashing = ex == MainLoopExit::DonationHashing;
             }
         }
     }
