@@ -290,8 +290,10 @@ pub fn parse_line_dispatch_result(line: &str, rcvs: &[Sender<StratumAction>], mi
     }
 
     for rcv in rcvs {
-        rcv.send(action.clone()).expect("send to receiver");
-        // TODO Log instead of panic + remove faulty rcv_er
+        let send_result = rcv.send(action.clone());
+        if !send_result.is_ok() {
+            info!("sending action to receiver failed (receiver probably already terminated), trying next receiver");
+        }
     }
 }
 
