@@ -67,9 +67,9 @@ fn main() {
             config.pool_conf.clone()
         };
 
-        let mut client = StratumClient::new(conf, client_err_tx, stratum_tx);
-        client.login();
-        let share_tx = client.new_cmd_channel().expect("command channel setup");
+        let client = StratumClient::login(conf, client_err_tx, stratum_tx);
+        //client.login();
+        let share_tx = client.new_cmd_channel();
 
         let (arm, num_threads) = if bandit.is_some() {
             let selected_arm = bandit.as_ref().unwrap().select_arm();

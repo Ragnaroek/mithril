@@ -43,84 +43,77 @@ pub enum StratumError {
 }
 
 pub struct StratumClient {
-    is_init: bool,
-    tx_cmd: Option<Sender<StratumCmd>>,
-    send_thread: Option<thread::JoinHandle<()>>,
-    rcv_thread: Option<thread::JoinHandle<()>>,
-    keep_alive_thread: Option<thread::JoinHandle<()>>,
-    action_rcv: Sender<StratumAction>,
-    pool_conf: stratum_data::PoolConfig,
-    miner_id: Arc<Mutex<Option<String>>>,
-    err_receiver: Sender<Error>,
-    tcp_stream_hnd: Option<TcpStream>,
-    tick_tx: Option<Sender<()>>,
+    command_sender: Sender<StratumCmd>,
+    send_thread: thread::JoinHandle<()>,
+    rcv_thread: thread::JoinHandle<()>,
+    keep_alive_thread: thread::JoinHandle<()>,
+    tcp_stream_hnd: TcpStream,
+    tick_tx: Sender<()>,
 }
 
 /// All operation in the client are async
 impl StratumClient {
-    //TODO Combine new with init, sepration does not make much sense???
-    pub fn new(pool_conf: stratum_data::PoolConfig, err_receiver: Sender<Error>, action_rcv: Sender<StratumAction>) -> StratumClient {
+    pub fn login(pool_conf: stratum_data::PoolConfig, err_receiver: Sender<Error>, action_rcv: Sender<StratumAction>) -> StratumClient {
+
+        info!("connecting to address: {}", pool_conf.pool_address);
+
+        let (tcp_stream_hnd, reader, writer) = StratumClient::connect_tcp(&pool_conf.pool_address);
+
+        let miner_id = Arc::new(Mutex::new(Option::None));
+        let (command_sender, command_receiver) = channel();
+
+        let send_thread = StratumClient::start_send_thread(writer, command_receiver, pool_conf, err_receiver.clone());
+        let rcv_thread = StratumClient::start_receive_thread(reader, action_rcv, miner_id.clone(), err_receiver);
+        let (keep_alive_thread, tick_tx) = StratumClient::start_keep_alive_thread(command_sender.clone(), miner_id.clone());
+
+        command_sender.send(StratumCmd::Login{}).expect("login command send");
+
         StratumClient{
-            is_init: false,
-            tx_cmd : Option::None,
-            send_thread: Option::None,
-            rcv_thread: Option::None,
-            keep_alive_thread: Option::None,
-            action_rcv,
-            pool_conf,
-            miner_id: Arc::new(Mutex::new(Option::None)),
-            err_receiver,
-            tcp_stream_hnd: Option::None,
-            tick_tx: Option::None,
+            command_sender,
+            send_thread,
+            rcv_thread,
+            keep_alive_thread,
+            tcp_stream_hnd,
+            tick_tx
         }
     }
 
-    fn init(self: &mut Self) {
-
-        info!("connecting to address: {}", self.pool_conf.pool_address);
-        let stream = TcpStream::connect(self.pool_conf.clone().pool_address).expect("tcp connection to pool");
+    fn connect_tcp(pool_address: &str) -> (TcpStream, BufReader<TcpStream>, BufWriter<TcpStream>) {
+        let stream = TcpStream::connect(pool_address).expect("tcp connection to pool");
         stream.set_read_timeout(None).expect("setting read timeout");
         stream.set_write_timeout(Some(Duration::from_secs(10))).expect("setting write timeout");
 
         let reader = BufReader::new(stream.try_clone().expect("stream clone for receiver"));
         let writer = BufWriter::new(stream.try_clone().expect("stream clone for writer"));
 
-        self.tcp_stream_hnd = Some(stream);
+        (stream, reader, writer)
+    }
 
-        let (tx, rx) = channel();
-
-        let pool_conf = self.pool_conf.clone();
-        let err_send_tx = self.err_receiver.clone();
-        let send_thread = thread::Builder::new().name("Stratum send thread".to_string()).spawn(move || {
-            let result = handle_stratum_send(&rx, writer, &pool_conf);
+    fn start_send_thread(writer: BufWriter<TcpStream>, command_rcv: Receiver<StratumCmd>, pool_conf: stratum_data::PoolConfig, err_receiver: Sender<Error>) -> thread::JoinHandle<()> {
+        thread::Builder::new().name("Stratum send thread".to_string()).spawn(move || {
+            let result = handle_stratum_send(&command_rcv, writer, &pool_conf);
             if result.is_err() {
-                err_send_tx.send(result.err().expect("result error send thread")).expect("sending error in send thread");
+                err_receiver.send(result.err().expect("result error send thread")).expect("sending error in send thread");
             }
             info!("stratum send thread ended");
-        }).expect("Stratum send thread handle");
+        }).expect("Stratum send thread handle")
+    }
 
-        self.send_thread = Option::Some(send_thread);
-
-        let rcv = self.action_rcv.clone();
-        let rcv_miner_id = self.miner_id.clone();
-        let err_rcv_tx = self.err_receiver.clone();
-        let rcv_thread = thread::Builder::new().name("Stratum receive thread".to_string()).spawn(move || {
-            let result = handle_stratum_receive(reader, rcv, &rcv_miner_id);
+    fn start_receive_thread(reader: BufReader<TcpStream>, action_rcv: Sender<StratumAction>, miner_id: Arc<Mutex<Option<String>>>, err_receiver: Sender<Error>) -> thread::JoinHandle<()> {
+        thread::Builder::new().name("Stratum receive thread".to_string()).spawn(move || {
+            let result = handle_stratum_receive(reader, action_rcv, &miner_id);
             if result.is_err() {
-                err_rcv_tx.send(result.err().expect("result error recv thread")).expect("sending error in recv thread");
+                err_receiver.send(result.err().expect("result error recv thread")).expect("sending error in recv thread");
             }
             info!("stratum receive thread ended");
-        }).expect("Stratum received thread handle");
-        self.rcv_thread = Option::Some(rcv_thread);
+        }).expect("Stratum received thread handle")
+    }
 
-        //keep alive check thread
-        let cmd_alive = tx.clone();
-        let alive_miner_id = self.miner_id.clone();
-
+    fn start_keep_alive_thread(cmd_alive: Sender<StratumCmd>, alive_miner_id: Arc<Mutex<Option<String>>>) -> (thread::JoinHandle<()>, Sender<()>) {
         let (stop_tx, stop_rx) = channel();
-        self.tick_tx = Some(stop_tx);
+
         let (tick_rcv, _) = start_tick_thread(Duration::from_secs(60), stop_rx);
-        let keep_alive_hnd = thread::Builder::new().name("keep alive thread".to_string()).spawn(move || {
+        (thread::Builder::new().name("keep alive thread".to_string()).spawn(move || {
             loop {
                 let tick_result = tick_rcv.recv();
                 if tick_result.is_err() || tick_result.expect("tick result") == Tick::Stop {
@@ -134,35 +127,12 @@ impl StratumClient {
                 }
             }
             info!("keep alive thread ended");
-        }).expect("keep alive thread handle");
-        self.keep_alive_thread = Some(keep_alive_hnd);
-
-        self.tx_cmd = Option::Some(tx);
-        self.is_init = true;
-    }
-
-    /// Initialises the StratumClient and performs the login that
-    /// returns the first mining job.
-    pub fn login(self: &mut Self) -> () {
-
-        info!("stratum client login");
-
-        self.init();
-
-        self.tx_cmd.clone().expect("command channel clone").send(StratumCmd::Login{}).expect("login command send");
-        return;
+        }).expect("keep alive thread handle"), stop_tx)
     }
 
     /// Returns a new channel for sending commands to the stratum client
-    pub fn new_cmd_channel(self: &Self) -> Result<Sender<StratumCmd>, String> {
-        if !self.is_init {
-            return Err("stratum client not initialised, call login first".to_string());
-        }
-        let tx_clone = self.tx_cmd.clone();
-        if tx_clone.is_some() {
-            return Ok(self.tx_cmd.clone().expect("command channel clone"));
-        }
-        Err("Internal error, tx_clone.unwrap() failed although init was called".to_string())
+    pub fn new_cmd_channel(self: &Self) -> Sender<StratumCmd> {
+        self.command_sender.clone()
     }
 
     /// Stops the StratumClient, ending all communication with the server end.
@@ -170,34 +140,22 @@ impl StratumClient {
         info!("stopping stratum client");
 
         //stop send thread
-        if self.tx_cmd.is_some() {
-            self.tx_cmd.expect("command channel").send(StratumCmd::Shutdown{}).expect("shutdown command send");
-        }
+        self.command_sender.send(StratumCmd::Shutdown{}).expect("shutdown command send");
+
         //stop receive thread
-        if self.tcp_stream_hnd.is_some() {
-            let tcp_stream = self.tcp_stream_hnd.expect("tcp stream handle");
-            let shutdown_result = tcp_stream.shutdown(Shutdown::Both);
-            if shutdown_result.is_err() {
-                info!("TcpStream shutdown failed {:?}", shutdown_result);
-            } else {
-                info!("TcpStream shutdown ok");
-            }
+        let shutdown_result = self.tcp_stream_hnd.shutdown(Shutdown::Both);
+        if shutdown_result.is_err() {
+            info!("TcpStream shutdown failed {:?}", shutdown_result);
+        } else {
+            info!("TcpStream shutdown ok");
         }
+
 
         //stop keep alive thread (via stopping tick thread)
-        if self.tick_tx.is_some() {
-            self.tick_tx.expect("tick control channel").send(()).expect("ending tick thread");
-        }
-
-        if self.send_thread.is_some() {
-            self.send_thread.expect("send thread").join().expect("join send thread");
-        }
-        if self.rcv_thread.is_some() {
-            self.rcv_thread.expect("rcv thread").join().expect("join rcv thread");
-        }
-        if self.keep_alive_thread.is_some() {
-            self.keep_alive_thread.expect("keep alive thread").join().expect("keep alive thread");
-        }
+        self.tick_tx.send(()).expect("ending tick thread");
+        self.send_thread.join().expect("join send thread");
+        self.rcv_thread.join().expect("join rcv thread");
+        self.keep_alive_thread.join().expect("keep alive thread");
     }
 }
 
