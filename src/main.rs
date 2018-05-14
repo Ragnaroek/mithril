@@ -67,7 +67,7 @@ fn main() {
             config.pool_conf.clone()
         };
 
-        let mut client = StratumClient::new(conf, client_err_tx, vec![stratum_tx]);
+        let mut client = StratumClient::new(conf, client_err_tx, stratum_tx);
         client.login();
         let share_tx = client.new_cmd_channel().expect("command channel setup");
 

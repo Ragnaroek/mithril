@@ -46,7 +46,7 @@ pub struct StratumClient {
     tx_cmd: Option<Sender<StratumCmd>>,
     send_thread: Option<thread::JoinHandle<()>>,
     rcv_thread: Option<thread::JoinHandle<()>>,
-    action_rcvs: Vec<Sender<StratumAction>>,
+    action_rcv: Sender<StratumAction>,
     pool_conf: stratum_data::PoolConfig,
     miner_id: Arc<Mutex<Option<String>>>,
     err_receiver: Sender<Error>,
@@ -54,13 +54,13 @@ pub struct StratumClient {
 
 /// All operation in the client are async
 impl StratumClient {
-    pub fn new(pool_conf: stratum_data::PoolConfig, err_receiver: Sender<Error>, action_rcvs: Vec<Sender<StratumAction>>) -> StratumClient {
+    pub fn new(pool_conf: stratum_data::PoolConfig, err_receiver: Sender<Error>, action_rcv: Sender<StratumAction>) -> StratumClient {
         StratumClient{
             is_init: false,
             tx_cmd : Option::None,
             send_thread: Option::None,
             rcv_thread: Option::None,
-            action_rcvs,
+            action_rcv,
             pool_conf,
             miner_id: Arc::new(Mutex::new(Option::None)),
             err_receiver
@@ -90,11 +90,11 @@ impl StratumClient {
 
         self.send_thread = Option::Some(send_thread);
 
-        let rcvs = self.action_rcvs.clone();
+        let rcv = self.action_rcv.clone();
         let rcv_miner_id = self.miner_id.clone();
         let err_rcv_tx = self.err_receiver.clone();
         let rcv_thread = thread::Builder::new().name("Stratum receive thread".to_string()).spawn(move || {
-            let result = handle_stratum_receive(reader, &rcvs, &rcv_miner_id);
+            let result = handle_stratum_receive(reader, rcv, &rcv_miner_id);
             if result.is_err() {
                 err_rcv_tx.send(result.err().expect("result error recv thread")).expect("sending error in recv thread");
             }
@@ -213,12 +213,12 @@ fn do_stratum_login(writer: &mut BufWriter<TcpStream>, pool_conf: &stratum_data:
     Ok(())
 }
 
-fn handle_stratum_receive(mut reader: BufReader<TcpStream>, rcvs: &[Sender<StratumAction>], miner_id: &Arc<Mutex<Option<String>>>) -> Result<(), Error> {
+fn handle_stratum_receive(mut reader: BufReader<TcpStream>, rcv: Sender<StratumAction>, miner_id: &Arc<Mutex<Option<String>>>) -> Result<(), Error> {
     loop {
         let mut line = String::new();
         match reader.read_line(&mut line) {
             Ok(_) => {
-                parse_line_dispatch_result(&line, rcvs, miner_id);
+                parse_line_dispatch_result(&line, &rcv, miner_id);
             },
             Err(e) => {
                 //read_line fails (maybe connection lost, dispatch err to channel)
@@ -242,7 +242,7 @@ fn is_known_ok(result: Result<stratum_data::OkResponse, serde_json::Error>) -> O
 }
 
 //TODO Refactor this method (it is very ugly) - its probably better to use generic value parsing and not using struct for every case
-pub fn parse_line_dispatch_result(line: &str, rcvs: &[Sender<StratumAction>], miner_id_mutx: &Arc<Mutex<Option<String>>>) {
+pub fn parse_line_dispatch_result(line: &str, rcv: &Sender<StratumAction>, miner_id_mutx: &Arc<Mutex<Option<String>>>) {
 
     let action;
 
@@ -289,11 +289,9 @@ pub fn parse_line_dispatch_result(line: &str, rcvs: &[Sender<StratumAction>], mi
         }
     }
 
-    for rcv in rcvs {
-        let send_result = rcv.send(action.clone());
-        if !send_result.is_ok() {
-            info!("sending action to receiver failed (receiver probably already terminated), trying next receiver");
-        }
+    let send_result = rcv.send(action.clone());
+    if !send_result.is_ok() {
+        info!("sending action to receiver failed (receiver probably already terminated), trying next receiver");
     }
 }
 
