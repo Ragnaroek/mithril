@@ -5,6 +5,7 @@ extern crate serde_json;
 use std::sync::mpsc::{channel};
 use std::sync::{Arc, Mutex};
 use std::thread;
+use std::time::{Duration};
 
 use mithril::stratum::stratum_data;
 use mithril::stratum;
@@ -256,4 +257,14 @@ fn test_parse_line_dispatch_keepalive() {
 
     let result = rx.recv().unwrap();
     assert_eq!(stratum::StratumAction::KeepAliveOk, result);
+}
+
+#[test]
+fn test_start_tick_thread_shutdown() {
+    let (stop_tx, stop_rx) = channel();
+    let (rx, hnd) = stratum::start_tick_thread(Duration::from_secs(60), stop_rx);
+    stop_tx.send(()).expect("sending stop signal");
+    let result = rx.recv().expect("stop signal");
+    assert_eq!(stratum::Tick::Stop, result);
+    hnd.join().expect("tick thread join");
 }

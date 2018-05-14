@@ -89,6 +89,7 @@ fn main() {
         let term_result = start_main_event_loop(&pool, &client_err_rx, &stratum_rx, &timer_rx);
 
         pool.stop();
+        client.stop();
 
         match term_result {
             Err(err) => {
