@@ -1,3 +1,7 @@
+#### v0.9.0 use tiny-keccak implementation
+test bench_hash_with_hardware ... bench:  77,573,859 ns/iter (+/- 2,533,861)
+test bench_hash_with_software ... bench: 148,792,422 ns/iter (+/- 5,473,901)
+
 #### v0.7.0 monero fork v7 update
 test bench_hash_with_hardware ... bench:  77,869,221 ns/iter (+/- 3,775,642)
 test bench_hash_with_software ... bench: 148,683,448 ns/iter (+/- 5,673,082)
