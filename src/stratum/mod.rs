@@ -218,7 +218,7 @@ fn do_stratum_keep_alive(writer: &mut BufWriter<TcpStream>, miner_id: String) ->
 
     let json = serde_json::to_string(&keep_alive_req).expect("marshaling keep alive json");
     write!(writer, "{}\n", json)?;
-    writer.flush().expect("flushing writer");
+    writer.flush()?;
     Ok(())
 }
 
@@ -235,7 +235,7 @@ fn do_stratum_submit_share(writer: &mut BufWriter<TcpStream>, share: stratum_dat
     };
     let json = serde_json::to_string(&submit_req).expect("marshaling submit json");
     write!(writer, "{}\n", json)?;
-    writer.flush().expect("flushing writer");
+    writer.flush()?;
     Ok(())
 }
 
@@ -250,7 +250,7 @@ fn do_stratum_login(writer: &mut BufWriter<TcpStream>, pool_conf: &stratum_data:
     };
     let json = serde_json::to_string(&login_req).expect("marshaling login json");
     write!(writer, "{}\n",json)?;
-    writer.flush().expect("flushing writer");
+    writer.flush()?;
     Ok(())
 }
 
