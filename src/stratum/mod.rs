@@ -101,7 +101,7 @@ impl StratumClient {
 
     fn start_receive_thread(reader: BufReader<TcpStream>, action_rcv: Sender<StratumAction>, miner_id: Arc<Mutex<Option<String>>>, err_receiver: Sender<Error>) -> thread::JoinHandle<()> {
         thread::Builder::new().name("Stratum receive thread".to_string()).spawn(move || {
-            let result = handle_stratum_receive(reader, action_rcv, &miner_id);
+            let result = handle_stratum_receive(reader, &action_rcv, &miner_id);
             if result.is_err() {
                 err_receiver.send(result.err().expect("result error recv thread")).expect("sending error in recv thread");
             }
@@ -217,7 +217,7 @@ fn do_stratum_keep_alive(writer: &mut BufWriter<TcpStream>, miner_id: String) ->
     };
 
     let json = serde_json::to_string(&keep_alive_req).expect("marshaling keep alive json");
-    write!(writer, "{}\n", json)?;
+    writeln!(writer, "{}", json)?;
     writer.flush()?;
     Ok(())
 }
@@ -234,7 +234,7 @@ fn do_stratum_submit_share(writer: &mut BufWriter<TcpStream>, share: stratum_dat
         }
     };
     let json = serde_json::to_string(&submit_req).expect("marshaling submit json");
-    write!(writer, "{}\n", json)?;
+    writeln!(writer, "{}", json)?;
     writer.flush()?;
     Ok(())
 }
@@ -249,12 +249,12 @@ fn do_stratum_login(writer: &mut BufWriter<TcpStream>, pool_conf: &stratum_data:
         }
     };
     let json = serde_json::to_string(&login_req).expect("marshaling login json");
-    write!(writer, "{}\n",json)?;
+    writeln!(writer, "{}",json)?;
     writer.flush()?;
     Ok(())
 }
 
-fn handle_stratum_receive(mut reader: BufReader<TcpStream>, rcv: Sender<StratumAction>, miner_id: &Arc<Mutex<Option<String>>>) -> Result<(), Error> {
+fn handle_stratum_receive(mut reader: BufReader<TcpStream>, rcv: &Sender<StratumAction>, miner_id: &Arc<Mutex<Option<String>>>) -> Result<(), Error> {
     loop {
         let mut line = String::new();
         match reader.read_line(&mut line) {
@@ -334,7 +334,7 @@ pub fn parse_line_dispatch_result(line: &str, rcv: &Sender<StratumAction>, miner
     }
 
     let send_result = rcv.send(action.clone());
-    if !send_result.is_ok() {
+    if send_result.is_err() {
         info!("sending action to receiver failed (receiver probably already terminated), trying next receiver");
     }
 }

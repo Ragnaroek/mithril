@@ -2,6 +2,8 @@
 #![allow(unreadable_literal)]
 extern crate tiny_keccak;
 
+use super::common::{as_u8_array};
+
 const PLEN: usize = 25;
 const TLEN: usize = 144;
 
@@ -11,12 +13,9 @@ fn xorin(dst: &mut [u8], src: &[u8]) {
     }
 }
 
-fn transmute_u8(a: &mut [u64; PLEN]) -> &mut [u8; PLEN * 8] {
-    unsafe { ::std::mem::transmute(a) }
-}
-
-fn transmute_u64(t: &mut [u8; TLEN]) -> &mut [u64; TLEN / 8] {
-    unsafe { ::std::mem::transmute(t) }
+#[allow(cast_ptr_alignment)]
+fn as_u64_array(t: &mut [u8; TLEN]) -> &mut [u64; TLEN / 8] {
+    unsafe { &mut *(t as *mut [u8; TLEN] as *mut [u64; TLEN / 8]) }
 }
 
 #[inline(always)]
@@ -37,7 +36,7 @@ pub fn keccak(input: &[u8]) -> [u8; 200] {
     let mut ip = 0;
     let mut l = inlen;
     while l >= rate {
-        xorin(&mut transmute_u8(&mut a)[0..][..rate], &input[ip..]);
+        xorin(&mut as_u8_array(&mut a)[0..][..rate], &input[ip..]);
         tiny_keccak::keccakf(&mut a);
         ip += rate;
         l -= rate;
@@ -48,13 +47,13 @@ pub fn keccak(input: &[u8]) -> [u8; 200] {
     tmp[inlen] = 1;
     tmp[rate - 1] |= 0x80;
 
-    let t64 = transmute_u64(&mut tmp);
+    let t64 = as_u64_array(&mut tmp);
     for i in 0..(rate/8) {
         a[i] ^= t64[i];
     }
 
     tiny_keccak::keccakf(&mut a);
 
-    let t8 = transmute_u8(&mut a);
+    let t8 = as_u8_array(&mut a);
     *t8
 }

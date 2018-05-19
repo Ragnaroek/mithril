@@ -46,7 +46,6 @@ fn transmute_u8(u: u32) -> [u8; 4] {
 }
 
 fn transmute_u32(u: [u8;4]) -> u32 {
-    #[allow(misaligned_transmute)]
     unsafe { ::std::mem::transmute(u) }
 }
 

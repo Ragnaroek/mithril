@@ -6,6 +6,7 @@ extern crate byteorder;
 
 use super::keccak;
 use super::aes::{AES};
+use super::common::{as_u64_array, as_u8_array};
 use u64x2::u64x2;
 use std::boxed::Box;
 use self::groestl::{Digest, Groestl256};
@@ -76,10 +77,10 @@ pub fn hash(mut scratchpad : &mut [u64x2; MEM_SIZE], input: &[u8], aes: &AES, ve
         k += 1;
     }
 
-    let state_64 = transmute_u64(&mut state);
+    let state_64 = as_u64_array(&mut state);
     keccak::keccakf(state_64);
 
-    final_hash(transmute_u8(state_64))
+    final_hash(as_u8_array(state_64))
 }
 
 pub fn cryptonight_monero_tweak(tmp: &u64x2) -> u64x2 {
@@ -122,14 +123,6 @@ fn final_hash(keccak_state: &[u8; 200]) -> String {
     }
 }
 
-fn transmute_u64(t: &mut [u8; 200]) -> &mut [u64; 25] {
-    unsafe { ::std::mem::transmute(t) }
-}
-
-fn transmute_u8(t: &mut [u64; 25]) -> &mut [u8; 200] {
-    unsafe { ::std::mem::transmute(t) }
-}
-
 pub fn ebyte_mul(a: &u64x2, b: &u64x2) -> u64x2 {
     let r0 = u128::from(a.0);
     let r1 = u128::from(b.0);
@@ -146,7 +139,7 @@ pub fn scratchpad_addr(u: &u64x2) -> usize {
 }
 
 pub fn finalise_scratchpad(scratchpad: &mut [u64x2; MEM_SIZE], keccak_state: &mut [u8; 200], aes: &AES) -> [u64x2; 8] {
-    let t_state = transmute_u64(keccak_state);
+    let t_state = as_u64_array(keccak_state);
     let input0 = u64x2(t_state[4], t_state[5]);
     let input1 = u64x2(t_state[6], t_state[7]);
 
@@ -187,7 +180,7 @@ pub fn finalise_scratchpad(scratchpad: &mut [u64x2; MEM_SIZE], keccak_state: &mu
 }
 
 pub fn init_scratchpad(scratchpad : &mut [u64x2; MEM_SIZE], state: &mut [u8; 200], aes: &AES) {
-    let t_state = transmute_u64(state);
+    let t_state = as_u64_array(state);
     let input0 = u64x2(t_state[0], t_state[1]);
     let input1 = u64x2(t_state[2], t_state[3]);
     let keys = aes.gen_round_keys(input0, input1);
