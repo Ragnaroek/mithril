@@ -4,6 +4,13 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.9.0]
+- moved to official tiny-keccak version (to benefit from the improvements made there)
+
+## [0.8.0]
+- stratum handling completely reworked
+- donation hashing
+
 ## [0.5.0]
 - various performance improvements, removing for loops with ranges seemed to be
   the biggest gain
