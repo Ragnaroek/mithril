@@ -7,7 +7,7 @@ authors = ["Michael Bohn <spaceodyssey@gmx.de>"]
 name = "mithril"
 
 [dependencies]
-groestl = "0.3.0"
+groestl = "0.7.0"
 blake = "2.0.0"
 jh-ffi = "0.0.2"
 skein-ffi = "0.0.1"
@@ -17,7 +17,7 @@ serde_derive = "1.0.58"
 config = "0.8.0"
 log = "0.4.1"
 env_logger = "0.5.10"
-num_cpus = "1.0"
+num_cpus = "1.8.0"
 bandit = "0.11.1"
 byteorder = "1.2.3"
 tiny-keccak = "1.4.2"
