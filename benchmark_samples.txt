@@ -1,3 +1,7 @@
+#### v0.9.0 tiny-keccak 1.4.2 update
+test bench_hash_with_hardware ... bench:  77,485,364 ns/iter (+/- 2,123,638)
+test bench_hash_with_software ... bench: 148,609,655 ns/iter (+/- 1,995,443)
+
 #### v0.9.0 use tiny-keccak implementation
 test bench_hash_with_hardware ... bench:  77,573,859 ns/iter (+/- 2,533,861)
 test bench_hash_with_software ... bench: 148,792,422 ns/iter (+/- 5,473,901)
