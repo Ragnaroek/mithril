@@ -67,8 +67,14 @@ fn main() {
             config.pool_conf.clone()
         };
 
-        let client = StratumClient::login(conf, client_err_tx, stratum_tx);
-        //client.login();
+        let login_result = StratumClient::login(conf, client_err_tx, stratum_tx);
+        if login_result.is_err() {
+            error!("stratum login failed {:?}", login_result.err());
+            await_timeout();
+            continue;
+        }
+        let client = login_result.expect("stratum client");
+
         let share_tx = client.new_cmd_channel();
 
         let (arm, num_threads) = if bandit.is_some() {
@@ -94,7 +100,7 @@ fn main() {
         match term_result {
             Err(err) => {
                 error!("error received, restarting connection after 60 seconds. err was {}", err);
-                thread::sleep(Duration::from_secs(60));
+                await_timeout();
             },
             Ok(ex) => {
                 info!("main loop exit, next loop {:?}", ex);
@@ -117,6 +123,10 @@ fn main() {
             }
         }
     }
+}
+
+fn await_timeout() {
+    thread::sleep(Duration::from_secs(60))
 }
 
 fn save_bandit_state(bandit: &mut bandit::softmax::AnnealingSoftmax<bandit_tools::ThreadArm>) {
