@@ -6,7 +6,7 @@ use std::path::{PathBuf};
 use std::fs::{DirBuilder};
 use std::io;
 
-use self::bandit::softmax::{AnnealingSoftmax, DEFAULT_CONFIG};
+use self::bandit::softmax::{AnnealingSoftmax, AnnealingSoftmaxConfig};
 use self::bandit::{Identifiable, BanditConfig};
 
 const MAX_THREADS_PER_CPU : usize = 4;
@@ -35,18 +35,20 @@ pub fn setup_bandit(log_file: String) -> AnnealingSoftmax<ThreadArm> {
         log_file: Some(PathBuf::from(log_file))
     };
 
+    let softmax_config = AnnealingSoftmaxConfig{cooldown_factor: 0.7};
+
     if state_file.exists() {
         let loaded_state = AnnealingSoftmax::load_bandit(arms.clone(), bandit_config.clone(), &state_file);
         if loaded_state.is_err() {
             error!("loading bandit state failed, using new bandit. error {:?}", loaded_state);
-            AnnealingSoftmax::new(arms, bandit_config, DEFAULT_CONFIG)
+            AnnealingSoftmax::new(arms, bandit_config, softmax_config)
         } else {
             info!("continuing with loaded bandit state");
             loaded_state.unwrap()
         }
     } else {
         info!("no bandit state file found, using new bandit");
-        AnnealingSoftmax::new(arms, bandit_config, DEFAULT_CONFIG)
+        AnnealingSoftmax::new(arms, bandit_config, softmax_config)
     }
 }
 
