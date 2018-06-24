@@ -1,0 +1,3 @@
+MacBook Pro Mid 2014
+
+cooldown_factor: 0.5
