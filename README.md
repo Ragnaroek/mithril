@@ -12,8 +12,15 @@ Rust Monero Miner (pure Rust is the goal, but the project is not there yet, see 
 
 Feature Backlog:
 
+- [ ] integrate GPU Mining  (Nvidia)
+- [ ] WebAssembler Support
+- [ ] Better displaying of Hash-Rate
+
+Future Feature Backlog
+
 - [ ] ARM support (Raspberry, Pine64)
-- [ ] integrate gpu mining (ATI, Nvidia)
+- [ ] integrate GPU Mining (AMD)
+- [ ] Skein, JH native Rust implementation
 
 DONE:
 - [x] hard-fork v7 update
@@ -91,5 +98,3 @@ If you want to donate directly to support further development, this is my Monero
 or support the project on Beerpay:
 
 [![Beerpay](https://beerpay.io/Ragnaroek/mithril/badge.svg?style=beer-square)](https://beerpay.io/Ragnaroek/mithril)  [![Beerpay](https://beerpay.io/Ragnaroek/mithril/make-wish.svg?style=flat-square)](https://beerpay.io/Ragnaroek/mithril?focus=wish)
-
-
