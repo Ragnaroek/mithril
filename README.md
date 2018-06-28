@@ -10,6 +10,17 @@
 
 Rust Monero Miner (pure Rust is the goal, but the project is not there yet, see help wanted section)
 
+## Unique Selling Points
+
+aka: Why you should consider using Mithril.
+
+- Auto-Tuning: Finds the optimal setup for your hardware itself with a bandit algorithm
+- Easy to compile: inherited from the great rust toolchain
+- cross platform: should run on every (x86) platform supported by Rust
+- [Fast: should be as fast as the C-implementations] (I want to say that, but I currently cannot prove it)
+
+## Roadmap
+
 Feature Backlog:
 
 - [ ] integrate GPU Mining  (Nvidia)
@@ -31,6 +42,17 @@ DONE:
 - [x] implement stratum protocol (for pooled mining support)
 - [x] implement cryptonight hashing function
 
+## Current Status (2018-06-28)
+
+Auto-Tuning with the bandit algorithms seems to work, with totally unexpected results on my machine
+(see Reddit [TODO Link] for a detailed discussion on that). I am currently tweaking the cooldown_factor
+of the bandit algorithm. But this will be a long-term task, since I am not mining professionally.
+
+Next feature implemented will be the support for GPU mining (the projects wants to be a All-In-One Miner after all).
+I probably will "take" the GPU-Mining code from xmr-stak or xmrig and first try to dockerize the GPU code compilation
+(compiling the GPU code was a big pain in compiling xmr-stak). The rest should be simply controlling the GPU
+and scheduling some mining task on it (I highly doubt that this will be so simple ;).
+
 # HowTo Compile, Configure and Run
 
 You need the Rust nightly version to compile Mithril, since it uses inline assembler which is only available
@@ -46,11 +68,43 @@ If you get a `wrong instruction set` kind of error you can try to disable hardwa
 
 If you find any issues, please report them here: [Mithril Issues](https://github.com/Ragnaroek/mithril/issues)
 
+## Auto-Tuning
+
+### Configuration
+
+Auto-Tuning is enabled by default in Mithril. You can disable and configure auto-tuning in the config.toml:
+
+```toml
+[worker]
+num_threads = 8
+auto_tune = true
+auto_tune_interval_minutes = 15
+auto_tune_log = "./bandit.log"
+```
+
+If you set `auto_tune` to `false`, Mithril will honour your `num_threads` and will use the number of threads configured
+there. The other options are only relevant if you set `auto_tune` to `true`. The config `auto_tune_interval_minutes` controls, how often a new bandit arm will be drawn and a new thread count setup will be tried. I suggest picking a longer interval, to average-out some spikes on loads on the machine the miner is running on.
+
+You can enable detailed logging by setting a path to a file in `auto_tune_log`. Each step in the bandit algorithm
+will be logged there. You can evaluate the performance of the bandit algorithm on your machine with the Bandit-Tools that have been created for exactly this purpose. You find them here: [Bandit-Tools](https://github.com/Ragnaroek/bandit-tools).
+
+The current state of the bandit algorithm will always be saved to `~/.mithril/bandit_state.json`.
+You can stop the miner and on the next startup it will continue the arm evaluation on the point were it stopped last.
+
+## Evaluation
+
+As mentioned you can use the [Bandit-Tools Web-App](https://ragnaroek.github.io/bandit-tools/) to evaluate
+the evaluation/exploitation phases of the bandit algorithm. You can upload the `bandit_state.json` and `bandit.log`
+file and get a visualisation of the information present in these two files.
+
+If you want to share publicly your log and state files, please open a pull request on the bandit_data branch of this project. Discussing results should be done on Reddit: <TODO Link Reddit Post>.
+
 ## Hash-Rate Logging
 
 Mithril has basic support for logging the hash rate of the miner (in order to tune it). Hash-Rate Logging has to be
 enabled in the `[metric]` section and is disabled in the default configuration:
-```
+
+```toml
 enabled = false
 resolution = 100 #determines how often a hash result is reported
 sample_interval_seconds = 60
@@ -70,17 +124,6 @@ Mithril was tested on this Platform/architecture combinations so far:
 Please notify me, if you tested mithril on one other platform and it is running stable.
 
 ARM support (Raspberry, Pine64) is a short term goal I am working on.
-
-# Current Status (2018-04-05)
-
-Pow change has been implemented.
-
-Obvious ineffieciencies have been removed. Mithril should now generate a decent hash rate.
-
-Some measurements from my dev notebook can be found here:
-https://docs.google.com/spreadsheets/d/1ZAqV4JXxO-L9sNFzW__wBytgfZKNniK9WUKJk6tl5wI/edit?usp=sharing
-
-Average hash-rate is 183 H/sec with a Intel Core i7 running with 8 threads.
 
 # Help Wanted
 
