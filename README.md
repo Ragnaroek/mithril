@@ -45,7 +45,7 @@ DONE:
 ## Current Status (2018-06-28)
 
 Auto-Tuning with the bandit algorithms seems to work, with totally unexpected results on my machine
-(see Reddit [TODO Link] for a detailed discussion on that). I am currently tweaking the cooldown_factor
+(see [Reddit](https://www.reddit.com/r/MoneroMining/comments/8vp873/mithril_miner_and_autotuning_with_a/) for a detailed discussion on that). I am currently tweaking the cooldown_factor
 of the bandit algorithm. But this will be a long-term task, since I am not mining professionally.
 
 Next feature implemented will be the support for GPU mining (the projects wants to be a All-In-One Miner after all).
@@ -97,7 +97,7 @@ As mentioned you can use the [Bandit-Tools Web-App](https://ragnaroek.github.io/
 the evaluation/exploitation phases of the bandit algorithm. You can upload the `bandit_state.json` and `bandit.log`
 file and get a visualisation of the information present in these two files.
 
-If you want to share publicly your log and state files, please open a pull request on the bandit_data branch of this project. Discussing results should be done on Reddit: <TODO Link Reddit Post>.
+If you want to share publicly your log and state files, please open a pull request on the bandit_data branch of this project. Discussing results should be done on Reddit: [Reddit Post](https://www.reddit.com/r/MoneroMining/comments/8vp873/mithril_miner_and_autotuning_with_a/).
 
 ## Hash-Rate Logging
 
