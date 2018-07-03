@@ -1,4 +1,4 @@
 MacBook Pro Mid 2014
 Number of Cores: 4
 
-cooldown_factor: 0.5
+cooldown_factor: 0.7
