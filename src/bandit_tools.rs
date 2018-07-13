@@ -1,7 +1,7 @@
 extern crate bandit;
 extern crate num_cpus;
+extern crate dirs;
 
-use std;
 use std::path::{PathBuf};
 use std::fs::{DirBuilder};
 use std::io;
@@ -58,7 +58,7 @@ pub fn ensure_mithril_folder_exists() -> io::Result<()> {
 }
 
 pub fn mithril_folder() -> PathBuf {
-    let mut state_file = std::env::home_dir().expect("home dir");
+    let mut state_file = dirs::home_dir().expect("home dir");
     state_file.push(".mithril");
     state_file
 }
