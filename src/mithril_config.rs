@@ -85,8 +85,8 @@ fn metric_config(conf: &Config) -> Result<MetricConfig, ConfigError> {
         let report_file = conf.get_str("metric.report_file")?;
         Ok(MetricConfig{enabled, resolution, sample_interval_seconds, report_file})
     } else {
-        Ok(MetricConfig{enabled: false, resolution: std::u64::MAX,
-                        sample_interval_seconds: std::u64::MAX, report_file: "/dev/null".to_string()})
+        Ok(MetricConfig{enabled: false, resolution: std::u32::MAX as u64,
+                        sample_interval_seconds: std::u32::MAX as u64, report_file: "/dev/null".to_string()})
     }
 }
 
