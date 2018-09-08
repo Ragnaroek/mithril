@@ -4,7 +4,6 @@
 #![feature(asm)]
 #![feature(repr_simd)]
 #![feature(box_syntax)]
-#![feature(iterator_step_by)]
 #![feature(integer_atomics)]
 #![feature(mpsc_select)]
 
