@@ -1,8 +1,6 @@
 [![Build Status](https://travis-ci.org/Ragnaroek/mithril.svg?branch=master)](https://travis-ci.org/Ragnaroek/mithril)
 
-<a href="https://www.patreon.com/user?u=10095629">
-<img src="https://c5.patreon.com/external/logo/become_a_patron_button@2x.png" height="50">
-</a>
+[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=A24SWQT3P5DY2&source=url)
 
 # Mithril
 
@@ -141,3 +139,7 @@ If you want to donate directly to support further development, this is my Monero
 or support the project on Beerpay:
 
 [![Beerpay](https://beerpay.io/Ragnaroek/mithril/badge.svg?style=beer-square)](https://beerpay.io/Ragnaroek/mithril)  [![Beerpay](https://beerpay.io/Ragnaroek/mithril/make-wish.svg?style=flat-square)](https://beerpay.io/Ragnaroek/mithril?focus=wish)
+
+or Paypal:
+
+[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=A24SWQT3P5DY2&source=url)
