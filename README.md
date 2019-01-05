@@ -20,15 +20,15 @@ aka: Why you should consider using Mithril.
 ## Roadmap
 
 Feature Backlog:
-
-- [ ] integrate GPU Mining  (Nvidia)
+- [ ] hard-fork v8 update!
+- [ ] integrate GPU Mining  (AMD)
 - [ ] WebAssembler Support
 - [ ] Better displaying of Hash-Rate
 
 Future Feature Backlog
 
 - [ ] ARM support (Raspberry, Pine64)
-- [ ] integrate GPU Mining (AMD)
+- [ ] integrate GPU Mining (NVIDIA)
 - [ ] Skein, JH native Rust implementation
 
 DONE:
@@ -40,16 +40,11 @@ DONE:
 - [x] implement stratum protocol (for pooled mining support)
 - [x] implement cryptonight hashing function
 
-## Current Status (2018-06-28)
+## Current Status (2019-01-05)
 
-Auto-Tuning with the bandit algorithms seems to work, with totally unexpected results on my machine
-(see [Reddit](https://www.reddit.com/r/MoneroMining/comments/8vp873/mithril_miner_and_autotuning_with_a/) for a detailed discussion on that). I am currently tweaking the cooldown_factor
-of the bandit algorithm. But this will be a long-term task, since I am not mining professionally.
+I am currently working on the hard-fork v8 update.
 
-Next feature implemented will be the support for GPU mining (the projects wants to be a All-In-One Miner after all).
-I probably will "take" the GPU-Mining code from xmr-stak or xmrig and first try to dockerize the GPU code compilation
-(compiling the GPU code was a big pain in compiling xmr-stak). The rest should be simply controlling the GPU
-and scheduling some mining task on it (I highly doubt that this will be so simple ;).
+Next feature implemented will be the support for AMD GPU mining (the projects wants to be a All-In-One Miner after all).
 
 # HowTo Compile, Configure and Run
 
