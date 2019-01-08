@@ -1,3 +1,7 @@
+#### v0.9.0 new reference hardware, MacBook Pro 2018, 2,6 GHz Intel Core i7
+test bench_hash_with_hardware ... bench:  66,089,559 ns/iter (+/- 2,951,115)
+test bench_hash_with_software ... bench: 127,623,474 ns/iter (+/- 2,995,302)
+
 #### v0.9.0 tiny-keccak 1.4.2 update
 test bench_hash_with_hardware ... bench:  77,485,364 ns/iter (+/- 2,123,638)
 test bench_hash_with_software ... bench: 148,609,655 ns/iter (+/- 1,995,443)
