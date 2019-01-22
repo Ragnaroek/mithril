@@ -172,10 +172,14 @@ pub fn with_nonce(blob: &str, nonce: &str) -> String {
 }
 
 pub fn hash_version(blob: &str) -> hash::HashVersion {
-    if blob.starts_with("0707") {
+    if blob.starts_with("0808") || blob.starts_with("0909") {
+        hash::HashVersion::Version8
+    } else if blob.starts_with("0707") {
         hash::HashVersion::Version7
-    } else {
+    } else if blob.starts_with("0606") {
         hash::HashVersion::Version6
+    } else {
+        hash::HashVersion::Version8
     }
 }
 

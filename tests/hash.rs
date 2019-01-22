@@ -4,12 +4,13 @@ extern crate mithril;
 
 use mithril::byte_string;
 use mithril::cryptonight::hash;
-use mithril::cryptonight::hash::{MEM_SIZE, ebyte_mul};
+use mithril::cryptonight::hash::{MEM_SIZE, ebyte_mul, shuffle};
 use mithril::cryptonight::keccak;
 use mithril::cryptonight::aes;
 use mithril::cryptonight::aes::{AESSupport};
 use mithril::u64x2::{u64x2};
 use std::u64;
+use std::str::FromStr;
 
 #[test]
 fn test_init_scratchpad() {
@@ -117,6 +118,17 @@ fn test_hash_hardware_v7() {
 
     let input = byte_string::string_to_u8_array("0707cff699d605f7eb4dbdcad3a38b462b52e9b8ecdf06fb4c95bc5b058a177f84d327f27db739420000000363862429fb90c0fc35fcb9f760c484c8532ee5f2a7cbea4e769d44cd12a7f201");
     assert_eq!(hash::hash_alloc_scratchpad(&input, &aes, hash::HashVersion::Version7), "ecdf8f5c8c0b399709a764257495382fb0230cf6fa55ee02e0667cf3d5be10d6");
+
+    let input = byte_string::string_to_u8_array("09099aebd3e1057aad462f2d998d8b9adcf16e03a5bf1820728240eefe433735904fcf663eeb1d00000000b0203ca955ed446e47ab9e884941bc67c75ecb06e444036aafc7ff442c60d2f907");
+    assert_eq!(hash::hash_alloc_scratchpad(&input, &aes, hash::HashVersion::Version7), "ee49b50b183aca28b681b5d1300924c2f7fb952383be9e7dfac81f929a4c6ce0");
+}
+
+//#[test]
+fn test_hash_hardware_v8() {
+    let aes = aes::new(AESSupport::HW);
+
+    let input = byte_string::string_to_u8_array("09099aebd3e1057aad462f2d998d8b9adcf16e03a5bf1820728240eefe433735904fcf663eeb1d00000000b0203ca955ed446e47ab9e884941bc67c75ecb06e444036aafc7ff442c60d2f907");
+    assert_eq!(hash::hash_alloc_scratchpad(&input, &aes, hash::HashVersion::Version8), "f12b181f2b5a84d8fca047206c605f20b6b3a9b29da3505152caaeee758e39fe");
 }
 
 #[test]
@@ -128,6 +140,21 @@ fn test_hash_from_cryptonote_white_paper_hardware() {
 
     let input2 = b"This is a test";
     assert_eq!(hash::hash_alloc_scratchpad(&input2[0..], &aes, hash::HashVersion::Version6), "a084f01d1437a09c6985401b60d43554ae105802c5f5d8a9b3253649c0be6605");
+}
+
+#[test]
+fn test_shuffle() {
+    let mut scratchpad : Box<[u64x2; MEM_SIZE]> = box [u64x2(0,0); MEM_SIZE];
+
+    scratchpad[0x1b87c] = u64x2(0x3877694fc39e5d94, 0x799ca5c6420917cb);
+    scratchpad[0x1b87f] = u64x2(0xb22757c5fb5bf452, 0xf50fb07fc457b691);
+    scratchpad[0x1b87e] = u64x2(0x883ac9cd01a17561, 0x284e85a9bfcef8e9);
+
+    shuffle(0x148f30d3747b87d5, &mut scratchpad, u64x2(0x148f30d3747b87d5, 0xe2d9028ffc71e2ef), u64x2(0xd93c328b6174f87e,0xf1f90c1078c99e1), u64x2(0xa4cdd03a27c55885,0x3cad9888b6b3e0a6));
+
+    assert_eq!(scratchpad[0x1b87c], u64x2(0x2d089a072966cde6, 0x64fc1e327682d98f));
+    assert_eq!(scratchpad[0x1b87f], u64x2(0x11b39bdb25135612, 0x88bc36874995b1ac));
+    assert_eq!(scratchpad[0x1b87e], u64x2(0xc6b688996fd77c27, 0xd7e8b30fc0c99980));
 }
 
 #[test]

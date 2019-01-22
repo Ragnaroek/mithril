@@ -68,3 +68,10 @@ fn test_mm_mul_su32() {
     let u_in1 = byte_string::hex2_u64x2_be("0000000000000000000000000000000A");
     assert_eq!( byte_string::hex2_u64x2_be("00000000000000000000000000000032"), sse::_mm_mul_su32(u_in0, u_in1));
 }
+
+#[test]
+fn test_mm_add_epi64() {
+    let u_in0 = byte_string::hex2_u64x2_be("00000000000000000008B7A7587ABC82");
+    let u_in1 = byte_string::hex2_u64x2_be("0000000000000000000000B47856327A");
+    assert_eq!( byte_string::hex2_u64x2_be("00000000000000000008B85BD0D0EEFC"), sse::_mm_add_epi64(u_in0, u_in1));
+}

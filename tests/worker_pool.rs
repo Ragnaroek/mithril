@@ -42,3 +42,18 @@ fn test_hash_version_7() {
     let blob = "07079db3f7d50511";
     assert_eq!(hash::HashVersion::Version7, worker_pool::hash_version(blob));
 }
+
+#[test]
+fn test_hash_version_8_and_9() {
+    let blob = "08086db3f7d50511";
+    assert_eq!(hash::HashVersion::Version8, worker_pool::hash_version(blob));
+    
+    let blob = "09096db3f7d50511";
+    assert_eq!(hash::HashVersion::Version8, worker_pool::hash_version(blob));
+}
+
+#[test]
+fn test_hash_version_future_versions() {
+    let blob = "10109db3f7d50511";
+    assert_eq!(hash::HashVersion::Version8, worker_pool::hash_version(blob));
+}

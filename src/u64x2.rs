@@ -1,12 +1,13 @@
 //taken from https://github.com/RustCrypto/block-ciphers and modified for Cryptonight
 use std::ptr::copy_nonoverlapping;
 use std::mem;
-use std::ops::BitXor;
+use std::fmt;
+use std::ops::{BitXor, Add};
 use super::cryptonight::sse;
 
 #[allow(non_camel_case_types)]
 #[repr(simd)]
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq)]
 pub struct u64x2(pub u64, pub u64);
 
 impl u64x2 {
@@ -34,6 +35,10 @@ impl u64x2 {
                 16,
             );
         }
+    }
+
+    pub fn writeOffset(self, dst: &mut [u8], start_addr: usize) {
+        self.write(&mut dst[start_addr..(start_addr+16)]);
     }
 
     /// Read [u64x2; 8] from array pointer (potentially unaligned)
@@ -70,10 +75,24 @@ impl u64x2 {
     }
 }
 
+impl fmt::Debug for u64x2 {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "u64x2(0x{:x}, 0x{:x})", self.0, self.1)
+    }
+}
+
 impl BitXor for u64x2 {
     type Output = Self;
 
     fn bitxor(self, rhs: Self) -> Self {
         sse::_mm_xor_si128(self, rhs)
+    }
+}
+
+impl Add for u64x2 {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self {
+        sse::_mm_add_epi64(self, rhs)
     }
 }
