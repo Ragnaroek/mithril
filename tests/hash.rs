@@ -4,7 +4,7 @@ extern crate mithril;
 
 use mithril::byte_string;
 use mithril::cryptonight::hash;
-use mithril::cryptonight::hash::{MEM_SIZE, ebyte_mul, shuffle};
+use mithril::cryptonight::hash::{MEM_SIZE, ebyte_mul, shuffle, division};
 use mithril::cryptonight::keccak;
 use mithril::cryptonight::aes;
 use mithril::cryptonight::aes::{AESSupport};
@@ -155,6 +155,17 @@ fn test_shuffle() {
     assert_eq!(scratchpad[0x1b87c], u64x2(0x2d089a072966cde6, 0x64fc1e327682d98f));
     assert_eq!(scratchpad[0x1b87f], u64x2(0x11b39bdb25135612, 0x88bc36874995b1ac));
     assert_eq!(scratchpad[0x1b87e], u64x2(0xc6b688996fd77c27, 0xd7e8b30fc0c99980));
+}
+
+#[test]
+fn test_division() {
+    let aes_result = u64x2(0xfd1e39f73fe70437, 0x6a723c2ebf8e89bc);
+    let sqrt_res = 0x3fa2f8323bb48333;
+    let div_res = 0xf8e216d89e32a083;
+    let mem = u64x2(0x65023ca86652288, 0xe5830779e34900a4);
+
+    let result = division(&aes_result, sqrt_res, div_res, &mem);
+    assert_eq!(0x7fe4948070f, result);
 }
 
 #[test]

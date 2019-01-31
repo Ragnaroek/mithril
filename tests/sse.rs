@@ -42,6 +42,13 @@ fn test_mm_cvtsi128_si32() {
     assert_eq!(0xf90cc069, sse::_mm_cvtsi128_si32(u_in));
 }
 
+
+#[test]
+fn test_mm_srli_si128_0x08() {
+    let u_in = byte_string::hex2_u64x2_be("396d009f396d009f505d009f396d669f");
+    assert_eq!(byte_string::hex2_u64x2_be("0000000000000000396d009f396d009f"), sse::_mm_srli_si128_0x08(u_in));
+}
+
 #[test]
 fn test_mm_slli_si128_0x04() {
     let u_in = byte_string::hex2_u64x2_be("2d95fc16cc409d24141bbc7d4cd3d577");
@@ -66,12 +73,25 @@ fn test_mm_xor_si128() {
 fn test_mm_mul_su32() {
     let u_in0 = byte_string::hex2_u64x2_be("00000000000000000000000000000005");
     let u_in1 = byte_string::hex2_u64x2_be("0000000000000000000000000000000A");
-    assert_eq!( byte_string::hex2_u64x2_be("00000000000000000000000000000032"), sse::_mm_mul_su32(u_in0, u_in1));
+    assert_eq!(byte_string::hex2_u64x2_be("00000000000000000000000000000032"), sse::_mm_mul_su32(u_in0, u_in1));
 }
 
 #[test]
 fn test_mm_add_epi64() {
     let u_in0 = byte_string::hex2_u64x2_be("00000000000000000008B7A7587ABC82");
     let u_in1 = byte_string::hex2_u64x2_be("0000000000000000000000B47856327A");
-    assert_eq!( byte_string::hex2_u64x2_be("00000000000000000008B85BD0D0EEFC"), sse::_mm_add_epi64(u_in0, u_in1));
+    assert_eq!(byte_string::hex2_u64x2_be("00000000000000000008B85BD0D0EEFC"), sse::_mm_add_epi64(u_in0, u_in1));
+}
+
+#[test]
+fn test_mm_sqrt_sd() {
+    let a = byte_string::hex2_u64x2_be("64726783656377573472047572572927");
+    let b = byte_string::hex2_u64x2_be("0000000000000000000000B47856327A");
+    assert_eq!(byte_string::hex2_u64x2_be("64726783656377571f9ade2a12aa6db3"), sse::_mm_sqrt_sd(a, b));
+}
+
+#[test]
+fn test_mm_cvtsi128_si64() {
+    let a = byte_string::hex2_u64x2_be("64726783656377573472047572572927");
+    assert_eq!(0x3472047572572927, sse::_mm_cvtsi128_si64(a));
 }
