@@ -56,7 +56,6 @@ pub fn hash(mut scratchpad : &mut [u64x2; MEM_SIZE], input: &[u8], aes: &AES, ve
         let cl = u64x2::read(&state[64..80]);
         let cr = u64x2::read(&state[80..96]);
         let dl = u64x2::read(&state[96..112]);
-        println!("dl={:?}", dl);
         ax0 = u64x2(a.0, al.1 ^ ar.1);
         bx0 = u64x2(bl.0 ^ br.0, bl.1 ^ br.1);
         bx1 = u64x2(cl.0 ^ cr.0, cl.1 ^ cr.1);
@@ -82,7 +81,7 @@ pub fn hash(mut scratchpad : &mut [u64x2; MEM_SIZE], input: &[u8], aes: &AES, ve
         let aes_result = aes.aes_round(scratchpad[ix], a);
 
         if version == HashVersion::Version8 {
-            shuffle(a.0, &mut scratchpad, ax0, bx0, bx1);
+            shuffle_0(a.0, &mut scratchpad, ax0, bx0, bx1);
         }
 
         if version == HashVersion::Version6 {
@@ -95,9 +94,19 @@ pub fn hash(mut scratchpad : &mut [u64x2; MEM_SIZE], input: &[u8], aes: &AES, ve
 
         let mem = scratchpad[ix];
         if version == HashVersion::Version8 {
-            division_res = division(&aes_result, sqrt_res, division_res, &mem);
-        }
+            sqrt_res = division(ix, &mut scratchpad, &aes_result, sqrt_res, division_res);
+            let r = (aes_result.0 as u128) * (scratchpad[ix].0 as u128);
+            let lo = r as u64;
+            let hi = (r >> 64) as u64;
+            let (lo_p, hi_p) = shuffle_1(aes_result.0, &mut scratchpad, ax0, bx0, bx1, lo, hi);
+            let (a0_p, _) = a.1.overflowing_add(lo_p);
+            let (a1_p, _) = a.0.overflowing_add(hi_p);
+            a.0 = a0_p;
+            a.1 = a1_p;
 
+            bx1 = bx0;
+            bx0 = aes_result; //TODO ??cx??; ?????
+        }
 /*
         if(i==0) {//TEST
             return "nothing".to_string();
@@ -131,7 +140,7 @@ pub fn hash(mut scratchpad : &mut [u64x2; MEM_SIZE], input: &[u8], aes: &AES, ve
     final_hash(as_u8_array(state_64))
 }
 
-pub fn shuffle(ix: u64, scratchpad : &mut [u64x2; MEM_SIZE], ax0: u64x2, bx0: u64x2, bx1: u64x2) {
+pub fn shuffle_0(ix: u64, scratchpad : &mut [u64x2; MEM_SIZE], ax0: u64x2, bx0: u64x2, bx1: u64x2) {
     let addr = (ix & ADDR_MASK) as usize;
     let a1 = (addr ^ 0x10) >> 4;
     let a2 = (addr ^ 0x20) >> 4;
@@ -145,8 +154,31 @@ pub fn shuffle(ix: u64, scratchpad : &mut [u64x2; MEM_SIZE], ax0: u64x2, bx0: u6
     scratchpad[a3] = v2 + ax0;
 }
 
-pub fn division(aes_result: &u64x2, sqrt_res: u64, div_res: u64, mem: &u64x2) -> u64 {
+pub fn shuffle_1(ix: u64, scratchpad : &mut [u64x2; MEM_SIZE], ax0: u64x2, bx0: u64x2, bx1: u64x2, lo: u64, hi: u64) -> (u64, u64){
+    //println!("ax0={:?}", ax0);
+    //println!("bx0={:?}", bx0);
+    //println!("bx1={:?}", bx1);
+    //println!("lo={:x}", lo);
+    //println!("hi={:x}", hi);
+    let addr = (ix & ADDR_MASK) as usize;
+    let a1 = (addr ^ 0x10) >> 4;
+    let a2 = (addr ^ 0x20) >> 4;
+    let a3 = (addr ^ 0x30) >> 4;
+    let v1 = scratchpad[a1] ^ u64x2(hi, lo);
+    let v2 = scratchpad[a2];
+    let v3 = scratchpad[a3];
+
+    scratchpad[a1] = v3 + bx1;
+    scratchpad[a2] = v1 + bx0;
+    scratchpad[a3] = v2 + ax0;
+
+    return (lo ^ v2.1, hi ^ v2.0);
+}
+
+pub fn division(ix: usize, scratchpad : &mut [u64x2; MEM_SIZE], aes_result: &u64x2, sqrt_res: u64, div_res: u64) -> u64 {
+    let mem = scratchpad[ix];
     let cl_p = mem.0 ^ (div_res ^ (sqrt_res << 32));
+    scratchpad[ix].0 = cl_p;
     let (p, _) = aes_result.0.overflowing_add(sqrt_res << 1);
     let d = (p | 0x80000001) & 0xFFFFFFFF;
 

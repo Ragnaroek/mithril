@@ -4,7 +4,7 @@ extern crate mithril;
 
 use mithril::byte_string;
 use mithril::cryptonight::hash;
-use mithril::cryptonight::hash::{MEM_SIZE, ebyte_mul, shuffle, division};
+use mithril::cryptonight::hash::{MEM_SIZE, ebyte_mul, shuffle_0, shuffle_1, division};
 use mithril::cryptonight::keccak;
 use mithril::cryptonight::aes;
 use mithril::cryptonight::aes::{AESSupport};
@@ -143,14 +143,14 @@ fn test_hash_from_cryptonote_white_paper_hardware() {
 }
 
 #[test]
-fn test_shuffle() {
+fn test_shuffle_0() {
     let mut scratchpad : Box<[u64x2; MEM_SIZE]> = box [u64x2(0,0); MEM_SIZE];
 
     scratchpad[0x1b87c] = u64x2(0x3877694fc39e5d94, 0x799ca5c6420917cb);
     scratchpad[0x1b87f] = u64x2(0xb22757c5fb5bf452, 0xf50fb07fc457b691);
     scratchpad[0x1b87e] = u64x2(0x883ac9cd01a17561, 0x284e85a9bfcef8e9);
 
-    shuffle(0x148f30d3747b87d5, &mut scratchpad, u64x2(0x148f30d3747b87d5, 0xe2d9028ffc71e2ef), u64x2(0xd93c328b6174f87e,0xf1f90c1078c99e1), u64x2(0xa4cdd03a27c55885,0x3cad9888b6b3e0a6));
+    shuffle_0(0x148f30d3747b87d5, &mut scratchpad, u64x2(0x148f30d3747b87d5, 0xe2d9028ffc71e2ef), u64x2(0xd93c328b6174f87e,0xf1f90c1078c99e1), u64x2(0xa4cdd03a27c55885,0x3cad9888b6b3e0a6));
 
     assert_eq!(scratchpad[0x1b87c], u64x2(0x2d089a072966cde6, 0x64fc1e327682d98f));
     assert_eq!(scratchpad[0x1b87f], u64x2(0x11b39bdb25135612, 0x88bc36874995b1ac));
@@ -158,14 +158,41 @@ fn test_shuffle() {
 }
 
 #[test]
+fn test_shuffle_1() {
+    let mut scratchpad : Box<[u64x2; MEM_SIZE]> = box [u64x2(0,0); MEM_SIZE];
+
+    scratchpad[0x1b87c] = u64x2(0x6c9cc13c764ca34, 0x2774da42a925d54f);
+    scratchpad[0x1b87f] = u64x2(0x79ff3840385e7f10, 0xb657be9b5ac5e4c9);
+    scratchpad[0x1b87e] = u64x2(0x5a167882ac6614cb, 0xb2182b918baf4c32);
+
+    let (lo, hi) = shuffle_1(0x148f30d3747b87d5, &mut scratchpad,
+        u64x2(0x148f30d3747b87d5, 0xe2d9028ffc71e2ef),
+        u64x2(0xd93c328b6174f87e,0xf1f90c1078c99e1),
+        u64x2(0xa4cdd03a27c55885,0x3cad9888b6b3e0a6),
+        0xd11111a5c21c5d, 0xc2cee564d624e13f);
+
+    assert_eq!(scratchpad[0x1b87c], u64x2(0xfee448bcd42b6d50, 0xeec5c41a42632cd8));
+    assert_eq!(scratchpad[0x1b87f], u64x2(0x9d435c0272b52389, 0x36c55c14147462f3));
+    assert_eq!(scratchpad[0x1b87e], u64x2(0x8e8e6913acda06e5, 0x9930c12b5737c7b8));
+
+    assert_eq!(lo, 0xb686af8aff07f894);
+    assert_eq!(hi, 0xbb31dd24ee7a9e2f);
+}
+
+#[test]
 fn test_division() {
+
+    let mut scratchpad : Box<[u64x2; MEM_SIZE]> = box [u64x2(0,0); MEM_SIZE];
+
     let aes_result = u64x2(0xfd1e39f73fe70437, 0x6a723c2ebf8e89bc);
     let sqrt_res = 0x3fa2f8323bb48333;
     let div_res = 0xf8e216d89e32a083;
-    let mem = u64x2(0x65023ca86652288, 0xe5830779e34900a4);
 
-    let result = division(&aes_result, sqrt_res, div_res, &mem);
+    scratchpad[0x7043].0 = 0x65023ca86652288;
+
+    let result = division(0x7043, &mut scratchpad, &aes_result, sqrt_res, div_res);
     assert_eq!(0x7fe4948070f, result);
+    assert_eq!(0xc506b6211857820b, scratchpad[0x7043].0);
 }
 
 #[test]
