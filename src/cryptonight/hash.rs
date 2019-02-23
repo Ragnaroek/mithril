@@ -77,48 +77,45 @@ pub fn hash(mut scratchpad : &mut [u64x2; MEM_SIZE], input: &[u8], aes: &AES, ve
 
     let mut i = 0;
     while i < ITERATIONS {
-        let mut ix = scratchpad_addr(&a);
+        let mut ix = scratchpad_addr(a.0);
         let aes_result = aes.aes_round(scratchpad[ix], a);
 
         if version == HashVersion::Version8 {
             shuffle_0(a.0, &mut scratchpad, ax0, bx0, bx1);
         }
-
-        if version == HashVersion::Version6 {
+        if version == HashVersion::Version6 || version == HashVersion::Version8 {
             scratchpad[ix] = b ^ aes_result;
         } else {
             scratchpad[ix] = cryptonight_monero_tweak(&(b ^ aes_result));
         }
 
-        ix = scratchpad_addr(&aes_result);
-
-        let mem = scratchpad[ix];
+        ix = scratchpad_addr(aes_result.0);
+        let mut mem = scratchpad[ix];
         if version == HashVersion::Version8 {
-            sqrt_res = division(ix, &mut scratchpad, &aes_result, sqrt_res, division_res);
-            let r = (aes_result.0 as u128) * (scratchpad[ix].0 as u128);
+            let (sqrt_res_n, division_res_n) = division(ix, &mut scratchpad, &aes_result, sqrt_res, division_res);
+            sqrt_res = sqrt_res_n;
+            division_res = division_res_n;
+            mem = scratchpad[ix];
+
+            let r = (aes_result.0 as u128) * (mem.0 as u128);
             let lo = r as u64;
             let hi = (r >> 64) as u64;
             let (lo_p, hi_p) = shuffle_1(aes_result.0, &mut scratchpad, ax0, bx0, bx1, lo, hi);
             let (a0_p, _) = a.1.overflowing_add(lo_p);
             let (a1_p, _) = a.0.overflowing_add(hi_p);
-            a.0 = a0_p;
-            a.1 = a1_p;
-
+            a = u64x2(a0_p, a1_p);
             bx1 = bx0;
-            bx0 = aes_result; //TODO ??cx??; ?????
-        }
-/*
-        if(i==0) {//TEST
-            return "nothing".to_string();
-        }
-*/
-        let add_r = ebyte_add(&a, &ebyte_mul(&aes_result, &mem));
-        scratchpad[ix] = add_r;
-        if version == HashVersion::Version7 {
-            scratchpad[ix].1 = add_r.1 ^ monero_const;
+            bx0 = aes_result;
         }
 
-        a = add_r ^ mem;
+        scratchpad[ix].0 = a.1;
+        if version == HashVersion::Version7 {
+            scratchpad[ix].1 = a.0 ^ monero_const;
+        } else {
+            scratchpad[ix].1 = a.0;
+        }
+        a = u64x2(a.1 ^ mem.0, a.0 ^ mem.1);
+        ax0 = a;
         b = aes_result;
 
         i += 1;
@@ -155,11 +152,6 @@ pub fn shuffle_0(ix: u64, scratchpad : &mut [u64x2; MEM_SIZE], ax0: u64x2, bx0: 
 }
 
 pub fn shuffle_1(ix: u64, scratchpad : &mut [u64x2; MEM_SIZE], ax0: u64x2, bx0: u64x2, bx1: u64x2, lo: u64, hi: u64) -> (u64, u64){
-    //println!("ax0={:?}", ax0);
-    //println!("bx0={:?}", bx0);
-    //println!("bx1={:?}", bx1);
-    //println!("lo={:x}", lo);
-    //println!("hi={:x}", hi);
     let addr = (ix & ADDR_MASK) as usize;
     let a1 = (addr ^ 0x10) >> 4;
     let a2 = (addr ^ 0x20) >> 4;
@@ -175,7 +167,7 @@ pub fn shuffle_1(ix: u64, scratchpad : &mut [u64x2; MEM_SIZE], ax0: u64x2, bx0: 
     return (lo ^ v2.1, hi ^ v2.0);
 }
 
-pub fn division(ix: usize, scratchpad : &mut [u64x2; MEM_SIZE], aes_result: &u64x2, sqrt_res: u64, div_res: u64) -> u64 {
+pub fn division(ix: usize, scratchpad : &mut [u64x2; MEM_SIZE], aes_result: &u64x2, sqrt_res: u64, div_res: u64) -> (u64, u64) {
     let mem = scratchpad[ix];
     let cl_p = mem.0 ^ (div_res ^ (sqrt_res << 32));
     scratchpad[ix].0 = cl_p;
@@ -184,10 +176,10 @@ pub fn division(ix: usize, scratchpad : &mut [u64x2; MEM_SIZE], aes_result: &u64
 
     let ae = aes_result.1;
     let (k,_) = (ae % d).overflowing_shl(32);
-    let ae_d = ae / d;
-    let result = ae_d + k;
+    let ae_d = (ae / d) as u32;
+    let result = ae_d as u64 + k;
     let (s, _) = aes_result.0.overflowing_add(result);
-    return sqrt(s);
+    return (sqrt(s), result);
 }
 
 pub fn sqrt(v: u64) -> u64 {
@@ -257,8 +249,8 @@ pub fn ebyte_add(a: &u64x2, b: &u64x2) -> u64x2 {
     u64x2(a.0.wrapping_add(b.0), a.1.wrapping_add(b.1))
 }
 
-pub fn scratchpad_addr(u: &u64x2) -> usize {
-    ((u.0 & ADDR_MASK) >> 4) as usize
+pub fn scratchpad_addr(u: u64) -> usize {
+    ((u & ADDR_MASK) >> 4) as usize
 }
 
 pub fn finalise_scratchpad(scratchpad: &mut [u64x2; MEM_SIZE], keccak_state: &mut [u8; 200], aes: &AES) -> [u64x2; 8] {

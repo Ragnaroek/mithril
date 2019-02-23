@@ -76,7 +76,7 @@ fn test_init_scratchpad_tail() {
 }
 
 #[test]
-fn test_hash_hardware() {
+fn test_hash_hardware_v6() {
 
     let aes = aes::new(AESSupport::HW);
 
@@ -123,12 +123,18 @@ fn test_hash_hardware_v7() {
     assert_eq!(hash::hash_alloc_scratchpad(&input, &aes, hash::HashVersion::Version7), "ee49b50b183aca28b681b5d1300924c2f7fb952383be9e7dfac81f929a4c6ce0");
 }
 
-//#[test]
+#[test]
 fn test_hash_hardware_v8() {
     let aes = aes::new(AESSupport::HW);
 
     let input = byte_string::string_to_u8_array("09099aebd3e1057aad462f2d998d8b9adcf16e03a5bf1820728240eefe433735904fcf663eeb1d00000000b0203ca955ed446e47ab9e884941bc67c75ecb06e444036aafc7ff442c60d2f907");
     assert_eq!(hash::hash_alloc_scratchpad(&input, &aes, hash::HashVersion::Version8), "f12b181f2b5a84d8fca047206c605f20b6b3a9b29da3505152caaeee758e39fe");
+
+    let input = byte_string::string_to_u8_array("09099aebd3e1057aad462f2d998d8b9adcf16e03a5bf1820728240eefe433735904fcf663eeb1d00000000b0203ca955ed446e47ab9e884941bc67c75ecb06e444036aafc7ff442c66d26666");
+    assert_eq!(hash::hash_alloc_scratchpad(&input, &aes, hash::HashVersion::Version8), "b5bc564bf7f67622f4ebbfd9c2754f994c24afae820f69acac3f633fa19f9131");
+
+    let input = byte_string::string_to_u8_array("66666666d3e1057aad462f2d998d8b9adcf16e03a5bf1820728240eefe433735904fcf663eeb1d00000000b0203ca955ed446e47ab9e884941bc67c75ecb06e444036aafc7ff442c66d26666");
+    assert_eq!(hash::hash_alloc_scratchpad(&input, &aes, hash::HashVersion::Version8), "f4e15a61d170cac5e21deff989b1db2af88455c1a8539c3fabfee5be077f32f9");
 }
 
 #[test]
@@ -190,8 +196,9 @@ fn test_division() {
 
     scratchpad[0x7043].0 = 0x65023ca86652288;
 
-    let result = division(0x7043, &mut scratchpad, &aes_result, sqrt_res, div_res);
-    assert_eq!(0x7fe4948070f, result);
+    let (sqr, div) = division(0x7043, &mut scratchpad, &aes_result, sqrt_res, div_res);
+    assert_eq!(0x7fe4948070f, sqr);
+    assert_eq!(0x5168572a94a7873a, div);
     assert_eq!(0xc506b6211857820b, scratchpad[0x7043].0);
 }
 
@@ -246,4 +253,9 @@ fn test_cryptonight_monero_tweak() {
     let result = hash::cryptonight_monero_tweak(&tmp);
     assert_eq!(0x71ce99a5f3c41980, result.0, "got {:x}", result.0);
     assert_eq!(0xa86f2347733b3786, result.1, "got {:x}", result.1);
+}
+
+#[test]
+fn test_xoru64() {
+    assert_eq!(0x7cdcb5631830db27 as u64, 0x995fb21afb79db83 as u64 ^ 0xe5830779e34900a4 as u64);
 }

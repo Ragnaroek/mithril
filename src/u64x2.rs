@@ -37,7 +37,7 @@ impl u64x2 {
         }
     }
 
-    pub fn writeOffset(self, dst: &mut [u8], start_addr: usize) {
+    pub fn write_offset(self, dst: &mut [u8], start_addr: usize) {
         self.write(&mut dst[start_addr..(start_addr+16)]);
     }
 

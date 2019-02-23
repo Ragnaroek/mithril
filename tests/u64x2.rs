@@ -34,7 +34,7 @@ fn test_plus() {
 #[test]
 fn test_write_offset() {
     let mut dst : [u8;100] = [0;100];
-    u64x2(0xFFEEDDCCBBAA1122, 0x33445566778899FF).writeOffset(&mut dst, 66);
+    u64x2(0xFFEEDDCCBBAA1122, 0x33445566778899FF).write_offset(&mut dst, 66);
 
     assert_eq!(dst[66],0x22);
     assert_eq!(dst[67],0x11);
