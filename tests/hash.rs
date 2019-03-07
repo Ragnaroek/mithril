@@ -89,6 +89,21 @@ fn test_hash_hardware_v8() {
 }
 
 #[test]
+fn test_hash_software_v8() {
+    let aes = aes::new(AESSupport::SW);
+
+    let input = byte_string::string_to_u8_array("09099aebd3e1057aad462f2d998d8b9adcf16e03a5bf1820728240eefe433735904fcf663eeb1d00000000b0203ca955ed446e47ab9e884941bc67c75ecb06e444036aafc7ff442c60d2f907");
+    assert_eq!(hash::hash_alloc_scratchpad(&input, &aes), "f12b181f2b5a84d8fca047206c605f20b6b3a9b29da3505152caaeee758e39fe");
+
+    let input = byte_string::string_to_u8_array("09099aebd3e1057aad462f2d998d8b9adcf16e03a5bf1820728240eefe433735904fcf663eeb1d00000000b0203ca955ed446e47ab9e884941bc67c75ecb06e444036aafc7ff442c66d26666");
+    assert_eq!(hash::hash_alloc_scratchpad(&input, &aes), "b5bc564bf7f67622f4ebbfd9c2754f994c24afae820f69acac3f633fa19f9131");
+
+    let input = byte_string::string_to_u8_array("66666666d3e1057aad462f2d998d8b9adcf16e03a5bf1820728240eefe433735904fcf663eeb1d00000000b0203ca955ed446e47ab9e884941bc67c75ecb06e444036aafc7ff442c66d26666");
+    assert_eq!(hash::hash_alloc_scratchpad(&input, &aes), "f4e15a61d170cac5e21deff989b1db2af88455c1a8539c3fabfee5be077f32f9");
+}
+
+
+#[test]
 fn test_shuffle_0() {
     let mut scratchpad : Box<[u64x2; MEM_SIZE]> = box [u64x2(0,0); MEM_SIZE];
 
