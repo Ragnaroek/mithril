@@ -12,7 +12,6 @@ use u64x2::u64x2;
 use std::boxed::Box;
 use self::groestl::{Digest, Groestl256};
 use super::super::byte_string;
-use self::byteorder::{ByteOrder, LittleEndian};
 
 pub const MEM_SIZE : usize = 2_097_152 / 16;
 const ITERATIONS : u32 = 524_288;
@@ -57,12 +56,11 @@ pub fn hash(mut scratchpad : &mut [u64x2; MEM_SIZE], input: &[u8], aes: &AES) ->
         scratchpad[ix] = b ^ aes_result;
 
         ix = scratchpad_addr(aes_result.0);
-        let mut mem = scratchpad[ix];
 
         let (sqrt_res_n, division_res_n) = division(ix, &mut scratchpad, &aes_result, sqrt_res, division_res);
         sqrt_res = sqrt_res_n;
         division_res = division_res_n;
-        mem = scratchpad[ix];
+        let mem = scratchpad[ix];
 
         let r = (aes_result.0 as u128) * (mem.0 as u128);
         let lo = r as u64;

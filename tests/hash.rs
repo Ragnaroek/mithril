@@ -102,7 +102,6 @@ fn test_hash_software_v8() {
     assert_eq!(hash::hash_alloc_scratchpad(&input, &aes), "f4e15a61d170cac5e21deff989b1db2af88455c1a8539c3fabfee5be077f32f9");
 }
 
-
 #[test]
 fn test_shuffle_0() {
     let mut scratchpad : Box<[u64x2; MEM_SIZE]> = box [u64x2(0,0); MEM_SIZE];
