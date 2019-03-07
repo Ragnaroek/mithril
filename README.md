@@ -4,7 +4,7 @@
 
 # Mithril
 
-**Mithril v0.7.0 is ready for the PoW change. You need to update Mithril to the latest version, it will autodetect the correct PoW version.**
+**Mithril v0.10.0 is Cryptonight v8 ready.**
 
 Rust Monero Miner (pure Rust is the goal, but the project is not there yet, see help wanted section)
 
