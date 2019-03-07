@@ -30,30 +30,3 @@ fn test_with_nonce() {
     assert_eq!("0606cbe692d005ecfebc7d2249d2b43535c237c02359e888b8b05d2e980c1405779241ac3ab48512345678e62a06e71559c98a37e7b6743465f4f72e42784c5719411c935dc002e347826b05",
                worker_pool::with_nonce(blob, nonce));
 }
-
-#[test]
-fn test_hash_version_pre_7() {
-    let blob = "0606cbe692d005ecfeb";
-    assert_eq!(hash::HashVersion::Version6, worker_pool::hash_version(blob));
-}
-
-#[test]
-fn test_hash_version_7() {
-    let blob = "07079db3f7d50511";
-    assert_eq!(hash::HashVersion::Version7, worker_pool::hash_version(blob));
-}
-
-#[test]
-fn test_hash_version_8_and_9() {
-    let blob = "08086db3f7d50511";
-    assert_eq!(hash::HashVersion::Version8, worker_pool::hash_version(blob));
-    
-    let blob = "09096db3f7d50511";
-    assert_eq!(hash::HashVersion::Version8, worker_pool::hash_version(blob));
-}
-
-#[test]
-fn test_hash_version_future_versions() {
-    let blob = "10109db3f7d50511";
-    assert_eq!(hash::HashVersion::Version8, worker_pool::hash_version(blob));
-}

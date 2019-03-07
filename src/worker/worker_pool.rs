@@ -171,18 +171,6 @@ pub fn with_nonce(blob: &str, nonce: &str) -> String {
     return format!("{}{}{}", a, nonce, b);
 }
 
-pub fn hash_version(blob: &str) -> hash::HashVersion {
-    if blob.starts_with("0808") || blob.starts_with("0909") {
-        hash::HashVersion::Version8
-    } else if blob.starts_with("0707") {
-        hash::HashVersion::Version7
-    } else if blob.starts_with("0606") {
-        hash::HashVersion::Version6
-    } else {
-        hash::HashVersion::Version8
-    }
-}
-
 fn work_job(scratchpad : &mut [u64x2; MEM_SIZE],
     job: &JobData,
     rcv: &Receiver<WorkerCmd>,
@@ -193,7 +181,6 @@ fn work_job(scratchpad : &mut [u64x2; MEM_SIZE],
 
     let num_target = target_u64(byte_string::hex2_u32_le(&job.target));
     let first_byte = job.nonce_partition << (8 - job.nonce_partition_num_bits);
-    let version = hash_version(&job.blob);
 
     let mut hash_count : u64 = 0;
 
@@ -206,7 +193,7 @@ fn work_job(scratchpad : &mut [u64x2; MEM_SIZE],
                     let hash_in = with_nonce(&job.blob, &nonce);
                     let bytes_in = byte_string::string_to_u8_array(&hash_in);
 
-                    let hash_result = hash::hash(scratchpad, &bytes_in, aes, version);
+                    let hash_result = hash::hash(scratchpad, &bytes_in, aes);
                     let hash_val = byte_string::hex2_u64_le(&hash_result[48..]);
 
                     if hash_val < num_target {

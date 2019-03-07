@@ -20,20 +20,13 @@ const ITERATIONS : u32 = 524_288;
 const ADDR_MASK : u64 = 0x1F_FFF0;
 const SQRT_CONST : u64 = 1023 << 52;
 
-#[derive(PartialEq, Copy, Clone, Debug)]
-pub enum HashVersion {
-    Version6,
-    Version7,
-    Version8,
-}
-
 /// This is mainly for testing, allocates a new scratchpad on every hash
-pub fn hash_alloc_scratchpad(input: &[u8], aes: &AES, version: HashVersion) -> String {
+pub fn hash_alloc_scratchpad(input: &[u8], aes: &AES) -> String {
     let mut scratchpad : Box<[u64x2; MEM_SIZE]> = box [u64x2(0,0); MEM_SIZE];
-    hash(&mut scratchpad, input, aes, version)
+    hash(&mut scratchpad, input, aes)
 }
 
-pub fn hash(mut scratchpad : &mut [u64x2; MEM_SIZE], input: &[u8], aes: &AES, version: HashVersion) -> String {
+pub fn hash(mut scratchpad : &mut [u64x2; MEM_SIZE], input: &[u8], aes: &AES) -> String {
     //scratchpad init
     let mut state = keccak::keccak(input);
     init_scratchpad(&mut scratchpad, &mut state, aes);
@@ -46,74 +39,44 @@ pub fn hash(mut scratchpad : &mut [u64x2; MEM_SIZE], input: &[u8], aes: &AES, ve
     let br = u64x2::read(&state[48..64]);
     let mut b = bl ^ br;
 
-    let mut ax0;
-    let mut bx0;
-    let mut bx1;
-    let mut division_res:u64;
-    let mut sqrt_res:u64;
-
-    if version == HashVersion::Version8 {
-        let cl = u64x2::read(&state[64..80]);
-        let cr = u64x2::read(&state[80..96]);
-        let dl = u64x2::read(&state[96..112]);
-        ax0 = u64x2(a.0, al.1 ^ ar.1);
-        bx0 = u64x2(bl.0 ^ br.0, bl.1 ^ br.1);
-        bx1 = u64x2(cl.0 ^ cr.0, cl.1 ^ cr.1);
-        division_res = dl.0;
-        sqrt_res = dl.1;
-    } else {
-        ax0 = u64x2(0, 0);
-        bx0 = u64x2(0, 0);
-        bx1 = u64x2(0, 0);
-        division_res = 0;
-        sqrt_res = 0;
-    }
-
-    let monero_const = if version == HashVersion::Version6 {
-        0
-    } else {
-        monero_const(input, &state)
-    };
+    let cl = u64x2::read(&state[64..80]);
+    let cr = u64x2::read(&state[80..96]);
+    let dl = u64x2::read(&state[96..112]);
+    let mut ax0 = u64x2(a.0, al.1 ^ ar.1);
+    let mut bx0 = u64x2(bl.0 ^ br.0, bl.1 ^ br.1);
+    let mut bx1 = u64x2(cl.0 ^ cr.0, cl.1 ^ cr.1);
+    let mut division_res = dl.0;
+    let mut sqrt_res = dl.1;
 
     let mut i = 0;
     while i < ITERATIONS {
         let mut ix = scratchpad_addr(a.0);
         let aes_result = aes.aes_round(scratchpad[ix], a);
 
-        if version == HashVersion::Version8 {
-            shuffle_0(a.0, &mut scratchpad, ax0, bx0, bx1);
-        }
-        if version == HashVersion::Version6 || version == HashVersion::Version8 {
-            scratchpad[ix] = b ^ aes_result;
-        } else {
-            scratchpad[ix] = cryptonight_monero_tweak(&(b ^ aes_result));
-        }
+        shuffle_0(a.0, &mut scratchpad, ax0, bx0, bx1);
+        scratchpad[ix] = b ^ aes_result;
 
         ix = scratchpad_addr(aes_result.0);
         let mut mem = scratchpad[ix];
-        if version == HashVersion::Version8 {
-            let (sqrt_res_n, division_res_n) = division(ix, &mut scratchpad, &aes_result, sqrt_res, division_res);
-            sqrt_res = sqrt_res_n;
-            division_res = division_res_n;
-            mem = scratchpad[ix];
 
-            let r = (aes_result.0 as u128) * (mem.0 as u128);
-            let lo = r as u64;
-            let hi = (r >> 64) as u64;
-            let (lo_p, hi_p) = shuffle_1(aes_result.0, &mut scratchpad, ax0, bx0, bx1, lo, hi);
-            let (a0_p, _) = a.1.overflowing_add(lo_p);
-            let (a1_p, _) = a.0.overflowing_add(hi_p);
-            a = u64x2(a0_p, a1_p);
-            bx1 = bx0;
-            bx0 = aes_result;
-        }
+        let (sqrt_res_n, division_res_n) = division(ix, &mut scratchpad, &aes_result, sqrt_res, division_res);
+        sqrt_res = sqrt_res_n;
+        division_res = division_res_n;
+        mem = scratchpad[ix];
+
+        let r = (aes_result.0 as u128) * (mem.0 as u128);
+        let lo = r as u64;
+        let hi = (r >> 64) as u64;
+        let (lo_p, hi_p) = shuffle_1(aes_result.0, &mut scratchpad, ax0, bx0, bx1, lo, hi);
+        let (a0_p, _) = a.1.overflowing_add(lo_p);
+        let (a1_p, _) = a.0.overflowing_add(hi_p);
+        a = u64x2(a0_p, a1_p);
+        bx1 = bx0;
+        bx0 = aes_result;
 
         scratchpad[ix].0 = a.1;
-        if version == HashVersion::Version7 {
-            scratchpad[ix].1 = a.0 ^ monero_const;
-        } else {
-            scratchpad[ix].1 = a.0;
-        }
+        scratchpad[ix].1 = a.0;
+
         a = u64x2(a.1 ^ mem.0, a.0 ^ mem.1);
         ax0 = a;
         b = aes_result;
@@ -195,20 +158,6 @@ pub fn sqrt(v: u64) -> u64 {
     } else {
         r
     }
-}
-
-pub fn cryptonight_monero_tweak(tmp: &u64x2) -> u64x2 {
-    let mut vh = tmp.1;
-    let x = (vh >> 24) as u8;
-	let index = (((x >> 3) & 6) | (x & 1)) << 1;
-	vh ^= ((0x7531 >> index) & 0x3) << 28;
-    u64x2(tmp.0, vh)
-}
-
-pub fn monero_const(input: &[u8], state: &[u8]) -> u64 {
-    let ip1 = LittleEndian::read_u64(&input[35..64]);
-    let ip2 = LittleEndian::read_u64(&state[(8*24)..(8*24+8)]);
-    ip1 ^ ip2
 }
 
 fn final_hash(keccak_state: &[u8; 200]) -> String {

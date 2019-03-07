@@ -203,10 +203,10 @@ fn sanity_check(aes_support: AESSupport) {
 
     let aes = aes::new(aes_support);
 
-    let result0 = hash::hash_alloc_scratchpad(&byte_string::string_to_u8_array(""), &aes, hash::HashVersion::Version6);
-    let result1 = hash::hash_alloc_scratchpad(&b"This is a test"[0..], &aes, hash::HashVersion::Version6);
-    if result0 != "eb14e8a833fac6fe9a43b57b336789c46ffe93f2868452240720607b14387e11" ||
-       result1 != "a084f01d1437a09c6985401b60d43554ae105802c5f5d8a9b3253649c0be6605" {
+    let result0 = hash::hash_alloc_scratchpad(&byte_string::string_to_u8_array("09099aebd3e1057aad462f2d998d8b9adcf16e03a5bf1820728240eefe433735904fcf663eeb1d00000000b0203ca955ed446e47ab9e884941bc67c75ecb06e444036aafc7ff442c60d2f907"), &aes);
+    let result1 = hash::hash_alloc_scratchpad(&byte_string::string_to_u8_array("66666666d3e1057aad462f2d998d8b9adcf16e03a5bf1820728240eefe433735904fcf663eeb1d00000000b0203ca955ed446e47ab9e884941bc67c75ecb06e444036aafc7ff442c66d26666"), &aes);
+    if result0 != "f12b181f2b5a84d8fca047206c605f20b6b3a9b29da3505152caaeee758e39fe" ||
+       result1 != "f4e15a61d170cac5e21deff989b1db2af88455c1a8539c3fabfee5be077f32f9" {
         panic!("hash sanity check failed, please report this at https://github.com/Ragnaroek/mithril/issues");
     }
 }
