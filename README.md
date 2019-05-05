@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/Ragnaroek/mithril.svg?branch=master)](https://travis-ci.org/Ragnaroek/mithril)
+[![codecov](https://codecov.io/gh/Ragnaroek/mithril/branch/master/graph/badge.svg)](https://codecov.io/gh/Ragnaroek/mithril)
 
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=A24SWQT3P5DY2&source=url)
 
