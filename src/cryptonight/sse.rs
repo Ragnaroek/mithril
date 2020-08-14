@@ -5,7 +5,7 @@ use u64x2::u64x2;
 
 macro_rules! mm_shuffle_epi32 {
     ($key:expr, $ib:expr, $result:ident) => {
-        asm!(concat!("pshufd xmm1, xmm2, ", $ib)
+        llvm_asm!(concat!("pshufd xmm1, xmm2, ", $ib)
             : "={xmm1}"($result)
             : "{xmm2}"($key)
             :
@@ -43,7 +43,7 @@ pub fn _mm_shuffle_epi32_0xaa(key: u64x2) -> u64x2 {
 
 macro_rules! mm_cvtsi128_si32 {
     ($v:expr, $result:ident) => {
-        asm!("movd eax, xmm1"
+        llvm_asm!("movd eax, xmm1"
             : "={eax}"($result)
             : "{xmm1}"($v)
             :
@@ -63,7 +63,7 @@ pub fn _mm_cvtsi128_si32(v: u64x2) -> u32 {
 
 macro_rules! _mm_srli_si128 {
     ($v:expr, $ib:expr, $result:ident) => {
-        asm!(concat!("psrldq xmm1, ", $ib)
+        llvm_asm!(concat!("psrldq xmm1, ", $ib)
             : "={xmm1}"($result)
             : "{xmm1}"($v)
             :
@@ -83,7 +83,7 @@ pub fn _mm_srli_si128_0x08(v: u64x2) -> u64x2 {
 
 macro_rules! mm_slli_si128 {
     ($v:expr, $ib:expr, $result:ident) => {
-        asm!(concat!("pslldq xmm1, ", $ib)
+        llvm_asm!(concat!("pslldq xmm1, ", $ib)
             : "={xmm1}"($result)
             : "{xmm1}"($v)
             :
@@ -103,7 +103,7 @@ pub fn _mm_slli_si128_0x04(v: u64x2) -> u64x2 {
 
 macro_rules! mm_xor_si128 {
     ($v0:expr, $v1:expr, $result:ident) => {
-        asm!("pxor xmm1, xmm2"
+        llvm_asm!("pxor xmm1, xmm2"
             : "={xmm1}"($result)
             : "{xmm1}"($v0), "{xmm2}"($v1)
             :
@@ -123,7 +123,7 @@ pub fn _mm_xor_si128(v0: u64x2, v1: u64x2) -> u64x2 {
 
 macro_rules! mm_mul_su32 {
     ($v0:expr, $v1:expr, $result:ident) => {
-        asm!("PMULUDQ xmm1, xmm2"
+        llvm_asm!("PMULUDQ xmm1, xmm2"
             : "={xmm1}"($result)
             : "{xmm1}"($v0), "{xmm2}"($v1)
             :
@@ -143,7 +143,7 @@ pub fn _mm_mul_su32(v0: u64x2, v1: u64x2) -> u64x2 {
 
 macro_rules! mm_add_epi64 {
     ($v0:expr, $v1:expr, $result:ident) => {
-        asm!("PADDQ xmm1, xmm2"
+        llvm_asm!("PADDQ xmm1, xmm2"
             : "={xmm1}"($result)
             : "{xmm1}"($v0), "{xmm2}"($v1)
             :
@@ -165,7 +165,7 @@ pub fn _mm_add_epi64(v0: u64x2, v1: u64x2) -> u64x2 {
 
 macro_rules! mm_sqrt_sd {
     ($v0:expr, $v1:expr, $result:ident) => {
-        asm!("SQRTSD xmm1, xmm2"
+        llvm_asm!("SQRTSD xmm1, xmm2"
             : "={xmm1}"($result)
             : "{xmm1}"($v0), "{xmm2}"($v1)
             :
@@ -187,7 +187,7 @@ pub fn _mm_sqrt_sd(v0: u64x2, v1: u64x2) -> u64x2 {
 
 macro_rules! mm_cvtsi128_si64 {
     ($v:expr, $result:ident) => {
-        asm!("movq rax, xmm1"
+        llvm_asm!("movq rax, xmm1"
             : "={rax}"($result)
             : "{xmm1}"($v)
             :

@@ -15,13 +15,13 @@ impl u64x2 {
     #[inline(always)]
     pub fn read(src: &[u8]) -> Self {
         unsafe {
-            let mut tmp: Self = mem::uninitialized();
+            let mut tmp = mem::MaybeUninit::<u64x2>::uninit();
             copy_nonoverlapping(
                 src.as_ptr(),
-                &mut tmp as *mut Self as *mut u8,
+                tmp.as_mut_ptr() as *mut u8,
                 16,
             );
-            tmp
+            tmp.assume_init()
         }
     }
 
@@ -45,13 +45,13 @@ impl u64x2 {
     #[inline(always)]
     pub fn read8(src: &[u8; 16*8]) -> [Self; 8] {
         unsafe {
-            let mut tmp: [Self; 8] = mem::uninitialized();
+            let mut tmp = mem::MaybeUninit::<[Self; 8]>::uninit(); //mem::uninitialized();
             copy_nonoverlapping(
                 src.as_ptr(),
-                &mut tmp as *mut [Self; 8] as *mut u8,
+                tmp.as_mut_ptr() as *mut u8,
                 16*8,
             );
-            tmp
+            tmp.assume_init()
         }
     }
 

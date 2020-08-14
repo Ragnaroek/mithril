@@ -7,7 +7,7 @@ use u64x2::u64x2;
 
 macro_rules! gen_key {
     ($round:expr, $ib:expr, $key:ident, $input0:ident, $input1:ident) => {
-        asm!(concat!("
+        llvm_asm!(concat!("
             aeskeygenassist xmm2, xmm1, ", $round,
             "
             pshufd xmm2, xmm2, ", $ib,
@@ -34,7 +34,7 @@ macro_rules! gen_key {
 
 macro_rules! aes_enc {
     ($data:ident, $key:ident, $result:ident) => {
-        asm!("aesenc xmm1, xmm2"
+        llvm_asm!("aesenc xmm1, xmm2"
             : "={xmm1}"($result)
             : "{xmm1}"($data),"{xmm2}"($key)
             :

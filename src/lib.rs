@@ -1,7 +1,7 @@
 #![crate_name = "mithril"]
 #![crate_type = "lib"]
 
-#![feature(asm)]
+#![feature(llvm_asm)]
 #![feature(repr_simd)]
 #![feature(box_syntax)]
 #![feature(integer_atomics)]
