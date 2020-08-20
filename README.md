@@ -1,6 +1,7 @@
 [![Build Status](https://travis-ci.org/Ragnaroek/mithril.svg?branch=master)](https://travis-ci.org/Ragnaroek/mithril)
 [![codecov](https://codecov.io/gh/Ragnaroek/mithril/branch/master/graph/badge.svg)](https://codecov.io/gh/Ragnaroek/mithril)
 
+[![Github Sponsor](https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4&logo=GitHub&link=https://github.com/sponsors/Ragnaroek)](https://github.com/sponsors/Ragnaroek)
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=A24SWQT3P5DY2&source=url)
 
 # Mithril
@@ -132,9 +133,9 @@ If you want to donate directly to support further development, this is my Monero
 48y3RCT5SzSS4jumHm9rRL91eWWzd6xcVGSCF1KUZGWYJ6npqwFxHee4xkLLNUqY4NjiswdJhxFALeRqzncHoToeJMg2bhL
 ```
 
-or support the project on Beerpay:
+or support the project on Github Sponsors:
 
-[![Beerpay](https://beerpay.io/Ragnaroek/mithril/badge.svg?style=beer-square)](https://beerpay.io/Ragnaroek/mithril)  [![Beerpay](https://beerpay.io/Ragnaroek/mithril/make-wish.svg?style=flat-square)](https://beerpay.io/Ragnaroek/mithril?focus=wish)
+[![Github Sponsor](https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4&logo=GitHub&link=https://github.com/sponsors/Ragnaroek)](https://github.com/sponsors/Ragnaroek)
 
 or Paypal:
 
