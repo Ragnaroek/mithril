@@ -1,10 +1,13 @@
+
+extern crate crossbeam_channel;
+
 use std::thread;
 use std::time;
-use std::sync::mpsc::{channel, Sender, Receiver, RecvTimeoutError, Select};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc};
 use std::io::Write;
 use std::fs::OpenOptions;
+use self::crossbeam_channel::{unbounded, Sender, Receiver, select, RecvTimeoutError};
 
 #[derive(Clone)]
 pub struct MetricConfig {
@@ -20,39 +23,28 @@ pub struct Metric {
     total_hashes: Arc<AtomicU64>,
     cnt_hnd: thread::JoinHandle<()>,
     tick_hnd: thread::JoinHandle<()>,
-    stop_tick_tx: Sender<()>,
-    stop_cnt_tx: Sender<()>,
+    stop_tick_sndr: Sender<()>,
+    stop_cnt_sndr: Sender<()>,
 }
 
-pub fn start(conf: MetricConfig, hash_cnt_receiver: Receiver<u64>) -> Metric {
+pub fn start(conf: MetricConfig, hash_cnt_rcvr: Receiver<u64>) -> Metric {
 
     let log_count = Arc::new(AtomicU64::new(0));
     let total_count = Arc::new(AtomicU64::new(0));
 
     let thread_log_count = log_count.clone();
     let thread_total_count = total_count.clone();
-    let (stop_cnt_tx, stop_cnt_rx) = channel();
+    let (stop_cnt_sndr, stop_cnt_rcvr) = unbounded();
 
     let cnt_hnd = thread::Builder::new().name("metric counting thread".to_string()).spawn(move || {
-        let select = Select::new();
-        let mut hash_hnd = select.handle(&hash_cnt_receiver);
-        unsafe {hash_hnd.add()};
-        let mut stop_hnd = select.handle(&stop_cnt_rx);
-        unsafe {stop_hnd.add()};
-
-        loop {
-            let id = select.wait();
-            if id == stop_hnd.id() {
-                let _ = stop_hnd.recv();
-                info!("stopping metric counting thread");
-                return;
-            } else {
-                let cnt_rcv = hash_hnd.recv();
-                if cnt_rcv.is_err() {
-                    info!("hash count sender closed, stopping metric thread");
-                    return;
-                } else {
-                    let cnt = cnt_rcv.unwrap();
+        'select_loop: loop {
+            select! {
+                recv(stop_cnt_rcvr) -> _ => {
+                    info!("stopping metric counting thread");
+                    break 'select_loop;
+                },
+                recv(hash_cnt_rcvr) -> cnt_msg => {
+                    let cnt = cnt_msg.expect("Hash channel unexpectedly closed");
                     thread_log_count.fetch_add(cnt, Ordering::SeqCst);
                     thread_total_count.fetch_add(cnt, Ordering::SeqCst);
                 }
@@ -60,11 +52,11 @@ pub fn start(conf: MetricConfig, hash_cnt_receiver: Receiver<u64>) -> Metric {
         }
     }).expect("metric counting thread handle");
 
-    let (stop_tick_tx, stop_tick_rx) = channel();
+    let (stop_tick_sndr, stop_tick_rcvr) = unbounded();
 
     let tick_hnd = thread::Builder::new().name("metric sample thread".to_string()).spawn(move || {
         loop {
-            let recv_result = stop_tick_rx.recv_timeout(time::Duration::from_secs(conf.sample_interval_seconds));
+            let recv_result = stop_tick_rcvr.recv_timeout(time::Duration::from_secs(conf.sample_interval_seconds));
             match recv_result {
                 Ok(()) | Err(RecvTimeoutError::Disconnected) => {
                     info!("metric sample thread stopped");
@@ -102,7 +94,7 @@ pub fn start(conf: MetricConfig, hash_cnt_receiver: Receiver<u64>) -> Metric {
         }
     }).expect("metric sample thread handle");
 
-    Metric{total_hashes: total_count, cnt_hnd, tick_hnd, stop_tick_tx, stop_cnt_tx}
+    Metric{total_hashes: total_count, cnt_hnd, tick_hnd, stop_tick_sndr, stop_cnt_sndr}
 }
 
 impl Metric {
@@ -113,11 +105,11 @@ impl Metric {
     pub fn stop(&self) {
         info!("stopping metrics");
 
-        let res_tick = self.stop_tick_tx.send(());
+        let res_tick = self.stop_tick_sndr.send(());
         if res_tick.is_err() {
             error!("sending tick stop failed {:?}", res_tick);
         }
-        let res_cnt = self.stop_cnt_tx.send(());
+        let res_cnt = self.stop_cnt_sndr.send(());
         if res_cnt.is_err() {
             error!("sending cnt stop failed {:?}", res_cnt);
         }

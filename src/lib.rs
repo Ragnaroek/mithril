@@ -5,7 +5,6 @@
 #![feature(repr_simd)]
 #![feature(box_syntax)]
 #![feature(integer_atomics)]
-#![feature(mpsc_select)]
 
 #[macro_use]
 extern crate serde_derive;
