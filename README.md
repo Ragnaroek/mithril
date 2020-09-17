@@ -22,13 +22,12 @@ aka: Why you should consider using Mithril.
 ## Roadmap
 
 Feature Backlog:
-- [ ] hard-fork v8 update!
+- [ ] RandomX update
 - [ ] integrate GPU Mining  (AMD)
 - [ ] WebAssembler Support
 - [ ] Better displaying of Hash-Rate
 
 Future Feature Backlog
-
 - [ ] ARM support (Raspberry, Pine64)
 - [ ] integrate GPU Mining (NVIDIA)
 - [ ] Skein, JH native Rust implementation
@@ -44,9 +43,7 @@ DONE:
 
 ## Current Status (2019-01-05)
 
-I am currently working on the hard-fork v8 update.
-
-Next feature implemented will be the support for AMD GPU mining (the projects wants to be a All-In-One Miner after all).
+I am currently working on the RandomX update.
 
 # HowTo Compile, Configure and Run
 
