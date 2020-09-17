@@ -41,7 +41,7 @@ DONE:
 - [x] implement stratum protocol (for pooled mining support)
 - [x] implement cryptonight hashing function
 
-## Current Status (2019-01-05)
+## Current Status (2020-09-17)
 
 I am currently working on the RandomX update.
 
