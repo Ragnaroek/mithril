@@ -1,5 +1,6 @@
+extern crate crossbeam_channel;
+
 use std::thread;
-use std::sync::mpsc::{channel, Receiver, Sender};
 use super::super::cryptonight::hash;
 use super::super::cryptonight::hash::{MEM_SIZE};
 use super::super::cryptonight::aes;
@@ -8,6 +9,7 @@ use super::super::stratum;
 use super::super::stratum::stratum_data;
 use super::super::byte_string;
 use super::super::u64x2::{u64x2};
+use self::crossbeam_channel::{unbounded, Sender, Receiver};
 
 pub struct WorkerPool {
     thread_chan : Vec<Sender<WorkerCmd>>,
@@ -52,21 +54,21 @@ enum WorkerExit {
 
 pub fn start(num_threads: u64,
              aes_support: AESSupport,
-             share_tx: &Sender<stratum::StratumCmd>,
+             share_sndr: &Sender<stratum::StratumCmd>,
              metric_resolution: u64,
-             metric_tx: &Sender<u64>) -> WorkerPool {
+             metric_sndr: &Sender<u64>) -> WorkerPool {
     let mut thread_chan : Vec<Sender<WorkerCmd>> = Vec::with_capacity(num_threads as usize);
     let mut thread_hnd : Vec<thread::JoinHandle<()>> = Vec::with_capacity(num_threads as usize);
     for i in 0..num_threads {
-        let (tx, rx) = channel();
-        let share_tx_thread = share_tx.clone();
-        let metric_tx_thread = metric_tx.clone();
+        let (sndr, rcvr) = unbounded();
+        let share_sndr_thread = share_sndr.clone();
+        let metric_sndr_thread = metric_sndr.clone();
         let aes_support_thread = aes_support;
 
         let hnd = thread::Builder::new().name(format!("worker thread {}", i)).spawn(move || {
-            work(&rx, &share_tx_thread, aes_support_thread, metric_resolution, &metric_tx_thread)
+            work(&rcvr, &share_sndr_thread, aes_support_thread, metric_resolution, &metric_sndr_thread)
         }).expect("worker thread handle");
-        thread_chan.push(tx);
+        thread_chan.push(sndr);
         thread_hnd.push(hnd);
     }
     WorkerPool{thread_chan, num_threads, thread_hnd}

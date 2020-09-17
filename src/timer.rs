@@ -1,11 +1,13 @@
+extern crate crossbeam_channel;
 
 use worker::worker_pool::{WorkerConfig};
 use mithril_config::{DonationConfig};
 
-use std::sync::mpsc::{channel, Receiver};
 use std;
 use std::thread;
 use std::time::{Duration};
+use self::crossbeam_channel::{unbounded, Receiver};
+
 
 const DONATION_THRESHOLD : f64 = 1.0/10.0;
 
@@ -42,7 +44,7 @@ pub fn interval_mod_setup(worker_conf: &WorkerConfig, donation_conf: &DonationCo
 
 /// clock for bandit arm change and donation
 pub fn setup(worker_conf: &WorkerConfig, donation_conf: &DonationConfig) -> Receiver<TickAction>{
-    let (clock_tx, clock_rx) = channel();
+    let (clock_sndr, clock_rcvr) = unbounded();
 
     let (reg_interval, donation_mod) = interval_mod_setup(worker_conf, donation_conf);
     let mut interval = reg_interval;
@@ -72,11 +74,11 @@ pub fn setup(worker_conf: &WorkerConfig, donation_conf: &DonationConfig) -> Rece
                 reg_interval
             };
 
-            clock_tx.send(action).expect("sending clock signal");
+            clock_sndr.send(action).expect("sending clock signal");
             arm_changes += 1;
         }
 
     }).expect("clock signal thread handle");
 
-    clock_rx
+    clock_rcvr
 }

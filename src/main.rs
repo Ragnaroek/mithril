@@ -1,11 +1,10 @@
-#![feature(mpsc_select)]
-
 #[macro_use]
 extern crate log;
 
 extern crate mithril;
 extern crate env_logger;
 extern crate bandit;
+extern crate crossbeam_channel;
 
 use mithril::stratum::{StratumClient, StratumAction};
 use mithril::worker::worker_pool;
@@ -18,12 +17,12 @@ use mithril::byte_string;
 use mithril::bandit_tools;
 use mithril::mithril_config;
 use mithril::timer;
-use std::sync::mpsc::{channel, Select, Receiver};
 use std::path::Path;
 use std::io;
 use std::io::{Error};
 use std::thread;
 use std::time::{Duration};
+use self::crossbeam_channel::{unbounded, Receiver, select};
 
 use bandit::MultiArmedBandit;
 
@@ -53,13 +52,13 @@ fn main() {
         None
     };
 
-    let timer_rx = timer::setup(&config.worker_conf, &config.donation_conf);
+    let timer_rcvr = timer::setup(&config.worker_conf, &config.donation_conf);
     let mut donation_hashing = false;
 
     loop {
         //Stratum start
-        let (stratum_tx, stratum_rx) = channel();
-        let (client_err_tx, client_err_rx) = channel();
+        let (stratum_sndr, stratum_rcvr) = unbounded();
+        let (client_err_sndr, client_err_rcvr) = unbounded();
 
         let conf = if donation_hashing {
             mithril_config::donation_conf()
@@ -67,7 +66,7 @@ fn main() {
             config.pool_conf.clone()
         };
 
-        let login_result = StratumClient::login(conf, client_err_tx, stratum_tx);
+        let login_result = StratumClient::login(conf, client_err_sndr, stratum_sndr);
         if login_result.is_err() {
             error!("stratum login failed {:?}", login_result.err());
             await_timeout();
@@ -75,7 +74,7 @@ fn main() {
         }
         let client = login_result.expect("stratum client");
 
-        let share_tx = client.new_cmd_channel();
+        let share_sndr = client.new_cmd_channel();
 
         let (arm, num_threads) = if bandit.is_some() {
             let selected_arm = bandit.as_ref().unwrap().select_arm();
@@ -85,14 +84,14 @@ fn main() {
             (None, config.worker_conf.num_threads)
         };
 
-        let (metric_tx, metric_rx) = channel();
-        let metric = metric::start(config.metric_conf.clone(), metric_rx);
+        let (metric_sndr, metric_rcvr) = unbounded();
+        let metric = metric::start(config.metric_conf.clone(), metric_rcvr);
 
         //worker pool start
         let pool = worker_pool::start(num_threads, config.hw_conf.clone().aes_support,
-            &share_tx, config.metric_conf.resolution, &metric_tx.clone());
+            &share_sndr, config.metric_conf.resolution, &metric_sndr.clone());
 
-        let term_result = start_main_event_loop(&pool, &client_err_rx, &stratum_rx, &timer_rx);
+        let term_result = start_main_event_loop(&pool, &client_err_rcvr, &stratum_rcvr, &timer_rcvr);
 
         pool.stop();
         client.stop();
@@ -143,10 +142,54 @@ fn save_bandit_state(bandit: &mut bandit::softmax::AnnealingSoftmax<bandit_tools
 
 /// This function terminates if a non-recoverable error was detected (i.e. connection lost)
 fn start_main_event_loop(pool: &WorkerPool,
-    client_err_rx: &Receiver<Error>,
-    stratum_rx: &Receiver<StratumAction>,
-    timer_rx: &Receiver<timer::TickAction>) -> io::Result<MainLoopExit> {
+    client_err_rcvr: &Receiver<Error>,
+    stratum_rcvr: &Receiver<StratumAction>,
+    timer_rcvr: &Receiver<timer::TickAction>) -> io::Result<MainLoopExit> {
 
+    loop {
+        select!{
+            recv(stratum_rcvr) -> stratum_msg => {
+                if stratum_msg.is_err() {
+                    return Err(io::Error::new(io::ErrorKind::ConnectionAborted, "received error"));
+                }
+                match stratum_msg.unwrap() {
+                    StratumAction::Job{miner_id, blob, job_id, target} => {
+                        pool.job_change(&miner_id, &blob, &job_id, &target);
+                    },
+                    StratumAction::Error{err} => {
+                        error!("Received stratum error: {}", err);
+                    },
+                    StratumAction::Ok => {
+                        info!("Received stratum ok");
+                    },
+                    StratumAction::KeepAliveOk => {
+                        info!("Received keep alive ok");
+                    }
+                }
+            },
+            recv(timer_rcvr) -> timer_msg => {
+                if timer_msg.is_err() {
+                    return Err(io::Error::new(io::ErrorKind::Other, format!("error received {:?}", timer_msg)));
+                } else {
+                    let tick_action = timer_msg.expect("tickAction");
+                    match tick_action {
+                        timer::TickAction::ArmChange => {
+                            info!("bandit clock signal received - time for new arm");
+                            return Ok(MainLoopExit::DrawNewBanditArm)
+                        },
+                        timer::TickAction::DonationHashing => {
+                            return Ok(MainLoopExit::DonationHashing)
+                        }
+                    }
+                }
+            },
+            recv(client_err_rcvr) -> client_err_msg => {
+                return Err(io::Error::new(io::ErrorKind::Other, format!("error received {:?}", client_err_msg)));
+            }
+        }
+    }
+
+/*
     let select = Select::new();
     let mut err_hnd = select.handle(client_err_rx);
     unsafe {err_hnd.add()};
@@ -197,6 +240,7 @@ fn start_main_event_loop(pool: &WorkerPool,
             }
         }
     }
+    */
 }
 
 fn sanity_check(aes_support: AESSupport) {

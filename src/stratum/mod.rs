@@ -2,14 +2,15 @@ pub mod stratum_data;
 
 extern crate serde;
 extern crate serde_json;
+extern crate crossbeam_channel;
 
 use std::thread;
-use std::sync::mpsc::{channel, Receiver, Sender, SendError};
 use std::sync::{Arc, Mutex};
 use std::net::{Shutdown, TcpStream};
 use std::io;
 use std::io::{BufReader, BufRead, BufWriter, Write, Error, ErrorKind};
 use std::time::{Duration};
+use self::crossbeam_channel::{unbounded, Sender, Receiver, SendError};
 
 /// command send to the stratum server
 #[derive(Debug)]
@@ -61,7 +62,7 @@ impl StratumClient {
         let (tcp_stream_hnd, reader, writer) = StratumClient::connect_tcp(&pool_conf.pool_address)?;
 
         let miner_id = Arc::new(Mutex::new(Option::None));
-        let (command_sender, command_receiver) = channel();
+        let (command_sender, command_receiver) = unbounded();
 
         let send_thread = StratumClient::start_send_thread(writer, command_receiver, pool_conf, err_receiver.clone())?;
         let rcv_thread = StratumClient::start_receive_thread(reader, action_rcv, miner_id.clone(), err_receiver)?;
@@ -111,9 +112,9 @@ impl StratumClient {
     }
 
     fn start_keep_alive_thread(cmd_alive: Sender<StratumCmd>, alive_miner_id: Arc<Mutex<Option<String>>>) -> io::Result<(thread::JoinHandle<()>, Sender<()>)> {
-        let (stop_tx, stop_rx) = channel();
+        let (stop_sndr, stop_rcvr) = unbounded();
 
-        let (tick_rcv, _) = start_tick_thread(Duration::from_secs(60), stop_rx);
+        let (tick_rcv, _) = start_tick_thread(Duration::from_secs(60), stop_rcvr);
         Ok((thread::Builder::new().name("keep alive thread".to_string()).spawn(move || {
             loop {
                 let tick_result = tick_rcv.recv();
@@ -128,7 +129,7 @@ impl StratumClient {
                 }
             }
             info!("keep alive thread ended");
-        })?, stop_tx))
+        })?, stop_sndr))
     }
 
     /// Returns a new channel for sending commands to the stratum client
@@ -167,17 +168,17 @@ pub enum Tick {
 }
 
 pub fn start_tick_thread(interval: Duration, stop_rcv: Receiver<()>) -> (Receiver<Tick>, thread::JoinHandle<()>) {
-    let (tx, rx) = channel();
+    let (sndr, rcvr) = unbounded();
     let hnd = thread::Builder::new().name("tick thread".to_string()).spawn(move || {
         loop {
             let result = stop_rcv.recv_timeout(interval);
             if result.is_err() { //err means timeout reached and not a "normal" shutdown
-                let send_result = tx.send(Tick::Tick);
+                let send_result = sndr.send(Tick::Tick);
                 if send_result.is_err() {
                     info!("sending tick signal failed {:?}", send_result);
                 }
             } else { //shutdown received, end everything
-                let stop_send_result = tx.send(Tick::Stop);
+                let stop_send_result = sndr.send(Tick::Stop);
                 if stop_send_result.is_err() {
                     info!("sending tick stop signal failed, {:?}", stop_send_result);
                 }
@@ -185,7 +186,7 @@ pub fn start_tick_thread(interval: Duration, stop_rcv: Receiver<()>) -> (Receive
             }
         }
     }).expect("tick thread handle");
-    (rx, hnd)
+    (rcvr, hnd)
 }
 
 pub fn submit_share(tx: &Sender<StratumCmd>, share: stratum_data::Share) -> Result<(), SendError<StratumCmd>> {
