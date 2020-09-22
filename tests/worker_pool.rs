@@ -4,7 +4,6 @@
 extern crate mithril;
 
 use mithril::worker::worker_pool;
-use mithril::cryptonight::hash;
 
 #[test]
 fn test_num_bits() {

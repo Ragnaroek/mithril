@@ -1,8 +1,9 @@
 extern crate mithril;
 extern crate serde;
 extern crate serde_json;
+extern crate crossbeam_channel;
 
-use std::sync::mpsc::{channel};
+use self::crossbeam_channel::{unbounded};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration};
@@ -54,7 +55,7 @@ fn test_parse_method_without_method_field() {
 
 #[test]
 fn test_parse_line_dispatch_result_error() {
-    let (tx, rx) = channel();
+    let (tx, rx) = unbounded();
     let miner_id_mutex = Arc::new(Mutex::new(Option::None));
 
     let line = r#"{"id":1,"jsonrpc":"2.0","error":{"code":-1,"message":"Low difficulty share"}}"#;
@@ -75,7 +76,7 @@ fn test_parse_line_dispatch_result_error() {
 #[test]
 fn test_parse_line_dispatch_result_initial_job() {
 
-    let (tx, rx) = channel();
+    let (tx, rx) = unbounded();
     let miner_id_mutex = Arc::new(Mutex::new(Option::None));
 
     let line = r#"{
@@ -116,7 +117,7 @@ fn test_parse_line_dispatch_result_initial_job() {
 #[test]
 fn test_parse_line_dispatch_result_initial_job_with_non_ok_result() {
 
-    let (tx, rx) = channel();
+    let (tx, rx) = unbounded();
     let miner_id_mutex = Arc::new(Mutex::new(Option::None));
     //Only difference here is that status is != OK
     let line = r#"{
@@ -148,7 +149,7 @@ fn test_parse_line_dispatch_result_initial_job_with_non_ok_result() {
 #[test]
 fn test_parse_line_dispatch_unknown_method() {
 
-    let (tx, rx) = channel();
+    let (tx, rx) = unbounded();
     let miner_id_mutex = Arc::new(Mutex::new(Option::None));
 
     let line = r#"{
@@ -173,7 +174,7 @@ fn test_parse_line_dispatch_unknown_method() {
 #[test]
 fn test_parse_line_dispatch_job_method() {
 
-    let (tx, rx) = channel();
+    let (tx, rx) = unbounded();
     let miner_id_mutex = Arc::new(Mutex::new(Option::Some("test_miner_id".to_string())));
 
     let line = r#"{
@@ -204,7 +205,7 @@ fn test_parse_line_dispatch_job_method() {
 #[test]
 fn test_parse_line_dispatch_job_method_missing_miner_id() {
 
-    let (tx, rx) = channel();
+    let (tx, rx) = unbounded();
     let miner_id_mutex = Arc::new(Mutex::new(Option::None));
 
     let line = r#"{
@@ -231,7 +232,7 @@ fn test_parse_line_dispatch_job_method_missing_miner_id() {
 #[test]
 fn test_parse_line_dispatch_job_ok_result_share_submit() {
 
-    let (tx, rx) = channel();
+    let (tx, rx) = unbounded();
     let miner_id_mutex = Arc::new(Mutex::new(Option::Some("test_miner_id".to_string())));
 
     let line = r#"{"id":1,"jsonrpc":"2.0","error":null,"result":{"status":"OK"}}"#;
@@ -246,7 +247,8 @@ fn test_parse_line_dispatch_job_ok_result_share_submit() {
 
 #[test]
 fn test_parse_line_dispatch_keepalive() {
-    let (tx, rx) = channel();
+    
+    let (tx, rx) = unbounded();
     let miner_id_mutex = Arc::new(Mutex::new(Option::Some("test_miner_id".to_string())));
 
     let line = r#"{"id":1,"jsonrpc":"2.0","error":null,"result":{"status":"KEEPALIVED"}}"#;
@@ -261,7 +263,7 @@ fn test_parse_line_dispatch_keepalive() {
 
 #[test]
 fn test_start_tick_thread_shutdown() {
-    let (stop_tx, stop_rx) = channel();
+    let (stop_tx, stop_rx) = unbounded();
     let (rx, hnd) = stratum::start_tick_thread(Duration::from_secs(60), stop_rx);
     stop_tx.send(()).expect("sending stop signal");
     let result = rx.recv().expect("stop signal");
