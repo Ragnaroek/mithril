@@ -168,8 +168,8 @@ fn final_hash(keccak_state: &[u8; 200]) -> String {
         1 => {
               let mut hasher = Groestl256::default();
               let state_ref : &[u8] = keccak_state;
-              hasher.input(state_ref);
-              format!("{:x}", hasher.result())
+              hasher.update(state_ref);
+              format!("{:x}", hasher.finalize())
         },
         2 => {
               let mut result = [0; 32];
