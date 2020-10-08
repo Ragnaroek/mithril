@@ -8,7 +8,7 @@
 use std::fmt;
 use std::arch::x86_64::{_mm_set_epi32, __m128i, _mm_extract_epi64, _mm_aesdec_si128, _mm_aesenc_si128, _mm_cmpeq_epi32, _mm_movemask_epi8};
 
-#[allow(non_camel_case_types)]
+#[allow(nonstandard_style)]
 #[derive(Copy, Clone)]
 pub struct m128(pub __m128i);
 
@@ -28,6 +28,14 @@ impl m128 {
     pub fn aesenc(&self, key: m128) -> m128 {
         unsafe {
             m128(_mm_aesenc_si128(self.0, key.0))
+        }
+    }
+    
+    pub fn to_i64(&self) -> (i64, i64) {
+        unsafe {
+            let p1 = _mm_extract_epi64(self.0, 1);
+            let p2 = _mm_extract_epi64(self.0, 0);
+            (p1, p2)
         }
     }
 }

@@ -10,6 +10,7 @@
 extern crate serde_derive;
 #[macro_use]
 extern crate log;
+extern crate strum;
 
 pub mod byte_string;
 pub mod cryptonight;
