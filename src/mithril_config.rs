@@ -91,7 +91,7 @@ fn metric_config(conf: &Config) -> Result<MetricConfig, ConfigError> {
 }
 
 fn hardware_config(conf: &Config) -> Result<HardwareConfig, ConfigError> {
-    let has_aes = conf.get_bool("hardware.has_aes")?;
+    let has_aes = is_x86_feature_detected!("aes");
     let aes_support = if has_aes {
         AESSupport::HW
     } else {
