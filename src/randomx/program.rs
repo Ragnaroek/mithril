@@ -257,7 +257,7 @@ fn decode_instruction(bytes: i64) -> Instr {
         return new_lcache_instr(Opcode::IMULH_M, r_reg(dst), src, imm, modi);
     }
     if op < Opcode::ISMULH_R as i64 {
-        return new_instr(Opcode::ISMULH_R, r_reg(dst), r_reg(src), imm, Mode::None);
+        return Instr{op: Opcode::ISMULH_R, dst: r_reg(dst), src: r_reg(src), imm: None, unsigned_imm: false, mode: Mode::None, effect: nop}
     }
     if op < Opcode::ISMULH_M as i64 {
         return new_lcache_instr(Opcode::ISMULH_M, r_reg(dst), src, imm, modi);
@@ -283,7 +283,7 @@ fn decode_instruction(bytes: i64) -> Instr {
         return new_instr(Opcode::IROL_R, r_reg(dst), r_reg(src), imm & 63, Mode::None);
     }
     if op < Opcode::ISWAP_R as i64 {
-        return new_instr(Opcode::ISWAP_R, r_reg(dst), r_reg(src), imm, Mode::None);
+        return Instr{op: Opcode::ISWAP_R, dst: r_reg(dst), src: r_reg(src), imm: None, unsigned_imm: false, mode: Mode::None, effect: nop}
     }
     if op < Opcode::FSWAP_R as i64 {
         let dst_ix = dst % MAX_REG;
