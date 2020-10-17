@@ -123,24 +123,18 @@ pub struct Instr {
     effect: fn(&mut State)
 }
 
-pub fn new_dummy_instr(op: Opcode) -> Instr {
-    //TODO replace nop effect with real one
-    Instr{op, src: Store::R0, dst: Store::R0, imm: None, unsigned_imm: false, mode: Mode::None, effect: nop}
-}
-
-pub fn new_instr(op: Opcode, dst: Store, src: Store, imm: i32, mode: Mode) -> Instr {
+fn new_instr(op: Opcode, dst: Store, src: Store, imm: i32, mode: Mode) -> Instr {
     if src == dst {
         return Instr{op, dst, src: Store::NONE, imm: Some(imm), unsigned_imm: false, mode, effect: nop};
     }
     Instr{op, dst, src, imm: None, unsigned_imm: false, mode, effect: nop}
 }
 
-//TODO Remove this function
-pub fn new_imm_instr(op: Opcode, dst: Store, imm: i32, mode: Mode) -> Instr {
+fn new_imm_instr(op: Opcode, dst: Store, imm: i32, mode: Mode) -> Instr {
     Instr{op, dst, src: Store::NONE, imm: Some(imm), unsigned_imm: false, mode, effect: nop}
 }
-
-pub fn new_lcache_instr(op: Opcode, dst_reg: Store, src: i64, imm: i32, modi: u8) -> Instr {
+ 
+fn new_lcache_instr(op: Opcode, dst_reg: Store, src: i64, imm: i32, modi: u8) -> Instr {
     let src_reg = r_reg(src);
     if src_reg == dst_reg {
         return Instr{op, dst: dst_reg, src: Store::L3(Box::new(Store::Imm)), imm: Some(imm & SCRATCHPAD_L3_MASK), unsigned_imm: false, mode: Mode::None, effect: nop};
@@ -266,7 +260,7 @@ fn decode_instruction(bytes: i64) -> Instr {
         return new_instr(Opcode::ISMULH_R, r_reg(dst), r_reg(src), imm, Mode::None);
     }
     if op < Opcode::ISMULH_M as i64 {
-        return new_dummy_instr(Opcode::ISMULH_M);
+        return new_lcache_instr(Opcode::ISMULH_M, r_reg(dst), src, imm, modi);
     }
     if op < Opcode::IMUL_RCP as i64 {
         let mut instr = new_imm_instr(Opcode::IMUL_RCP, r_reg(dst), imm, Mode::None);
@@ -283,10 +277,10 @@ fn decode_instruction(bytes: i64) -> Instr {
         return new_lcache_instr(Opcode::IXOR_M, r_reg(dst), src, imm, modi);
     }
     if op < Opcode::IROR_R as i64 {
-        return new_instr(Opcode::IROR_R, r_reg(dst), r_reg(src), imm, Mode::None);
+        return new_instr(Opcode::IROR_R, r_reg(dst), r_reg(src), imm & 63, Mode::None);
     }
     if op < Opcode::IROL_R as i64 {
-        return new_instr(Opcode::IROL_R, r_reg(dst), r_reg(src), imm, Mode::None);
+        return new_instr(Opcode::IROL_R, r_reg(dst), r_reg(src), imm & 63, Mode::None);
     }
     if op < Opcode::ISWAP_R as i64 {
         return new_instr(Opcode::ISWAP_R, r_reg(dst), r_reg(src), imm, Mode::None);

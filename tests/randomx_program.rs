@@ -7,23 +7,42 @@ use mithril::randomx::m128::{m128, from_i32};
 use mithril::randomx::program::{from_bytes};
 
 #[test]
-fn test_decode_program() {
-    let bytes = gen_test_program();
+fn test_decode_program_1000() {
+    let bytes = gen_test_program_nonce_1000();
     let program = from_bytes(bytes);
-    assert_diff!(EXPECTED_OUT, &program.to_string(), "\n", 0);
+    assert_diff!(EXPECTED_OUT_NONCE_1000, &program.to_string(), "\n", 0);
+}
+
+#[test]
+fn test_decode_program_1002() {
+    let bytes = gen_test_program_nonce_1002();
+    let program = from_bytes(bytes);
+    assert_diff!(EXPECTED_OUT_NONCE_1002, &program.to_string(), "\n", 0);
 }
 
 #[allow(overflowing_literals)]
-fn gen_test_program() -> Vec<m128> {
+fn gen_test_program_nonce_1000() -> Vec<m128> {
     let input0 = from_i32(0x31903876, 0xbb7a2914, 0xb370f616, 0xd6f7e4f3);
     let input1 = from_i32(0xb5a8ef67, 0x749809c8, 0xf349884a, 0x05c9f5ef);
     let input2 = from_i32(0xa9a93ab0, 0x22e46d0a, 0x1a1fe305, 0xb42708c0);
     let input3 = from_i32(0x68247034, 0xed99ee84, 0x438f563a, 0x138612ff);
+    
     let input:[m128;4] = [input0, input1, input2, input3];
     gen_program(input, 136)
 }
 
-const EXPECTED_OUT : &str = r#"FMUL_R e0, a3
+#[allow(overflowing_literals)]
+fn gen_test_program_nonce_1002() -> Vec<m128> {
+    let input0 = from_i32(0xd0e8695f, 0x310cd519, 0xd5904b69, 0xb7f63f45);
+    let input1 = from_i32(0x02ebf53a, 0x570aa2e9, 0x738c8a99, 0xec7f686a);
+    let input2 = from_i32(0xca86dba0, 0xa5d073bc, 0x1fdd7a0f, 0xb16fae80);
+    let input3 = from_i32(0x064195be, 0x2cd32a66, 0x21d727dd, 0xe5d1da28);
+    
+    let input:[m128;4] = [input0, input1, input2, input3];
+    gen_program(input, 136)
+}
+
+const EXPECTED_OUT_NONCE_1000 : &str = r#"FMUL_R e0, a3
 FMUL_R e0, a1
 CBRANCH r2, -1630366089, COND 9
 IMUL_R r6, r7
@@ -279,4 +298,262 @@ IADD_RS r5, r4, 1970426166, SHFT 2
 FSUB_R f3, a1
 FSUB_R f3, a0
 IADD_RS r0, r7, SHFT 0
+"#;
+
+const EXPECTED_OUT_NONCE_1002 : &str = r#"IADD_RS r1, r0, SHFT 2
+ISUB_R r4, r3
+IXOR_R r0, r2
+FSUB_R f3, a1
+ISMULH_M r7, L1[r4+285982547]
+IADD_RS r5, r3, 2085749249, SHFT 1
+CBRANCH r2, 140352333, COND 9
+CBRANCH r6, -1617054832, COND 12
+IROL_R r7, r0
+FSUB_R f1, a0
+ISTORE L3[r7+253197245], r6
+FSUB_R f2, a3
+FADD_M f0, L1[r6+1105858426]
+CBRANCH r6, -1821588344, COND 13
+FSQRT_R e3
+ISUB_R r1, r0
+FSUB_R f2, a0
+FMUL_R e3, a3
+ISUB_R r5, r1
+IXOR_R r6, r2
+IROR_R r0, r3
+FSCAL_R f2
+IMUL_R r1, r7
+CBRANCH r5, 400605342, COND 10
+IROR_R r5, r0
+CBRANCH r5, -313118350, COND 0
+IMUL_M r2, L1[r5-2040259463]
+FSUB_R f0, a3
+CBRANCH r7, -429562911, COND 5
+IADD_RS r2, r0, SHFT 0
+IROR_R r7, r0
+ISTORE L2[r5-1829524160], r7
+FMUL_R e3, a1
+FSUB_R f3, a2
+ISTORE L1[r5-1458490691], r0
+CBRANCH r0, 1319054938, COND 0
+IXOR_R r2, r0
+FMUL_R e0, a1
+FSCAL_R f3
+IMULH_M r4, L1[r0+925884864]
+FSUB_R f0, a1
+IADD_RS r7, r4, SHFT 2
+ISUB_R r6, r1
+IADD_M r6, L1[r2-476182082]
+IMUL_RCP r7, 2693133392
+FADD_M f0, L2[r1+1407972115]
+IMULH_R r7, r5
+CBRANCH r6, 685052144, COND 6
+FMUL_R e3, a0
+ISUB_R r1, 196093907
+FSUB_R f0, a1
+IMUL_RCP r1, 3141556559
+FADD_R f1, a3
+FADD_R f0, a2
+FSUB_R f1, a1
+ISTORE L1[r1-396897627], r4
+IMUL_M r5, L1[r6-1165962035]
+ISUB_R r4, r0
+ISUB_R r1, r2
+FADD_R f3, a0
+ISTORE L1[r2-1953418527], r0
+IXOR_R r6, r2
+IMUL_M r4, L1[r3+345008930]
+IADD_M r7, L1[r3+157068585]
+IROR_R r7, r5
+FSUB_R f3, a2
+ISTORE L1[r4-958006101], r3
+FADD_R f1, a3
+FSWAP_R e2
+FMUL_R e2, a3
+CBRANCH r1, 1861849632, COND 15
+ISUB_R r1, r2
+FSUB_M f0, L1[r3-85077338]
+CBRANCH r4, 2086507249, COND 11
+CBRANCH r5, 1049871309, COND 7
+CBRANCH r4, 191109515, COND 0
+FDIV_M e3, L1[r6+158775741]
+IADD_RS r7, r1, SHFT 2
+IROR_R r0, 52
+ISUB_M r2, L3[1553360]
+ISMULH_R r4, r5
+IMUL_R r2, r7
+IMUL_R r0, r7
+FSCAL_R f1
+FADD_R f3, a2
+FSWAP_R e2
+ISTORE L1[r6+1487089801], r6
+FSWAP_R f3
+IMUL_R r3, r1
+IROR_R r0, r6
+IADD_M r2, L1[r6+604474343]
+ISUB_R r4, r0
+IMUL_R r6, r3
+FADD_M f1, L1[r7+962588452]
+IMULH_R r2, r5
+IMUL_R r4, 1913619886
+FMUL_R e2, a0
+CBRANCH r3, 61151805, COND 5
+ISUB_M r5, L2[r6-1647879627]
+IROL_R r5, r3
+FADD_R f0, a3
+ISUB_M r0, L1[r6-1160185537]
+IADD_M r0, L2[r2+400903501]
+CBRANCH r2, 221672894, COND 0
+IMUL_R r2, r6
+IMUL_M r3, L1[r1+1078146353]
+IMULH_M r1, L1[r7-1811278368]
+IROR_R r4, r5
+FADD_R f0, a0
+ISTORE L1[r4-584134522], r0
+ISTORE L1[r3-1252505751], r0
+IADD_M r3, L1[r0-1177497194]
+IXOR_R r1, r6
+FMUL_R e0, a0
+ISTORE L3[r0-274342510], r0
+INEG_R r0
+IMUL_R r6, r0
+IMUL_R r3, 176747896
+ISUB_M r2, L1[r4-1048006796]
+FMUL_R e2, a2
+ISTORE L3[r5-561552293], r2
+FSUB_M f3, L1[r4+1851951846]
+IROR_R r7, r0
+IADD_RS r1, r5, SHFT 1
+IMUL_R r3, r1
+CBRANCH r2, -1059734824, COND 7
+FMUL_R e0, a3
+IXOR_R r7, r1
+IMUL_R r7, r6
+IADD_M r7, L1[r0-1009739268]
+CBRANCH r0, -1023228623, COND 2
+ISMULH_M r4, L1[r5-1182625007]
+IROR_R r3, r1
+IADD_M r2, L1[r4-2123537054]
+IMUL_M r3, L1[r5-1287165928]
+CBRANCH r6, 1700147983, COND 8
+IROR_R r2, r1
+FADD_R f0, a1
+IADD_RS r6, r2, SHFT 1
+CBRANCH r1, -39165600, COND 13
+IMUL_RCP r2, 573658069
+IMUL_M r2, L2[r1+681947937]
+CBRANCH r6, 1798561326, COND 10
+FMUL_R e2, a0
+FSWAP_R f1
+FMUL_R e0, a2
+ISTORE L2[r0-2024327846], r6
+FMUL_R e2, a2
+IXOR_M r3, L1[r1-1850071558]
+FDIV_M e2, L1[r1-1451548484]
+ISUB_R r5, r1
+FADD_R f1, a0
+FADD_R f3, a2
+FSUB_R f3, a1
+IMUL_RCP r2, 826755405
+CBRANCH r6, -1293302966, COND 10
+FSCAL_R f3
+IMUL_R r3, r7
+FSUB_R f0, a0
+CBRANCH r5, 708755166, COND 9
+IXOR_R r5, r3
+FMUL_R e2, a2
+CBRANCH r5, -1927843031, COND 8
+IROR_R r0, r3
+IMUL_M r2, L1[r3-709600307]
+FMUL_R e0, a3
+ISMULH_R r4, r0
+FADD_R f0, a1
+IMUL_R r3, r1
+FSUB_M f3, L1[r0+530175244]
+FSUB_M f0, L1[r2+1466755873]
+ISUB_R r6, r2
+FMUL_R e1, a0
+FSUB_M f2, L1[r2+2125195082]
+IADD_RS r5, r6, 343285809, SHFT 3
+IADD_RS r5, r3, 1472936148, SHFT 3
+ISUB_M r1, L1[r0+35083177]
+ISTORE L1[r7+1390831002], r7
+CBRANCH r7, -743260954, COND 3
+IMUL_R r3, -1221867900
+IADD_RS r0, r3, SHFT 2
+FADD_M f0, L1[r7+765360996]
+IROR_R r0, r1
+IMUL_R r1, r5
+IADD_M r7, L3[1703680]
+ISTORE L3[r6+226092782], r6
+FSWAP_R f1
+IROR_R r3, r1
+FSUB_R f3, a2
+ISUB_M r5, L1[r0+675425680]
+ISTORE L3[r5-1087908418], r1
+FMUL_R e2, a2
+IMUL_R r6, 1742181645
+CBRANCH r1, -1214270619, COND 15
+FSCAL_R f1
+CBRANCH r6, -854566191, COND 4
+IMUL_RCP r2, 119689157
+IMUL_RCP r1, 807228158
+IADD_M r5, L1[r2+1469393820]
+FMUL_R e3, a0
+FDIV_M e1, L1[r2-292388143]
+CBRANCH r4, 190568982, COND 1
+IROR_R r7, r2
+FSWAP_R f0
+CBRANCH r0, 974405303, COND 15
+FADD_M f1, L2[r7-1472964628]
+ISMULH_R r6, r4
+FMUL_R e2, a2
+FMUL_R e2, a3
+IMULH_R r5, r7
+IXOR_R r4, r3
+ISTORE L1[r5+980437994], r3
+FSQRT_R e3
+FMUL_R e0, a0
+IXOR_R r1, r2
+IXOR_R r0, r6
+FADD_R f2, a2
+FADD_R f2, a1
+IADD_RS r4, r0, SHFT 2
+FMUL_R e2, a3
+ISUB_R r0, r2
+IXOR_R r2, r0
+ISTORE L1[r2-636816373], r6
+FMUL_R e1, a1
+IXOR_R r5, r3
+IROR_R r1, r0
+IXOR_R r5, r0
+FSUB_R f1, a1
+ISMULH_R r5, r7
+IXOR_R r4, r0
+FMUL_R e1, a2
+IADD_RS r4, r7, SHFT 3
+ISTORE L2[r6-915918021], r3
+CBRANCH r7, 736762870, COND 2
+FSCAL_R f3
+FMUL_R e1, a0
+FSCAL_R f0
+IMUL_RCP r7, 2689611840
+FMUL_R e0, a1
+FSUB_R f1, a3
+ISWAP_R r6, r2
+FSQRT_R e3
+ISUB_R r3, r0
+IMUL_M r3, L1[r2-479469103]
+IXOR_R r4, r1
+FSUB_M f1, L1[r5-1603320983]
+FMUL_R e2, a1
+FSUB_R f3, a1
+IADD_RS r4, r5, SHFT 2
+FSUB_R f1, a3
+IMUL_R r7, r2
+FADD_R f1, a3
+FMUL_R e2, a0
+FSQRT_R e2
+CBRANCH r7, -1114067541, COND 5
+ISUB_R r1, r2
 "#;
