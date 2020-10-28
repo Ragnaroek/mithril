@@ -1,11 +1,3 @@
-
-#[cfg(
-    all(
-        any(target_arch = "x86", target_arch = "x86_64"),
-        target_feature = "sse2"
-    )
-)]
-
 use super::m128::{m128, from_i32};
 
 #[allow(overflowing_literals)]

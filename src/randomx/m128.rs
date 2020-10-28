@@ -12,6 +12,10 @@ use std::arch::x86_64::{_mm_set_epi32, __m128i, _mm_extract_epi64, _mm_aesdec_si
 #[derive(Copy, Clone)]
 pub struct m128(pub __m128i);
 
+pub fn zero_m128() -> m128 {
+    from_i32(0, 0, 0, 0)
+}
+
 pub fn from_i32(i3: i32, i2: i32, i1: i32, i0: i32) -> m128 {
     unsafe {
         return m128(_mm_set_epi32(i3, i2, i1, i0));

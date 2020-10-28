@@ -1,12 +1,15 @@
 use super::m128::{m128};
+use super::vm::{Vm};
 use strum::Display;
 use std::fmt;
 
-const MAX_FLOAT_REG : i64 = 4;
-const MAX_REG : i64 = 8;
+pub const MAX_FLOAT_REG : i64 = 4;
+pub const MAX_REG : i64 = 8;
+pub const REG_NEEDS_DISPLACEMENT_IX : usize = 5;
+pub const REG_NEEDS_DISPLACEMENT: Store = Store::R(REG_NEEDS_DISPLACEMENT_IX);
 const STORE_L3_CONDITION : u8 = 14;
 const SCRATCHPAD_L3_MASK : i32 = 0x1ffff8;
-const REG_NEEDS_DISPLACEMENT: Store = Store::R5;
+
 
 #[allow(nonstandard_style)]
 #[derive(Display)]
@@ -47,47 +50,10 @@ pub enum Opcode {
 pub enum Store {
     NONE,
     //registers
-    #[strum(serialize = "r0")]
-    R0,
-    #[strum(serialize = "r1")]
-    R1,
-    #[strum(serialize = "r2")]
-    R2,
-    #[strum(serialize = "r3")]
-    R3,
-    #[strum(serialize = "r4")]
-    R4,
-    #[strum(serialize = "r5")]
-    R5,
-    #[strum(serialize = "r6")]
-    R6,
-    #[strum(serialize = "r7")]
-    R7,
-    //FP registers:
-    #[strum(serialize = "f0")]
-    F0,
-    #[strum(serialize = "f1")]
-    F1,
-    #[strum(serialize = "f2")]
-    F2,
-    #[strum(serialize = "f3")]
-    F3,
-    #[strum(serialize = "e0")]
-    E0,
-    #[strum(serialize = "e1")]
-    E1,
-    #[strum(serialize = "e2")]
-    E2,
-    #[strum(serialize = "e3")]
-    E3,
-    #[strum(serialize = "a0")]
-    A0,
-    #[strum(serialize = "a1")]
-    A1,
-    #[strum(serialize = "a2")]
-    A2,
-    #[strum(serialize = "a3")]
-    A3,
+    R(usize),
+    F(usize),
+    E(usize),
+    A(usize),
     #[strum(serialize = "i")]
     Imm, //non-register based Lx access
     //Lx memory
@@ -114,13 +80,13 @@ impl fmt::Display for Mode {
 }
 
 pub struct Instr {
-    op: Opcode,
-    src: Store,
-    dst: Store,
-    imm: Option<i32>,
-    unsigned_imm: bool,
-    mode: Mode,
-    effect: fn(&mut State)
+    pub op: Opcode,
+    pub src: Store,
+    pub dst: Store,
+    pub imm: Option<i32>,
+    pub unsigned_imm: bool,
+    pub mode: Mode,
+    pub effect: fn(&mut Vm, &Instr)
 }
 
 fn new_instr(op: Opcode, dst: Store, src: Store, imm: i32, mode: Mode) -> Instr {
@@ -143,27 +109,40 @@ fn new_lcache_instr(op: Opcode, dst_reg: Store, src: i64, imm: i32, modi: u8) ->
 
 }
 
+impl Instr {
+    pub fn execute(&self, vm: &mut Vm) {
+        (self.effect)(vm, self);
+    }
+}
+
 impl fmt::Display for Instr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.op)?;
+        write!(f, "{} ", self.op)?;
         match &self.dst {
             Store::NONE => {/* do nothing */},
             Store::L1(reg) => write_l_access(f, self, reg, "L1")?,
             Store::L2(reg) => write_l_access(f, self, reg, "L2")?,
             Store::L3(reg) => write_l_access(f, self, reg, "L3")?,
-            _ => write!(f, " {}", self.dst)?,
+            Store::R(i) => write!(f, "r{}", i)?,
+            Store::F(i) => write!(f, "f{}", i)?,
+            Store::E(i) => write!(f, "e{}", i)?,
+            Store::A(i) => write!(f, "a{}", i)?,
+            _ => write!(f, "{}", self.dst)?,
+        }
+        if self.dst != Store::NONE && self.src != Store::NONE {
+            write!(f, ", ")?;
         }
         match &self.src {
             Store::NONE => {/* do nothing */},
-            Store::L1(reg) => { write!(f, ",")?; write_l_access(f, self, reg, "L1")? },
-            Store::L2(reg) => { write!(f, ",")?; write_l_access(f, self, reg, "L2")? },
-            Store::L3(reg) => { write!(f, ",")?; write_l_access(f, self, reg, "L3")? },
+            Store::L1(reg) => write_l_access(f, self, reg, "L1")?,
+            Store::L2(reg) => write_l_access(f, self, reg, "L2")?,
+            Store::L3(reg) => write_l_access(f, self, reg, "L3")?,
+            Store::R(i) => write!(f, "r{}", i)?,
+            Store::F(i) => write!(f, "f{}", i)?,
+            Store::E(i) => write!(f, "e{}", i)?,
+            Store::A(i) => write!(f, "a{}", i)?,
             _ => {
-                if self.dst == Store::NONE {
-                    write!(f, " {}", self.src)?
-                } else {
-                    write!(f, ", {}", self.src)?
-                }
+                write!(f, ", {}", self.src)?
             },
         }
         if self.imm.is_some() && !(is_l_cache(&self.dst) || is_l_cache(&self.src)) {
@@ -182,9 +161,17 @@ impl fmt::Display for Instr {
 
 fn write_l_access(f: &mut fmt::Formatter<'_>, instr: &Instr, reg: &Store, lstore: &str) -> fmt::Result {
     if reg == &Store::Imm {
-        write!(f, " {}[{}]", lstore, instr.imm.unwrap())
+        write!(f, "{}[{}]", lstore, instr.imm.unwrap())
     } else {
-        write!(f, " {}[{}{:+}]", lstore, reg, instr.imm.unwrap())
+        write!(f, "{}[", lstore)?;
+        match reg {
+            Store::R(i) => write!(f, "r{}", i)?,
+            Store::F(i) => write!(f, "f{}", i)?,
+            Store::E(i) => write!(f, "e{}", i)?,
+            Store::A(i) => write!(f, "a{}", i)?,
+            _ => write!(f, "{}", reg)?,
+        }
+        write!(f, "{:+}]", instr.imm.unwrap())
     }
 }
 
@@ -329,41 +316,41 @@ fn decode_instruction(bytes: i64) -> Instr {
     return new_instr(Opcode::NOP, Store::NONE, Store::NONE, imm, Mode::None);
 }
 
-fn r_reg(dst: i64) -> Store {
+pub fn r_reg(dst: i64) -> Store {
     match dst%MAX_REG {
-        0 => Store::R0,
-        1 => Store::R1,
-        2 => Store::R2,
-        3 => Store::R3,
-        4 => Store::R4,
-        5 => Store::R5,
-        6 => Store::R6,
-        7 => Store::R7,
-        _ => Store::R0,
+        0 => Store::R(0),
+        1 => Store::R(1),
+        2 => Store::R(2),
+        3 => Store::R(3),
+        4 => Store::R(4),
+        5 => Store::R(5),
+        6 => Store::R(6),
+        7 => Store::R(7),
+        _ => Store::R(0),
     }
 }
 
-fn a_reg(dst: i64) -> Store {
+pub fn a_reg(dst: i64) -> Store {
     match dst%MAX_FLOAT_REG {
-        0 => Store::A0,
-        1 => Store::A1,
-        2 => Store::A2,
-        3 => Store::A3,
-        _ => Store::A0,
+        0 => Store::A(0),
+        1 => Store::A(1),
+        2 => Store::A(2),
+        3 => Store::A(3),
+        _ => Store::A(0),
     }
 }
 
-fn e_reg(dst: i64) -> Store {
+pub fn e_reg(dst: i64) -> Store {
     e_reg_ix(dst%MAX_FLOAT_REG)
 }
 
 fn e_reg_ix(ix: i64) -> Store {
     match ix {
-        0 => Store::E0,
-        1 => Store::E1,
-        2 => Store::E2,
-        3 => Store::E3,
-        _ => Store::E0,
+        0 => Store::E(0),
+        1 => Store::E(1),
+        2 => Store::E(2),
+        3 => Store::E(3),
+        _ => Store::E(0),
     }
 }
 
@@ -373,11 +360,11 @@ fn f_reg(dst: i64) -> Store {
 
 fn f_reg_ix(ix: i64) -> Store {
     match ix {
-        0 => Store::F0,
-        1 => Store::F1,
-        2 => Store::F2,
-        3 => Store::F3,
-        _ => Store::F0,
+        0 => Store::F(0),
+        1 => Store::F(1),
+        2 => Store::F(2),
+        3 => Store::F(3),
+        _ => Store::F(0),
     }
 }
 
@@ -426,5 +413,4 @@ fn mod_shft(modi: u8) -> Mode {
     Mode::Shft((modi >> 2) % 4)
 }
 
-pub struct State {}
-pub fn nop(_state: &mut State) {}
+pub fn nop(_state: &mut Vm, _instr: &Instr) {}

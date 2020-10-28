@@ -1,6 +1,5 @@
 #![allow(unknown_lints)]
 
-
 #[inline(always)]
 #[allow(cast_ptr_alignment)]
 pub fn as_u64_array(t: &mut [u8; 200]) -> &mut [u64; 25] {
