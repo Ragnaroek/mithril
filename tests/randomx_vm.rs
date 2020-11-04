@@ -1,6 +1,8 @@
 extern crate mithril;
 
-use mithril::randomx::program::{Instr, Opcode, r_reg, Mode, REG_NEEDS_DISPLACEMENT_IX, REG_NEEDS_DISPLACEMENT};
+use mithril::randomx::m128;
+use mithril::randomx::m128::{m128d};
+use mithril::randomx::program::{Instr, Opcode, Store, f_reg, r_reg, Mode, REG_NEEDS_DISPLACEMENT_IX, REG_NEEDS_DISPLACEMENT, NO_MASK};
 use mithril::randomx::vm::{new_vm, Vm};
 //use mithril::byte_string::{u8_array_to_string};
 
@@ -13,9 +15,14 @@ fn test_calc_hash() {
 }
 */
 
+#[allow(overflowing_literals)]
+const IMM32 : i32 = 0xc0cb96d2; //3234567890
+const IMM64 : u64 = 0xffffffffc0cb96d2;
+
 #[test]
 fn test_exec_iadd_rs() {
-    let instr = Instr{op: Opcode::IADD_RS, dst: r_reg(0), src: r_reg(1), imm: None, unsigned_imm: false, mode: Mode::Shft(3), effect: Vm::exec_iadd_rs};
+    let instr = Instr{op: Opcode::IADD_RS, dst: r_reg(0), src: r_reg(1), imm: None, mem_mask: NO_MASK, unsigned_imm: false, mode: Mode::Shft(3), effect: Vm::exec_iadd_rs};
+    
     let mut vm = new_vm();
     vm.reg.r[0] = 0x8000000000000000;
     vm.reg.r[1] = 0x1000000000000000;
@@ -26,16 +33,43 @@ fn test_exec_iadd_rs() {
 }
 
 #[test]
-#[allow(overflowing_literals)]
 fn test_exec_iadd_rs_with_immediate() {
-    let instr = Instr{op: Opcode::IADD_RS, dst: REG_NEEDS_DISPLACEMENT, src: r_reg(1), imm: Some(3234567890), unsigned_imm: false, mode: Mode::Shft(2), effect: Vm::exec_iadd_rs};
+    let instr = Instr{op: Opcode::IADD_RS, dst: REG_NEEDS_DISPLACEMENT, src: r_reg(1), imm: Some(IMM32), mem_mask: NO_MASK, unsigned_imm: false, mode: Mode::Shft(2), effect: Vm::exec_iadd_rs};
+    
     let mut vm = new_vm();
     vm.reg.r[REG_NEEDS_DISPLACEMENT_IX] = 0x8000000000000000;
     vm.reg.r[1] = 0x2000000000000000;
     
     instr.execute(&mut vm);
     
-    assert_eq!(vm.reg.r[REG_NEEDS_DISPLACEMENT_IX], 3234567890 as u64 | 0xffffffff00000000);
+    assert_eq!(vm.reg.r[REG_NEEDS_DISPLACEMENT_IX], IMM64);
+}
+
+/*
+#[test]
+fn test_exec_iadd_m() {
+    let instr = new_lcache_instr(Opcode::IADD_M, r_reg(0), 1, 666, 1);
+    let mut vm = new_vm();
+    
+    instr.execute(&mut vm);
+    
+    assert_eq!(vm.reg.r[0], 0x0);
+}*/
+
+#[test]
+#[allow(overflowing_literals)]
+fn test_exec_fadd_m() {
+    let instr = Instr{op: Opcode::FADD_M, dst: f_reg(0), src: Store::L1(Box::new(Store::R(1))), imm: Some(IMM32), mem_mask: NO_MASK, unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fadd_m};
+    let mut vm = new_vm();
+    vm.scratchpad[0] = 0x1234567890abcdef;
+    vm.reg.r[1] = 0xFFFFFFFFFFFFE930;
+    vm.reg.f[0] = m128::zero_m128d();
+    
+    instr.execute(&mut vm);
+    
+    assert_eq!(vm.reg.f[0], m128d::from_u64(0x41b2345678000000, 0xc1dbd50c84400000));
+    
+    
 }
 
 pub fn nop(_state: &mut Vm) {}

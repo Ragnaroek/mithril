@@ -1,27 +1,31 @@
 extern crate blake2b_simd;
 
 use self::blake2b_simd::{blake2b, Hash};
-use super::program::{Instr, Store, Mode, MAX_REG, MAX_FLOAT_REG};
-use super::m128::{m128, zero_m128};
+use super::program::{Instr, Store, Mode, MAX_REG, MAX_FLOAT_REG, SCRATCHPAD_L1_MASK, SCRATCHPAD_L2_MASK, SCRATCHPAD_L3_MASK};
+use super::m128::{m128d, zero_m128d, from_u64};
+use std::convert::TryInto;
+
+const SCRATCHPAD_SIZE : usize = 262144;
 
 pub struct Register {
     pub r: [u64; MAX_REG as usize],
-    pub f: [m128; MAX_FLOAT_REG as usize],
-    pub e: [m128; MAX_FLOAT_REG as usize],
-    pub a: [m128; MAX_FLOAT_REG as usize],
+    pub f: [m128d; MAX_FLOAT_REG as usize],
+    pub e: [m128d; MAX_FLOAT_REG as usize],
+    pub a: [m128d; MAX_FLOAT_REG as usize],
 }
 
 pub fn new_register() -> Register {
     Register {
         r: [0; MAX_REG as usize],
-        f: [zero_m128(); MAX_FLOAT_REG as usize],
-        e: [zero_m128(); MAX_FLOAT_REG as usize],
-        a: [zero_m128(); MAX_FLOAT_REG as usize],
+        f: [zero_m128d(); MAX_FLOAT_REG as usize],
+        e: [zero_m128d(); MAX_FLOAT_REG as usize],
+        a: [zero_m128d(); MAX_FLOAT_REG as usize],
     }
 }
 
 pub struct Vm {
     pub reg: Register,
+    pub scratchpad: Box<Vec<u64>>,
 }
 
 impl Vm {
@@ -63,6 +67,17 @@ impl Vm {
         self.write_r(&instr.dst, self.read_r(&instr.dst).wrapping_add(v));
     }
     
+    pub fn exec_iadd_m(&mut self, instr: &Instr) {
+        //TODO
+    }
+    
+    pub fn exec_fadd_m(&mut self, instr: &Instr) {
+        let ix = self.scratchpad_ix(instr);
+        let v = self.scratchpad[ix];
+        let iv = from_u64(0, v);
+        self.write_f(&instr.dst, self.read_f(&instr.dst) + iv.to_m128d());
+    }
+    
     fn read_r(&self, store: &Store) -> u64 {
         match store {
             Store::R(i) => self.reg.r[*i],
@@ -76,6 +91,35 @@ impl Vm {
             _ => panic!("illegal store to register r"),
         }
     }
+    
+    fn read_f(&self, store: &Store) -> m128d {
+        match store {
+            Store::F(i) => self.reg.f[*i],
+            _ => panic!("illegal read from register f"),
+        }
+    }
+    
+    fn write_f(&mut self, store: &Store, v: m128d) {
+        match store {
+            Store::F(i) => self.reg.f[*i] = v,
+            _ => panic!("illegal store to register f"),
+        }
+    }
+    
+    fn scratchpad_ix(&self, instr: &Instr) -> usize {
+        let imm = u64_imm(instr.imm.unwrap());
+        let addr : usize = match &instr.src {
+            Store::L1(d) => (self.read_r(d).wrapping_add(imm)) & SCRATCHPAD_L1_MASK,
+            Store::L2(d) => (self.read_r(d).wrapping_add(imm)) & SCRATCHPAD_L2_MASK,
+            Store::L3(d) => (self.read_r(d).wrapping_add(imm)) & SCRATCHPAD_L3_MASK,
+            _ => panic!("illegal read from scratchpad"),
+        }.try_into().unwrap();
+        addr / 8
+    }
+}
+
+fn u64_imm(imm: i32) -> u64 {
+    (imm as u64) | 0xffffffff00000000
 }
 
 fn shift_mode(instr: &Instr) -> u8 {
@@ -86,5 +130,5 @@ fn shift_mode(instr: &Instr) -> u8 {
 }
 
 pub fn new_vm() -> Vm {
-    Vm{reg: new_register()}
+    Vm{reg: new_register(), scratchpad: Box::new(vec![0; SCRATCHPAD_SIZE])}
 }
