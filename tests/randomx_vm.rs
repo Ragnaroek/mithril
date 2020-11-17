@@ -2,7 +2,7 @@ extern crate mithril;
 
 use mithril::randomx::m128;
 use mithril::randomx::m128::{m128d};
-use mithril::randomx::program::{Instr, Opcode, Store, f_reg, r_reg, Mode, REG_NEEDS_DISPLACEMENT_IX, REG_NEEDS_DISPLACEMENT, NO_MASK};
+use mithril::randomx::program::{Instr, Opcode, Store, f_reg, r_reg, Mode, REG_NEEDS_DISPLACEMENT_IX, REG_NEEDS_DISPLACEMENT};
 use mithril::randomx::vm::{new_vm, Vm};
 //use mithril::byte_string::{u8_array_to_string};
 
@@ -21,7 +21,7 @@ const IMM64 : u64 = 0xffffffffc0cb96d2;
 
 #[test]
 fn test_exec_iadd_rs() {
-    let instr = Instr{op: Opcode::IADD_RS, dst: r_reg(0), src: r_reg(1), imm: None, mem_mask: NO_MASK, unsigned_imm: false, mode: Mode::Shft(3), effect: Vm::exec_iadd_rs};
+    let instr = Instr{op: Opcode::IADD_RS, dst: r_reg(0), src: r_reg(1), imm: None,  unsigned_imm: false, mode: Mode::Shft(3), effect: Vm::exec_iadd_rs};
     
     let mut vm = new_vm();
     vm.reg.r[0] = 0x8000000000000000;
@@ -34,7 +34,7 @@ fn test_exec_iadd_rs() {
 
 #[test]
 fn test_exec_iadd_rs_with_immediate() {
-    let instr = Instr{op: Opcode::IADD_RS, dst: REG_NEEDS_DISPLACEMENT, src: r_reg(1), imm: Some(IMM32), mem_mask: NO_MASK, unsigned_imm: false, mode: Mode::Shft(2), effect: Vm::exec_iadd_rs};
+    let instr = Instr{op: Opcode::IADD_RS, dst: REG_NEEDS_DISPLACEMENT, src: r_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::Shft(2), effect: Vm::exec_iadd_rs};
     
     let mut vm = new_vm();
     vm.reg.r[REG_NEEDS_DISPLACEMENT_IX] = 0x8000000000000000;
@@ -48,7 +48,7 @@ fn test_exec_iadd_rs_with_immediate() {
 #[test]
 #[allow(overflowing_literals)]
 fn test_exec_isub_r() {
-    let instr = Instr{op: Opcode::ISUB_R, dst: r_reg(0), src: r_reg(1), imm: None, mem_mask: NO_MASK, unsigned_imm: false, mode: Mode::None, effect: Vm::exec_isub_r};
+    let instr = Instr{op: Opcode::ISUB_R, dst: r_reg(0), src: r_reg(1), imm: None, unsigned_imm: false, mode: Mode::None, effect: Vm::exec_isub_r};
     let mut vm = new_vm();
     vm.reg.r[0] = 1;
     vm.reg.r[1] = 0xFFFFFFFF;
@@ -60,7 +60,7 @@ fn test_exec_isub_r() {
 
 #[test]
 fn test_exec_isub_r_with_immediate() {
-    let instr = Instr{op: Opcode::ISUB_R, dst: r_reg(0), src: Store::NONE, imm: Some(IMM32), mem_mask: NO_MASK, unsigned_imm: false, mode: Mode::None, effect: Vm::exec_isub_r};
+    let instr = Instr{op: Opcode::ISUB_R, dst: r_reg(0), src: Store::NONE, imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_isub_r};
     let mut vm = new_vm();
     vm.reg.r[0] = 0;
     
@@ -72,7 +72,7 @@ fn test_exec_isub_r_with_immediate() {
 #[test]
 #[allow(overflowing_literals)]
 fn test_exec_fadd_m() {
-    let instr = Instr{op: Opcode::FADD_M, dst: f_reg(0), src: Store::L1(Box::new(Store::R(1))), imm: Some(IMM32), mem_mask: NO_MASK, unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fadd_m};
+    let instr = Instr{op: Opcode::FADD_M, dst: f_reg(0), src: Store::L1(Box::new(Store::R(1))), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fadd_m};
     let mut vm = new_vm();
     vm.scratchpad[0] = 0x1234567890abcdef;
     vm.reg.r[1] = 0xFFFFFFFFFFFFE930;
