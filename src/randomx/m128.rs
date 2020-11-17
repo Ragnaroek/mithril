@@ -12,37 +12,35 @@ use std::arch::x86_64::{_mm_set_epi32, __m128i, __m128d, _mm_extract_epi64, _mm_
 
 #[allow(nonstandard_style)]
 #[derive(Copy, Clone)]
-pub struct m128(pub __m128i);//TODO rename to m128i
+pub struct m128i(pub __m128i);
 
-//TODO move to m128 for scope
-pub fn zero_m128() -> m128 {
-    from_i32(0, 0, 0, 0)
-}
-
-//TODO move to m128 for scope
-pub fn from_i32(i3: i32, i2: i32, i1: i32, i0: i32) -> m128 {
-    unsafe {
-        return m128(_mm_set_epi32(i3, i2, i1, i0));
+impl m128i {
+    
+    pub fn zero() -> m128i {
+        m128i::from_i32(0, 0, 0, 0)
     }
-}
-
-//TODO move to m128 for scope
-pub fn from_u64(u1: u64, u0: u64) -> m128 {
-    unsafe {
-        return m128(_mm_set_epi64x(u1 as i64, u0 as i64));
-    }
-}
-
-impl m128 {
-    pub fn aesdec(&self, key: m128) -> m128 {
+    
+    pub fn from_i32(i3: i32, i2: i32, i1: i32, i0: i32) -> m128i {
         unsafe {
-            m128(_mm_aesdec_si128(self.0, key.0))
+            return m128i(_mm_set_epi32(i3, i2, i1, i0));
         }
     }
     
-    pub fn aesenc(&self, key: m128) -> m128 {
+    pub fn from_u64(u1: u64, u0: u64) -> m128i {
         unsafe {
-            m128(_mm_aesenc_si128(self.0, key.0))
+            return m128i(_mm_set_epi64x(u1 as i64, u0 as i64));
+        }
+    }
+    
+    pub fn aesdec(&self, key: m128i) -> m128i {
+        unsafe {
+            m128i(_mm_aesdec_si128(self.0, key.0))
+        }
+    }
+    
+    pub fn aesenc(&self, key: m128i) -> m128i {
+        unsafe {
+            m128i(_mm_aesenc_si128(self.0, key.0))
         }
     }
     
@@ -61,7 +59,7 @@ impl m128 {
     }
 }
 
-impl PartialEq for m128 {
+impl PartialEq for m128i {
     fn eq(&self, other: &Self) -> bool {
         unsafe {
             let test = _mm_cmpeq_epi32(self.0, other.0); 
@@ -69,9 +67,9 @@ impl PartialEq for m128 {
         }
     }
 }
-impl Eq for m128 {}
+impl Eq for m128i {}
 
-fn format_m128i(m: &m128, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+fn format_m128i(m: &m128i, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     let (low, high) = m.to_i64();
     f.write_str("(")?;
     fmt::LowerHex::fmt(&high, f)?;
@@ -80,13 +78,13 @@ fn format_m128i(m: &m128, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     f.write_str(")")
 }
 
-impl fmt::LowerHex for m128 {
+impl fmt::LowerHex for m128i {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         format_m128i(self, f)
     }
 }
 
-impl fmt::Debug for m128 {
+impl fmt::Debug for m128i {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         format_m128i(self, f)
     }
@@ -98,22 +96,20 @@ impl fmt::Debug for m128 {
 #[derive(Copy, Clone)]
 pub struct m128d(pub __m128d);
 
-//TODO move to m128d for scope
-pub fn from_f64(h: f64, l: f64) -> m128d {
-    unsafe{
-        return m128d(_mm_set_pd(h, l));
-    }
-}
-
-//TODO move to m128d for scope
-pub fn zero_m128d() -> m128d {
-    return from_f64(0.0, 0.0);
-}
-
 impl m128d {
     
+    pub fn zero() -> m128d {
+        return m128d::from_f64(0.0, 0.0);
+    }
+    
     pub fn from_u64(h: u64, l: u64) -> m128d {
-        return from_f64(f64::from_bits(h), f64::from_bits(l));
+        return m128d::from_f64(f64::from_bits(h), f64::from_bits(l));
+    }
+    
+    pub fn from_f64(h: f64, l: f64) -> m128d {
+        unsafe{
+            return m128d(_mm_set_pd(h, l));
+        }
     }
     
     pub fn to_f64(&self) -> (f64, f64) {

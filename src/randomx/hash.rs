@@ -1,15 +1,15 @@
-use super::m128::{m128, from_i32};
+use super::m128::{m128i};
 
 #[allow(overflowing_literals)]
-pub fn gen_program(input:[m128;4], output_size: usize) -> Vec<m128> {
+pub fn gen_program(input:[m128i;4], output_size: usize) -> Vec<m128i> {
     debug_assert!(output_size % 4 == 0);
     
     let mut result = Vec::with_capacity(output_size);
     
-    let key0 = from_i32(0xb4f44917, 0xdbb5552b, 0x62716609, 0x6daca553);
-    let key1 = from_i32(0x0da1dc4e, 0x1725d378, 0x846a710d, 0x6d7caf07);
-    let	key2 = from_i32(0x3e20e345, 0xf4c0794f, 0x9f947ec6, 0x3f1262f1);
-    let	key3 = from_i32(0x49169154, 0x16314c88, 0xb1ba317c, 0x6aef8135);
+    let key0 = m128i::from_i32(0xb4f44917, 0xdbb5552b, 0x62716609, 0x6daca553);
+    let key1 = m128i::from_i32(0x0da1dc4e, 0x1725d378, 0x846a710d, 0x6d7caf07);
+    let	key2 = m128i::from_i32(0x3e20e345, 0xf4c0794f, 0x9f947ec6, 0x3f1262f1);
+    let	key3 = m128i::from_i32(0x49169154, 0x16314c88, 0xb1ba317c, 0x6aef8135);
     
     let mut state0 = input[0];
 	let mut state1 = input[1];

@@ -1,6 +1,5 @@
 extern crate mithril;
 
-use mithril::randomx::m128;
 use mithril::randomx::m128::{m128d};
 use mithril::randomx::program::{Instr, Opcode, Store, f_reg, r_reg, Mode, REG_NEEDS_DISPLACEMENT_IX, REG_NEEDS_DISPLACEMENT};
 use mithril::randomx::vm::{new_vm, Vm};
@@ -76,7 +75,7 @@ fn test_exec_fadd_m() {
     let mut vm = new_vm();
     vm.scratchpad[0] = 0x1234567890abcdef;
     vm.reg.r[1] = 0xFFFFFFFFFFFFE930;
-    vm.reg.f[0] = m128::zero_m128d();
+    vm.reg.f[0] = m128d::zero();
     
     instr.execute(&mut vm);
     

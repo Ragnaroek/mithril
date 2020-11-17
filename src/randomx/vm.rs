@@ -1,9 +1,13 @@
 extern crate blake2b_simd;
 
 use self::blake2b_simd::{blake2b, Hash};
-use super::program::{Instr, Store, Mode, MAX_REG, MAX_FLOAT_REG, SCRATCHPAD_L1_MASK, SCRATCHPAD_L2_MASK, SCRATCHPAD_L3_MASK};
-use super::m128::{m128d, zero_m128d, from_u64};
+use super::program::{Instr, Store, Mode, MAX_REG, MAX_FLOAT_REG};
+use super::m128::{m128d, m128i};
 use std::convert::TryInto;
+
+pub const SCRATCHPAD_L1_MASK : u64 = 0x3ff8;
+pub const SCRATCHPAD_L2_MASK : u64 = 0x3fff8;
+pub const SCRATCHPAD_L3_MASK : u64 = 0x1ffff8;
 
 const SCRATCHPAD_SIZE : usize = 262144;
 
@@ -17,9 +21,9 @@ pub struct Register {
 pub fn new_register() -> Register {
     Register {
         r: [0; MAX_REG as usize],
-        f: [zero_m128d(); MAX_FLOAT_REG as usize],
-        e: [zero_m128d(); MAX_FLOAT_REG as usize],
-        a: [zero_m128d(); MAX_FLOAT_REG as usize],
+        f: [m128d::zero(); MAX_FLOAT_REG as usize],
+        e: [m128d::zero(); MAX_FLOAT_REG as usize],
+        a: [m128d::zero(); MAX_FLOAT_REG as usize],
     }
 }
 
@@ -74,7 +78,7 @@ impl Vm {
     pub fn exec_fadd_m(&mut self, instr: &Instr) {
         let ix = self.scratchpad_ix(instr);
         let v = self.scratchpad[ix];
-        let iv = from_u64(0, v);
+        let iv = m128i::from_u64(0, v);
         self.write_f(&instr.dst, self.read_f(&instr.dst) + iv.to_m128d());
     }
     

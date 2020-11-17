@@ -1,4 +1,4 @@
-use super::m128::{m128};
+use super::m128::{m128i};
 use super::vm::{Vm};
 use strum::Display;
 use std::fmt;
@@ -191,7 +191,7 @@ impl fmt::Display for Program {
     }
 }
 
-pub fn from_bytes(bytes: Vec<m128>) -> Program {
+pub fn from_bytes(bytes: Vec<m128i>) -> Program {
     
     let mut program = Vec::with_capacity((bytes.len() - 8) * 2);
     

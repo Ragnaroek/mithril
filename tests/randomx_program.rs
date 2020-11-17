@@ -3,7 +3,7 @@ extern crate mithril;
 extern crate difference;
 
 use mithril::randomx::hash::{gen_program};
-use mithril::randomx::m128::{m128, from_i32};
+use mithril::randomx::m128::{m128i};
 use mithril::randomx::program::{from_bytes};
 
 #[test]
@@ -28,35 +28,35 @@ fn test_decode_program_666() {
 }
 
 #[allow(overflowing_literals)]
-fn gen_test_program_nonce_1000() -> Vec<m128> {
-    let input0 = from_i32(0x31903876, 0xbb7a2914, 0xb370f616, 0xd6f7e4f3);
-    let input1 = from_i32(0xb5a8ef67, 0x749809c8, 0xf349884a, 0x05c9f5ef);
-    let input2 = from_i32(0xa9a93ab0, 0x22e46d0a, 0x1a1fe305, 0xb42708c0);
-    let input3 = from_i32(0x68247034, 0xed99ee84, 0x438f563a, 0x138612ff);
+fn gen_test_program_nonce_1000() -> Vec<m128i> {
+    let input0 = m128i::from_i32(0x31903876, 0xbb7a2914, 0xb370f616, 0xd6f7e4f3);
+    let input1 = m128i::from_i32(0xb5a8ef67, 0x749809c8, 0xf349884a, 0x05c9f5ef);
+    let input2 = m128i::from_i32(0xa9a93ab0, 0x22e46d0a, 0x1a1fe305, 0xb42708c0);
+    let input3 = m128i::from_i32(0x68247034, 0xed99ee84, 0x438f563a, 0x138612ff);
     
-    let input:[m128;4] = [input0, input1, input2, input3];
+    let input:[m128i;4] = [input0, input1, input2, input3];
     gen_program(input, 136)
 }
 
 #[allow(overflowing_literals)]
-fn gen_test_program_nonce_1002() -> Vec<m128> {
-    let input0 = from_i32(0xd0e8695f, 0x310cd519, 0xd5904b69, 0xb7f63f45);
-    let input1 = from_i32(0x02ebf53a, 0x570aa2e9, 0x738c8a99, 0xec7f686a);
-    let input2 = from_i32(0xca86dba0, 0xa5d073bc, 0x1fdd7a0f, 0xb16fae80);
-    let input3 = from_i32(0x064195be, 0x2cd32a66, 0x21d727dd, 0xe5d1da28);
+fn gen_test_program_nonce_1002() -> Vec<m128i> {
+    let input0 = m128i::from_i32(0xd0e8695f, 0x310cd519, 0xd5904b69, 0xb7f63f45);
+    let input1 = m128i::from_i32(0x02ebf53a, 0x570aa2e9, 0x738c8a99, 0xec7f686a);
+    let input2 = m128i::from_i32(0xca86dba0, 0xa5d073bc, 0x1fdd7a0f, 0xb16fae80);
+    let input3 = m128i::from_i32(0x064195be, 0x2cd32a66, 0x21d727dd, 0xe5d1da28);
     
-    let input:[m128;4] = [input0, input1, input2, input3];
+    let input:[m128i;4] = [input0, input1, input2, input3];
     gen_program(input, 136)
 }
 
 #[allow(overflowing_literals)]
-fn gen_test_program_nonce_666() -> Vec<m128> {
-    let input0 = from_i32(0x5368fad2, 0x0a4abde8, 0xccc9e57a, 0x6fb70839);
-    let input1 = from_i32(0x86153ab9, 0x0daaff46, 0x1b6745d3, 0x30f5fee7);
-    let input2 = from_i32(0x5fb74742, 0x686fad2b, 0x7da05aa6, 0x4ef450fd);
-    let input3 = from_i32(0xbc9ce7b6, 0x1d52c94c, 0x650bea68, 0x898b02d9);
+fn gen_test_program_nonce_666() -> Vec<m128i> {
+    let input0 = m128i::from_i32(0x5368fad2, 0x0a4abde8, 0xccc9e57a, 0x6fb70839);
+    let input1 = m128i::from_i32(0x86153ab9, 0x0daaff46, 0x1b6745d3, 0x30f5fee7);
+    let input2 = m128i::from_i32(0x5fb74742, 0x686fad2b, 0x7da05aa6, 0x4ef450fd);
+    let input3 = m128i::from_i32(0xbc9ce7b6, 0x1d52c94c, 0x650bea68, 0x898b02d9);
     
-    let input:[m128;4] = [input0, input1, input2, input3];
+    let input:[m128i;4] = [input0, input1, input2, input3];
     gen_program(input, 136)
 }
 
