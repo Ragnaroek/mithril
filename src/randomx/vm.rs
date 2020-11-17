@@ -78,6 +78,17 @@ impl Vm {
         self.write_f(&instr.dst, self.read_f(&instr.dst) + iv.to_m128d());
     }
     
+    pub fn exec_isub_r(&mut self, instr: &Instr) {
+        let v : u64;
+        if let Some(imm) = instr.imm {
+            v = imm as u64;
+        } else {
+            v = self.read_r(&instr.src);
+        }
+        
+        self.write_r(&instr.dst, self.read_r(&instr.dst).wrapping_sub(v));
+    }
+    
     fn read_r(&self, store: &Store) -> u64 {
         match store {
             Store::R(i) => self.reg.r[*i],

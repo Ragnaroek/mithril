@@ -45,16 +45,29 @@ fn test_exec_iadd_rs_with_immediate() {
     assert_eq!(vm.reg.r[REG_NEEDS_DISPLACEMENT_IX], IMM64);
 }
 
-/*
 #[test]
-fn test_exec_iadd_m() {
-    let instr = new_lcache_instr(Opcode::IADD_M, r_reg(0), 1, 666, 1);
+#[allow(overflowing_literals)]
+fn test_exec_isub_r() {
+    let instr = Instr{op: Opcode::ISUB_R, dst: r_reg(0), src: r_reg(1), imm: None, mem_mask: NO_MASK, unsigned_imm: false, mode: Mode::None, effect: Vm::exec_isub_r};
     let mut vm = new_vm();
+    vm.reg.r[0] = 1;
+    vm.reg.r[1] = 0xFFFFFFFF;
     
     instr.execute(&mut vm);
     
-    assert_eq!(vm.reg.r[0], 0x0);
-}*/
+    assert_eq!(vm.reg.r[0], 0xFFFFFFFF00000002);
+}
+
+#[test]
+fn test_exec_isub_r_with_immediate() {
+    let instr = Instr{op: Opcode::ISUB_R, dst: r_reg(0), src: Store::NONE, imm: Some(IMM32), mem_mask: NO_MASK, unsigned_imm: false, mode: Mode::None, effect: Vm::exec_isub_r};
+    let mut vm = new_vm();
+    vm.reg.r[0] = 0;
+    
+    instr.execute(&mut vm);
+    
+    assert_eq!(vm.reg.r[0], (!IMM64 + 1));
+}
 
 #[test]
 #[allow(overflowing_literals)]
@@ -68,8 +81,17 @@ fn test_exec_fadd_m() {
     instr.execute(&mut vm);
     
     assert_eq!(vm.reg.f[0], m128d::from_u64(0x41b2345678000000, 0xc1dbd50c84400000));
-    
-    
 }
+
+/*
+#[test]
+fn test_exec_iadd_m() {
+    let instr = new_lcache_instr(Opcode::IADD_M, r_reg(0), 1, 666, 1);
+    let mut vm = new_vm();
+    
+    instr.execute(&mut vm);
+    
+    assert_eq!(vm.reg.r[0], 0x0);
+}*/
 
 pub fn nop(_state: &mut Vm) {}
