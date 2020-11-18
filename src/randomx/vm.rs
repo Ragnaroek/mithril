@@ -83,16 +83,22 @@ impl Vm {
     }
     
     pub fn exec_isub_r(&mut self, instr: &Instr) {
-        let v : u64;
-        if let Some(imm) = instr.imm {
-            v = imm as u64;
-        } else {
-            v = self.read_r(&instr.src);
-        }
-        
+        let v = self.imm_or_r(instr);
         self.write_r(&instr.dst, self.read_r(&instr.dst).wrapping_sub(v));
     }
-    
+
+    pub fn exec_imul_r(&mut self, instr: &Instr) {
+        let v = self.imm_or_r(instr); 
+        self.write_r(&instr.dst, self.read_r(&instr.dst).wrapping_mul(v)); 
+    }
+   
+    fn imm_or_r(&self, instr: &Instr) -> u64 {
+        if instr.src == Store::NONE {
+            return instr.imm.unwrap() as u64;
+        }
+        self.read_r(&instr.src)
+    }
+
     fn read_r(&self, store: &Store) -> u64 {
         match store {
             Store::R(i) => self.reg.r[*i],

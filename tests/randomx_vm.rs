@@ -69,6 +69,31 @@ fn test_exec_isub_r_with_immediate() {
 }
 
 #[test]
+fn test_exec_imul_r() {
+    let instr = Instr{op: Opcode::IMUL_R, dst: r_reg(0), src: r_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_imul_r};
+    let mut vm = new_vm();
+
+    vm.reg.r[0] = 0xBC550E96BA88A72B;
+    vm.reg.r[1] = 0xF5391FA9F18D6273;
+
+    instr.execute(&mut vm);
+    
+    assert_eq!(vm.reg.r[0], 0x28723424A9108E51);
+}
+
+#[test]
+fn test_exec_imul_r_with_immediate() {
+    let instr = Instr{op: Opcode::IMUL_R, dst: r_reg(0), src: Store::NONE, imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_imul_r};
+    let mut vm = new_vm();
+
+    vm.reg.r[0] = 1;
+
+    instr.execute(&mut vm);
+    
+    assert_eq!(vm.reg.r[0], IMM64);
+}
+
+#[test]
 #[allow(overflowing_literals)]
 fn test_exec_fadd_m() {
     let instr = Instr{op: Opcode::FADD_M, dst: f_reg(0), src: Store::L1(Box::new(Store::R(1))), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fadd_m};
