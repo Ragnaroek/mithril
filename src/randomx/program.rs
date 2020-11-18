@@ -1,5 +1,5 @@
 use super::m128::{m128i};
-use super::vm::{Vm};
+use super::vm::{Vm, SCRATCHPAD_L3_MASK};
 use strum::Display;
 use std::fmt;
 
@@ -8,10 +8,6 @@ pub const MAX_REG : i64 = 8;
 pub const REG_NEEDS_DISPLACEMENT_IX : usize = 5;
 pub const REG_NEEDS_DISPLACEMENT: Store = Store::R(REG_NEEDS_DISPLACEMENT_IX);
 const STORE_L3_CONDITION : u8 = 14;
-//TODO Move Scratchpad_LX... to vm.rs
-pub const SCRATCHPAD_L1_MASK : u64 = 0x3ff8;
-pub const SCRATCHPAD_L2_MASK : u64 = 0x3fff8;
-pub const SCRATCHPAD_L3_MASK : u64 = 0x1ffff8;
 
 #[allow(nonstandard_style)]
 #[derive(Display)]
