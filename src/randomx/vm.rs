@@ -91,6 +91,12 @@ impl Vm {
         let v = self.imm_or_r(instr); 
         self.write_r(&instr.dst, self.read_r(&instr.dst).wrapping_mul(v)); 
     }
+
+    pub fn exec_imulh_r(&mut self, instr: &Instr) {
+        let v = self.read_r(&instr.src) as u128;
+        let v2 = self.read_r(&instr.dst) as u128;
+        self.write_r(&instr.dst, (v.wrapping_mul(v2) >> 64) as u64);
+    }
    
     fn imm_or_r(&self, instr: &Instr) -> u64 {
         if instr.src == Store::NONE {

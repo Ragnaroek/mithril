@@ -237,7 +237,7 @@ fn decode_instruction(bytes: i64) -> Instr {
         return new_lcache_instr(Opcode::IMUL_M, r_reg(dst), src, imm, modi, nop);
     }
     if op < Opcode::IMULH_R as i64 {
-        return Instr{op: Opcode::IMULH_R, dst: r_reg(dst), src: r_reg(src), imm: None, unsigned_imm: false, mode: Mode::None, effect: nop}
+        return Instr{op: Opcode::IMULH_R, dst: r_reg(dst), src: r_reg(src), imm: None, unsigned_imm: false, mode: Mode::None, effect: Vm::exec_imulh_r}
     }
     if op < Opcode::IMULH_M as i64 {
         return new_lcache_instr(Opcode::IMULH_M, r_reg(dst), src, imm, modi, nop);
