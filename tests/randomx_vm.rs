@@ -107,6 +107,19 @@ fn test_exec_imulh_r() {
 }
 
 #[test]
+fn test_exec_ismulh_r() {
+    let instr = Instr{op: Opcode::ISMULH_R, dst: r_reg(0), src: r_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_ismulh_r};
+    let mut vm = new_vm();
+
+    vm.reg.r[0] = 0xBC550E96BA88A72B;
+    vm.reg.r[1] = 0xF5391FA9F18D6273;
+
+    instr.execute(&mut vm);
+    
+    assert_eq!(vm.reg.r[0], 0x02D93EF1269D3EE5);
+}
+
+#[test]
 #[allow(overflowing_literals)]
 fn test_exec_fadd_m() {
     let instr = Instr{op: Opcode::FADD_M, dst: f_reg(0), src: Store::L1(Box::new(Store::R(1))), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fadd_m};
