@@ -34,7 +34,6 @@ fn test_exec_iadd_rs() {
 #[test]
 fn test_exec_iadd_rs_with_immediate() {
     let instr = Instr{op: Opcode::IADD_RS, dst: REG_NEEDS_DISPLACEMENT, src: r_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::Shft(2), effect: Vm::exec_iadd_rs};
-    
     let mut vm = new_vm();
     vm.reg.r[REG_NEEDS_DISPLACEMENT_IX] = 0x8000000000000000;
     vm.reg.r[1] = 0x2000000000000000;
@@ -72,7 +71,6 @@ fn test_exec_isub_r_with_immediate() {
 fn test_exec_imul_r() {
     let instr = Instr{op: Opcode::IMUL_R, dst: r_reg(0), src: r_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_imul_r};
     let mut vm = new_vm();
-
     vm.reg.r[0] = 0xBC550E96BA88A72B;
     vm.reg.r[1] = 0xF5391FA9F18D6273;
 
@@ -85,7 +83,6 @@ fn test_exec_imul_r() {
 fn test_exec_imul_r_with_immediate() {
     let instr = Instr{op: Opcode::IMUL_R, dst: r_reg(0), src: Store::NONE, imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_imul_r};
     let mut vm = new_vm();
-
     vm.reg.r[0] = 1;
 
     instr.execute(&mut vm);
@@ -97,7 +94,6 @@ fn test_exec_imul_r_with_immediate() {
 fn test_exec_imulh_r() {
     let instr = Instr{op: Opcode::IMULH_R, dst: r_reg(0), src: r_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_imulh_r};
     let mut vm = new_vm();
-
     vm.reg.r[0] = 0xBC550E96BA88A72B;
     vm.reg.r[1] = 0xF5391FA9F18D6273;
 
@@ -110,13 +106,35 @@ fn test_exec_imulh_r() {
 fn test_exec_ismulh_r() {
     let instr = Instr{op: Opcode::ISMULH_R, dst: r_reg(0), src: r_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_ismulh_r};
     let mut vm = new_vm();
-
     vm.reg.r[0] = 0xBC550E96BA88A72B;
     vm.reg.r[1] = 0xF5391FA9F18D6273;
 
     instr.execute(&mut vm);
     
     assert_eq!(vm.reg.r[0], 0x02D93EF1269D3EE5);
+}
+
+#[test]
+fn test_exec_ineg_r() {
+    let instr = Instr{op: Opcode::INEG_R, dst: r_reg(0), src: Store::NONE, imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_ineg_r};
+    let mut vm = new_vm(); 
+    vm.reg.r[0] = 0xFFFFFFFFFFFFFFFF;
+
+    instr.execute(&mut vm);
+    
+    assert_eq!(vm.reg.r[0], 1); 
+}
+
+#[test]
+fn test_exec_ixor_r() {
+    let instr = Instr{op: Opcode::IXOR_R, dst: r_reg(0), src: r_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_ixor_r};
+    let mut vm = new_vm(); 
+    vm.reg.r[0] = 0x8888888888888888;
+    vm.reg.r[1] = 0xAAAAAAAAAAAAAAAA;
+
+    instr.execute(&mut vm);
+    
+    assert_eq!(vm.reg.r[0], 0x2222222222222222); 
 }
 
 #[test]

@@ -254,7 +254,7 @@ fn decode_instruction(bytes: i64) -> Instr {
         return instr;
     }
     if op < Opcode::INEG_R as i64 {
-        return new_instr(Opcode::INEG_R, r_reg(dst), Store::NONE, imm, Mode::None, nop);
+        return new_instr(Opcode::INEG_R, r_reg(dst), Store::NONE, imm, Mode::None, Vm::exec_ineg_r);
     }
     if op < Opcode::IXOR_R as i64 {
         return new_instr(Opcode::IXOR_R, r_reg(dst), r_reg(src), imm, Mode::None, nop);

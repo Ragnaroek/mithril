@@ -103,6 +103,17 @@ impl Vm {
         let v_dst = (self.read_r(&instr.dst) as i64) as i128; 
         self.write_r(&instr.dst, (v_src.wrapping_mul(v_dst) >> 64) as u64); 
     }
+
+    pub fn exec_ineg_r(&mut self, instr: &Instr) {
+        let v_dst = self.read_r(&instr.dst);
+        self.write_r(&instr.dst, !v_dst + 1);
+    }
+
+    pub fn exec_ixor_r(&mut self, instr: &Instr) {
+        let v_src = self.read_r(&instr.src);
+        let v_dst = self.read_r(&instr.dst);
+        self.write_r(&instr.dst, v_dst^v_src);
+    }
    
     fn imm_or_r(&self, instr: &Instr) -> u64 {
         if instr.src == Store::NONE {
