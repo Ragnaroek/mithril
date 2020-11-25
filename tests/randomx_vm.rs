@@ -149,6 +149,54 @@ fn test_exec_ixor_r_with_immediate() {
 }
 
 #[test]
+fn test_exec_iror_r() {
+    let instr = Instr{op: Opcode::IROR_R, dst: r_reg(0), src: r_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_iror_r};
+    let mut vm = new_vm(); 
+    vm.reg.r[0] = 953360005391419562;
+    vm.reg.r[1] = 4569451684712230561;
+
+    instr.execute(&mut vm);
+    
+    assert_eq!(vm.reg.r[0], 0xD835C455069D81EF); 
+}
+
+#[test]
+#[allow(overflowing_literals)]
+fn test_exec_iror_r_with_immediate() {
+    let instr = Instr{op: Opcode::IROR_R, dst: r_reg(0), src: Store::NONE, imm: Some(4569451684712230561 as i32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_iror_r};
+    let mut vm = new_vm(); 
+    vm.reg.r[0] = 953360005391419562;
+
+    instr.execute(&mut vm);
+    
+    assert_eq!(vm.reg.r[0], 0xD835C455069D81EF); 
+}
+
+#[test]
+fn test_exec_irol_r() {
+    let instr = Instr{op: Opcode::IROL_R, dst: r_reg(0), src: r_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_irol_r};
+    let mut vm = new_vm();
+    vm.reg.r[0] = 953360005391419562;
+    vm.reg.r[1] = 4569451684712230561;
+
+    instr.execute(&mut vm);
+    
+    assert_eq!(vm.reg.r[0], 6978065200552740799); 
+}
+
+#[test]
+#[allow(overflowing_literals)]
+fn test_exec_irol_r_with_immediate() {
+    let instr = Instr{op: Opcode::IROL_R, dst: r_reg(0), src: Store::NONE, imm: Some(4569451684712230561 as i32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_irol_r};
+    let mut vm = new_vm();
+    vm.reg.r[0] = 953360005391419562;
+
+    instr.execute(&mut vm);
+    
+    assert_eq!(vm.reg.r[0], 6978065200552740799); 
+}
+
+#[test]
 #[allow(overflowing_literals)]
 fn test_exec_fadd_m() {
     let instr = Instr{op: Opcode::FADD_M, dst: f_reg(0), src: Store::L1(Box::new(Store::R(1))), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fadd_m};

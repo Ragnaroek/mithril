@@ -263,10 +263,10 @@ fn decode_instruction(bytes: i64) -> Instr {
         return new_lcache_instr(Opcode::IXOR_M, r_reg(dst), src, imm, modi, nop);
     }
     if op < Opcode::IROR_R as i64 {
-        return new_instr(Opcode::IROR_R, r_reg(dst), r_reg(src), imm & 63, Mode::None, nop);
+        return new_instr(Opcode::IROR_R, r_reg(dst), r_reg(src), imm & 63, Mode::None, Vm::exec_iror_r);
     }
     if op < Opcode::IROL_R as i64 {
-        return new_instr(Opcode::IROL_R, r_reg(dst), r_reg(src), imm & 63, Mode::None, nop);
+        return new_instr(Opcode::IROL_R, r_reg(dst), r_reg(src), imm & 63, Mode::None, Vm::exec_irol_r);
     }
     if op < Opcode::ISWAP_R as i64 {
         return Instr{op: Opcode::ISWAP_R, dst: r_reg(dst), src: r_reg(src), imm: None, unsigned_imm: false, mode: Mode::None, effect: nop}
