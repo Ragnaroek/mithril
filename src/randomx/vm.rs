@@ -110,7 +110,7 @@ impl Vm {
     }
 
     pub fn exec_ixor_r(&mut self, instr: &Instr) {
-        let v_src = self.read_r(&instr.src);
+        let v_src = self.imm_or_r(instr);
         let v_dst = self.read_r(&instr.dst);
         self.write_r(&instr.dst, v_dst^v_src);
     }

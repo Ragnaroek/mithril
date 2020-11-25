@@ -138,6 +138,17 @@ fn test_exec_ixor_r() {
 }
 
 #[test]
+fn test_exec_ixor_r_with_immediate() {
+    let instr = Instr{op: Opcode::IXOR_R, dst: r_reg(0), src: Store::NONE, imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_ixor_r};
+    let mut vm = new_vm(); 
+    vm.reg.r[0] = 0xFFFFFFFFFFFFFFFF;
+
+    instr.execute(&mut vm);
+    
+    assert_eq!(vm.reg.r[0], !IMM64); 
+}
+
+#[test]
 #[allow(overflowing_literals)]
 fn test_exec_fadd_m() {
     let instr = Instr{op: Opcode::FADD_M, dst: f_reg(0), src: Store::L1(Box::new(Store::R(1))), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fadd_m};
