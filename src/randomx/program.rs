@@ -269,7 +269,7 @@ fn decode_instruction(bytes: i64) -> Instr {
         return new_instr(Opcode::IROL_R, r_reg(dst), r_reg(src), imm & 63, Mode::None, Vm::exec_irol_r);
     }
     if op < Opcode::ISWAP_R as i64 {
-        return Instr{op: Opcode::ISWAP_R, dst: r_reg(dst), src: r_reg(src), imm: None, unsigned_imm: false, mode: Mode::None, effect: nop}
+        return Instr{op: Opcode::ISWAP_R, dst: r_reg(dst), src: r_reg(src), imm: None, unsigned_imm: false, mode: Mode::None, effect: Vm::exec_iswap_r}
     }
     if op < Opcode::FSWAP_R as i64 {
         let dst_ix = dst % MAX_REG;

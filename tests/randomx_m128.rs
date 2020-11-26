@@ -61,3 +61,12 @@ fn test_m128d_add() {
     assert_eq!(m_add1, m2);
     assert_eq!(m_add2, m128d::from_f64(788.888+63.839, 54920.0+65638.3748));
 }
+
+#[test]
+fn test_m128d_shuffle_1() {
+    let m1 = m128d::from_f64(788.888, 54920.0);
+    let m2 = m128d::from_f64(63.839, 65638.3748);
+
+    let m_shuffled = m1.shuffle_1(&m2);
+    assert_eq!(m_shuffled, m128d::from_f64(65638.3748, 788.888)); 
+}

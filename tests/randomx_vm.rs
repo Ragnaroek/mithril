@@ -197,6 +197,30 @@ fn test_exec_irol_r_with_immediate() {
 }
 
 #[test]
+fn test_exec_iswap_r() {
+    let instr = Instr{op: Opcode::ISWAP_R, dst: r_reg(0), src: r_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_iswap_r};
+    let mut vm = new_vm();
+    vm.reg.r[0] = 953360005391419562;
+    vm.reg.r[1] = 4569451684712230561; 
+
+    instr.execute(&mut vm);
+    
+    assert_eq!(vm.reg.r[0], 4569451684712230561);
+    assert_eq!(vm.reg.r[1], 953360005391419562); 
+}
+
+#[test]
+fn test_exec_fswap_r() {
+    let instr = Instr{op: Opcode::FSWAP_R, dst: f_reg(0), src: Store::NONE, imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fswap_r};
+    let mut vm = new_vm();
+    vm.reg.f[0] = m128d::from_u64(953360005391419562, 4569451684712230561); 
+
+    instr.execute(&mut vm);
+    
+    assert_eq!(vm.reg.f[0], m128d::from_u64(4569451684712230561, 953360005391419562));
+}
+
+#[test]
 #[allow(overflowing_literals)]
 fn test_exec_fadd_m() {
     let instr = Instr{op: Opcode::FADD_M, dst: f_reg(0), src: Store::L1(Box::new(Store::R(1))), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fadd_m};

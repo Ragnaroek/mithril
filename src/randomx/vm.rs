@@ -71,15 +71,24 @@ impl Vm {
         self.write_r(&instr.dst, self.read_r(&instr.dst).wrapping_add(v));
     }
     
-    pub fn exec_iadd_m(&mut self, instr: &Instr) {
-        //TODO
-    }
-    
+    //f...
+
     pub fn exec_fadd_m(&mut self, instr: &Instr) {
         let ix = self.scratchpad_ix(instr);
         let v = self.scratchpad[ix];
         let iv = m128i::from_u64(0, v);
         self.write_f(&instr.dst, self.read_f(&instr.dst) + iv.to_m128d());
+    }
+
+    pub fn exec_fswap_r(&mut self, instr: &Instr) {
+        let v_dst = self.read_f(&instr.dst);
+        self.write_f(&instr.dst, v_dst.shuffle_1(&v_dst));  
+    }
+
+    //i...
+
+    pub fn exec_iadd_m(&mut self, instr: &Instr) {
+        //TODO
     }
     
     pub fn exec_isub_r(&mut self, instr: &Instr) {
@@ -126,7 +135,16 @@ impl Vm {
         let v_dst = self.read_r(&instr.dst);
         self.write_r(&instr.dst, v_dst.rotate_left(v_src)); 
     }
-   
+
+    pub fn exec_iswap_r(&mut self, instr: &Instr) {
+        let v_src = self.read_r(&instr.src);
+        let v_dst = self.read_r(&instr.dst);
+        self.write_r(&instr.dst, v_src);
+        self.write_r(&instr.src, v_dst);
+    }
+  
+
+
     fn imm_or_r(&self, instr: &Instr) -> u64 {
         if instr.src == Store::NONE {
             return instr.imm.unwrap() as u64;
