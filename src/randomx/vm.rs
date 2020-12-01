@@ -4,6 +4,7 @@ use self::blake2b_simd::{blake2b, Hash};
 use super::program::{Instr, Store, Mode, MAX_REG, MAX_FLOAT_REG};
 use super::m128::{m128d, m128i};
 use std::convert::TryInto;
+use std::arch::x86_64::{_MM_SET_ROUNDING_MODE};
 
 pub const SCRATCHPAD_L1_MASK : u64 = 0x3ff8;
 pub const SCRATCHPAD_L2_MASK : u64 = 0x3fff8;
@@ -62,6 +63,12 @@ impl Vm {
         //TODO Implement, once all instructions are implemented
         //generate program here from seed
     }
+
+    pub fn set_rounding_mode(&mut self, mode: u32) {
+        unsafe {
+            _MM_SET_ROUNDING_MODE(mode);
+        }
+    }
     
     pub fn exec_iadd_rs(&mut self, instr: &Instr) {
         let mut v = self.read_r(&instr.src) << shift_mode(instr);
@@ -83,6 +90,12 @@ impl Vm {
     pub fn exec_fswap_r(&mut self, instr: &Instr) {
         let v_dst = self.read_f(&instr.dst);
         self.write_f(&instr.dst, v_dst.shuffle_1(&v_dst));  
+    }
+
+    pub fn exec_fadd_r(&mut self, instr: &Instr) {
+        let v_src = self.read_a(&instr.src);
+        let v_dst = self.read_f(&instr.dst);
+        self.write_f(&instr.dst, v_src + v_dst);
     }
 
     //i...
@@ -143,7 +156,7 @@ impl Vm {
         self.write_r(&instr.src, v_dst);
     }
   
-
+    //helper
 
     fn imm_or_r(&self, instr: &Instr) -> u64 {
         if instr.src == Store::NONE {
@@ -177,6 +190,13 @@ impl Vm {
         match store {
             Store::F(i) => self.reg.f[*i] = v,
             _ => panic!("illegal store to register f"),
+        }
+    }
+
+    fn read_a(&self, store: &Store) -> m128d {
+        match store {
+            Store::A(i) => self.reg.a[*i],
+            _ => panic!("illegal read from register a"),
         }
     }
     
