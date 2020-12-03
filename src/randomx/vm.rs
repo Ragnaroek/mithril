@@ -98,6 +98,12 @@ impl Vm {
         self.write_f(&instr.dst, v_src + v_dst);
     }
 
+    pub fn exec_fscal_r(&mut self, instr: &Instr) {
+        let v_dst = self.read_f(&instr.dst);
+        let mask = m128d::from_u64(0x80F0000000000000, 0x80F0000000000000);
+        self.write_f(&instr.dst, v_dst ^ mask);    
+    }
+
     //i...
 
     pub fn exec_iadd_m(&mut self, instr: &Instr) {

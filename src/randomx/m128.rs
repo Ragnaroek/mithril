@@ -8,7 +8,8 @@
 use std::fmt;
 use std::arch::x86_64::{_mm_set_epi32, __m128i, __m128d, _mm_extract_epi64, _mm_aesdec_si128, 
     _mm_aesenc_si128, _mm_cmpeq_epi32, _mm_movemask_epi8, _mm_cvtepi32_pd, _mm_storeh_pd, 
-    _mm_store_sd, _mm_set_pd, _mm_cmpeq_pd, _mm_movemask_pd, _mm_add_pd, _mm_set_epi64x, _mm_shuffle_pd};
+    _mm_store_sd, _mm_set_pd, _mm_cmpeq_pd, _mm_movemask_pd, _mm_add_pd, _mm_set_epi64x, _mm_shuffle_pd,
+    _mm_xor_pd};
 
 #[allow(nonstandard_style)]
 #[derive(Copy, Clone)]
@@ -168,5 +169,15 @@ impl fmt::LowerHex for m128d {
 impl fmt::Debug for m128d {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         format_m128d(self, f)
+    }
+}
+
+impl std::ops::BitXor for m128d {
+    type Output = Self;
+
+    fn bitxor(self, rhs: Self) -> Self::Output {
+        unsafe {
+            return m128d(_mm_xor_pd(self.0, rhs.0));
+        }
     }
 }

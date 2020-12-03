@@ -70,3 +70,16 @@ fn test_m128d_shuffle_1() {
     let m_shuffled = m1.shuffle_1(&m2);
     assert_eq!(m_shuffled, m128d::from_f64(65638.3748, 788.888)); 
 }
+
+#[test]
+fn test_m128d_xor() {
+    let m1 = m128d::from_u64(0x0555555555555555, 0x0555555555555555);
+    let m2 = m128d::from_u64(0x0AAAAAAAAAAAAAAA, 0x0AAAAAAAAAAAAAAA);
+    
+    let m_xored = m1 ^ m2;
+    
+    assert_eq!(m_xored, m128d::from_u64(0x0FFFFFFFFFFFFFFF, 0x0FFFFFFFFFFFFFFF));
+
+    let nulled = m1 ^ m1;
+    assert_eq!(nulled, m128d::from_u64(0x0, 0x0));    
+}

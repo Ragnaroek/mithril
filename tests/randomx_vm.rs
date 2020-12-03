@@ -278,6 +278,17 @@ fn test_exec_fadd_r_round_to_zero() {
 }
 
 #[test]
+fn test_exec_fscal_r() {
+    let instr = Instr{op: Opcode::FSCAL_R, dst: f_reg(0), src: Store::L1(Box::new(Store::R(1))), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fscal_r};
+    let mut vm = new_vm();
+    vm.reg.f[0] = m128d::from_u64(0x41dbc35cef248783, 0x40fdfdabb6173d07);
+    
+    instr.execute(&mut vm);
+   
+    assert_eq!(vm.reg.f[0], m128d::from_u64(0xc12bc35cef248783, 0xc00dfdabb6173d07));
+}
+
+#[test]
 #[allow(overflowing_literals)]
 fn test_exec_fadd_m() {
     let instr = Instr{op: Opcode::FADD_M, dst: f_reg(0), src: Store::L1(Box::new(Store::R(1))), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fadd_m};
@@ -290,6 +301,8 @@ fn test_exec_fadd_m() {
     
     assert_eq!(vm.reg.f[0], m128d::from_u64(0x41b2345678000000, 0xc1dbd50c84400000));
 }
+
+
 
 /*
 #[test]
