@@ -1,7 +1,7 @@
 extern crate mithril;
 
 use mithril::randomx::m128::{m128d};
-use mithril::randomx::program::{Instr, Opcode, Store, f_reg, a_reg, r_reg, Mode, REG_NEEDS_DISPLACEMENT_IX, REG_NEEDS_DISPLACEMENT};
+use mithril::randomx::program::{Instr, Opcode, Store, e_reg, f_reg, a_reg, r_reg, Mode, REG_NEEDS_DISPLACEMENT_IX, REG_NEEDS_DISPLACEMENT};
 use mithril::randomx::vm::{new_vm, Vm};
 use std::arch::x86_64::{_MM_ROUND_NEAREST, _MM_ROUND_DOWN, _MM_ROUND_UP, _MM_ROUND_TOWARD_ZERO};
 //use mithril::byte_string::{u8_array_to_string};
@@ -289,6 +289,62 @@ fn test_exec_fscal_r() {
 }
 
 #[test]
+fn test_exec_fmul_r_round_to_nearest() {
+    let instr = Instr{op: Opcode::FMUL_R, dst: e_reg(0), src: a_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fmul_r};
+    let mut vm = new_vm();
+    vm.set_rounding_mode(_MM_ROUND_NEAREST);
+
+    vm.reg.e[0] = m128d::from_u64(0x41dbc35cef248783, 0x40fdfdabb6173d07);
+    vm.reg.a[1] = m128d::from_u64(0x40eba861aa31c7c0, 0x41c4561212ae2d50); 
+
+    instr.execute(&mut vm);
+
+    assert_eq!(vm.reg.e[0], m128d::from_u64(0x42d7feeccd89152f, 0x42d30f35ff7a6969)) 
+}
+
+#[test]
+fn test_exec_fmul_r_round_round_down() {
+    let instr = Instr{op: Opcode::FMUL_R, dst: e_reg(0), src: a_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fmul_r};
+    let mut vm = new_vm();
+    vm.set_rounding_mode(_MM_ROUND_DOWN);
+
+    vm.reg.e[0] = m128d::from_u64(0x41dbc35cef248783, 0x40fdfdabb6173d07);
+    vm.reg.a[1] = m128d::from_u64(0x40eba861aa31c7c0, 0x41c4561212ae2d50); 
+
+    instr.execute(&mut vm);
+
+    assert_eq!(vm.reg.e[0], m128d::from_u64(0x42d7feeccd89152e, 0x42d30f35ff7a6969)) 
+}
+
+#[test]
+fn test_exec_fmul_r_round_up() {
+    let instr = Instr{op: Opcode::FMUL_R, dst: e_reg(0), src: a_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fmul_r};
+    let mut vm = new_vm();
+    vm.set_rounding_mode(_MM_ROUND_UP);
+
+    vm.reg.e[0] = m128d::from_u64(0x41dbc35cef248783, 0x40fdfdabb6173d07);
+    vm.reg.a[1] = m128d::from_u64(0x40eba861aa31c7c0, 0x41c4561212ae2d50); 
+
+    instr.execute(&mut vm);
+
+    assert_eq!(vm.reg.e[0], m128d::from_u64(0x42d7feeccd89152f, 0x42d30f35ff7a696a)) 
+}
+
+#[test]
+fn test_exec_fmul_r_round_to_zero() {
+    let instr = Instr{op: Opcode::FMUL_R, dst: e_reg(0), src: a_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fmul_r};
+    let mut vm = new_vm();
+    vm.set_rounding_mode(_MM_ROUND_TOWARD_ZERO);
+
+    vm.reg.e[0] = m128d::from_u64(0x41dbc35cef248783, 0x40fdfdabb6173d07);
+    vm.reg.a[1] = m128d::from_u64(0x40eba861aa31c7c0, 0x41c4561212ae2d50); 
+
+    instr.execute(&mut vm);
+
+    assert_eq!(vm.reg.e[0], m128d::from_u64(0x42d7feeccd89152e, 0x42d30f35ff7a6969)) 
+}
+
+#[test]
 #[allow(overflowing_literals)]
 fn test_exec_fadd_m() {
     let instr = Instr{op: Opcode::FADD_M, dst: f_reg(0), src: Store::L1(Box::new(Store::R(1))), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fadd_m};
@@ -301,8 +357,6 @@ fn test_exec_fadd_m() {
     
     assert_eq!(vm.reg.f[0], m128d::from_u64(0x41b2345678000000, 0xc1dbd50c84400000));
 }
-
-
 
 /*
 #[test]

@@ -83,3 +83,13 @@ fn test_m128d_xor() {
     let nulled = m1 ^ m1;
     assert_eq!(nulled, m128d::from_u64(0x0, 0x0));    
 }
+
+#[test]
+fn test_m128d_mul() {
+    let m1 = m128d::from_u64(0x41dbc35cef248783, 0x40fdfdabb6173d07);
+    let m2 = m128d::from_u64(0x40eba861aa31c7c0, 0x41c4561212ae2d50); 
+
+    let m_muled = m1 * m2;
+
+    assert_eq!(m_muled, m128d::from_u64(0x42d7feeccd89152f, 0x42d30f35ff7a6969));
+}

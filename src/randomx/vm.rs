@@ -104,6 +104,12 @@ impl Vm {
         self.write_f(&instr.dst, v_dst ^ mask);    
     }
 
+    pub fn exec_fmul_r(&mut self, instr: &Instr) {
+        let v_src = self.read_a(&instr.src);
+        let v_dst = self.read_e(&instr.dst);
+        self.write_e(&instr.dst, v_src * v_dst);
+    }
+
     //i...
 
     pub fn exec_iadd_m(&mut self, instr: &Instr) {
@@ -203,6 +209,20 @@ impl Vm {
         match store {
             Store::A(i) => self.reg.a[*i],
             _ => panic!("illegal read from register a"),
+        }
+    }
+
+    fn read_e(&self, store: &Store) -> m128d {
+        match store {
+            Store::E(i) => self.reg.e[*i],
+            _ => panic!("illegal read from register e"),
+        }
+    }
+
+    fn write_e(&mut self, store: &Store, v: m128d) {
+        match store {
+            Store::E(i) => self.reg.e[*i] = v,
+            _ => panic!("illegal store to register e"),
         }
     }
     
