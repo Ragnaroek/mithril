@@ -110,6 +110,11 @@ impl Vm {
         self.write_e(&instr.dst, v_src * v_dst);
     }
 
+    pub fn exec_fsqrt_r(&mut self, instr: &Instr) {
+        let v_dst = self.read_e(&instr.dst);
+        self.write_e(&instr.dst, v_dst.sqrt());
+    }
+
     //i...
 
     pub fn exec_iadd_m(&mut self, instr: &Instr) {

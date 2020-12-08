@@ -9,7 +9,7 @@ use std::fmt;
 use std::arch::x86_64::{_mm_set_epi32, __m128i, __m128d, _mm_extract_epi64, _mm_aesdec_si128, 
     _mm_aesenc_si128, _mm_cmpeq_epi32, _mm_movemask_epi8, _mm_cvtepi32_pd, _mm_storeh_pd, 
     _mm_store_sd, _mm_set_pd, _mm_cmpeq_pd, _mm_movemask_pd, _mm_add_pd, _mm_set_epi64x, _mm_shuffle_pd,
-    _mm_xor_pd, _mm_mul_pd};
+    _mm_xor_pd, _mm_mul_pd, _mm_sqrt_pd};
 
 #[allow(nonstandard_style)]
 #[derive(Copy, Clone)]
@@ -129,6 +129,13 @@ impl m128d {
     pub fn shuffle_1(&self, other: &m128d) -> m128d {
         unsafe {
             return m128d(_mm_shuffle_pd(self.0, other.0, 1));
+        }
+    }
+
+    //_mm_sqrt_pd
+    pub fn sqrt(&self) -> m128d {
+        unsafe {
+            return m128d(_mm_sqrt_pd(self.0));
         }
     }
 }

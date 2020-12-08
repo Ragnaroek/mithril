@@ -93,3 +93,12 @@ fn test_m128d_mul() {
 
     assert_eq!(m_muled, m128d::from_u64(0x42d7feeccd89152f, 0x42d30f35ff7a6969));
 }
+
+#[test]
+fn test_m128_sqrt() {
+    let m = m128d::from_u64(0x41b6b21c11affea7, 0x40526a7e778d9824);
+
+    let m_sqrted = m.sqrt();
+
+    assert_eq!(m_sqrted, m128d::from_u64(0x40d30e573fa3ba8d, 0x40212a610b301fe8));
+}

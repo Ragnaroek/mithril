@@ -345,6 +345,58 @@ fn test_exec_fmul_r_round_to_zero() {
 }
 
 #[test]
+fn test_exec_fsqrt_r_round_to_nearest() {
+    let instr = Instr{op: Opcode::FSQRT_R, dst: e_reg(0), src: Store::NONE, imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fsqrt_r};
+    let mut vm = new_vm();
+    vm.set_rounding_mode(_MM_ROUND_NEAREST);
+
+    vm.reg.e[0] = m128d::from_u64(0x41b6b21c11affea7, 0x40526a7e778d9824);
+
+    instr.execute(&mut vm);
+
+    assert_eq!(vm.reg.e[0], m128d::from_u64(0x40d30e573fa3ba8d, 0x40212a610b301fe8));
+}
+
+#[test]
+fn test_exec_fsqrt_r_round_up() {
+    let instr = Instr{op: Opcode::FSQRT_R, dst: e_reg(0), src: Store::NONE, imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fsqrt_r};
+    let mut vm = new_vm();
+    vm.set_rounding_mode(_MM_ROUND_UP);
+
+    vm.reg.e[0] = m128d::from_u64(0x41b6b21c11affea7, 0x40526a7e778d9824);
+
+    instr.execute(&mut vm);
+
+    assert_eq!(vm.reg.e[0], m128d::from_u64(0x40d30e573fa3ba8d, 0x40212a610b301fe9));
+}
+
+#[test]
+fn test_exec_fsqrt_r_round_down() {
+    let instr = Instr{op: Opcode::FSQRT_R, dst: e_reg(0), src: Store::NONE, imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fsqrt_r};
+    let mut vm = new_vm();
+    vm.set_rounding_mode(_MM_ROUND_DOWN);
+
+    vm.reg.e[0] = m128d::from_u64(0x41b6b21c11affea7, 0x40526a7e778d9824);
+
+    instr.execute(&mut vm);
+
+    assert_eq!(vm.reg.e[0], m128d::from_u64(0x40d30e573fa3ba8c, 0x40212a610b301fe8));
+}
+
+#[test]
+fn test_exec_fsqrt_r_round_to_zero() {
+    let instr = Instr{op: Opcode::FSQRT_R, dst: e_reg(0), src: Store::NONE, imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fsqrt_r};
+    let mut vm = new_vm();
+    vm.set_rounding_mode(_MM_ROUND_TOWARD_ZERO);
+
+    vm.reg.e[0] = m128d::from_u64(0x41b6b21c11affea7, 0x40526a7e778d9824);
+
+    instr.execute(&mut vm);
+
+    assert_eq!(vm.reg.e[0], m128d::from_u64(0x40d30e573fa3ba8c, 0x40212a610b301fe8));
+}
+
+#[test]
 #[allow(overflowing_literals)]
 fn test_exec_fadd_m() {
     let instr = Instr{op: Opcode::FADD_M, dst: f_reg(0), src: Store::L1(Box::new(Store::R(1))), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fadd_m};
