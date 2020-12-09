@@ -4,13 +4,14 @@ use self::blake2b_simd::{blake2b, Hash};
 use super::program::{Instr, Store, Mode, MAX_REG, MAX_FLOAT_REG};
 use super::m128::{m128d, m128i};
 use std::convert::TryInto;
-use std::arch::x86_64::{_MM_SET_ROUNDING_MODE};
+use std::arch::x86_64::{_mm_setcsr, _mm_getcsr};
 
 pub const SCRATCHPAD_L1_MASK : u64 = 0x3ff8;
 pub const SCRATCHPAD_L2_MASK : u64 = 0x3fff8;
 pub const SCRATCHPAD_L3_MASK : u64 = 0x1ffff8;
 
 const SCRATCHPAD_SIZE : usize = 262144;
+const MXCSR_DEFAULT : u32 = 0x9FC0; 
 
 pub struct Register {
     pub r: [u64; MAX_REG as usize],
@@ -66,8 +67,14 @@ impl Vm {
 
     pub fn set_rounding_mode(&mut self, mode: u32) {
         unsafe {
-            _MM_SET_ROUNDING_MODE(mode);
+            _mm_setcsr(MXCSR_DEFAULT | (mode << 13))
         }
+    }
+
+    pub fn get_rounding_mode(&self) -> u32 {
+        unsafe {
+            (_mm_getcsr() >> 13) & 3
+        } 
     }
     
     pub fn exec_iadd_rs(&mut self, instr: &Instr) {
@@ -173,6 +180,14 @@ impl Vm {
         self.write_r(&instr.src, v_dst);
     }
   
+    //c..
+
+    pub fn exec_cfround(&mut self, instr: &Instr) {
+        let v_src = self.read_r(&instr.src);
+        let mode = (v_src.rotate_right(instr.imm.unwrap() as u32) % 4) as u32;
+        self.set_rounding_mode(mode);
+    }
+
     //helper
 
     fn imm_or_r(&self, instr: &Instr) -> u64 {

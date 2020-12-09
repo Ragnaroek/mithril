@@ -3,7 +3,6 @@ extern crate mithril;
 use mithril::randomx::m128::{m128d};
 use mithril::randomx::program::{Instr, Opcode, Store, e_reg, f_reg, a_reg, r_reg, Mode, REG_NEEDS_DISPLACEMENT_IX, REG_NEEDS_DISPLACEMENT};
 use mithril::randomx::vm::{new_vm, Vm};
-use std::arch::x86_64::{_MM_ROUND_NEAREST, _MM_ROUND_DOWN, _MM_ROUND_UP, _MM_ROUND_TOWARD_ZERO};
 //use mithril::byte_string::{u8_array_to_string};
 
 /*
@@ -18,6 +17,11 @@ fn test_calc_hash() {
 #[allow(overflowing_literals)]
 const IMM32 : i32 = 0xc0cb96d2; //3234567890
 const IMM64 : u64 = 0xffffffffc0cb96d2;
+const ROUND_TO_NEAREST : u32 = 0;
+const ROUND_DOWN : u32 = 1;
+const ROUND_UP : u32 = 2;
+const ROUND_TO_ZERO : u32 = 3;
+
 
 #[test]
 fn test_exec_iadd_rs() {
@@ -225,7 +229,7 @@ fn test_exec_fswap_r() {
 fn test_exec_fadd_r_round_to_nearest() {
     let instr = Instr{op: Opcode::FADD_R, dst: f_reg(0), src: a_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fadd_r};
     let mut vm = new_vm();
-    vm.set_rounding_mode(_MM_ROUND_NEAREST);
+    vm.set_rounding_mode(ROUND_TO_NEAREST);
 
     vm.reg.f[0] = m128d::from_u64(0x3ffd2c97cc4ef015, 0xc1ce30b3c4223576);
     vm.reg.a[1] = m128d::from_u64(0x402a26a86a60c8fb, 0x40b8f684057a59e1); 
@@ -239,7 +243,7 @@ fn test_exec_fadd_r_round_to_nearest() {
 fn test_exec_fadd_r_round_down() {
     let instr = Instr{op: Opcode::FADD_R, dst: f_reg(0), src: a_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fadd_r};
     let mut vm = new_vm();
-    vm.set_rounding_mode(_MM_ROUND_DOWN);
+    vm.set_rounding_mode(ROUND_DOWN);
 
     vm.reg.f[0] = m128d::from_u64(0x3ffd2c97cc4ef015, 0xc1ce30b3c4223576);
     vm.reg.a[1] = m128d::from_u64(0x402a26a86a60c8fb, 0x40b8f684057a59e1); 
@@ -253,7 +257,7 @@ fn test_exec_fadd_r_round_down() {
 fn test_exec_fadd_r_round_up() {
     let instr = Instr{op: Opcode::FADD_R, dst: f_reg(0), src: a_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fadd_r};
     let mut vm = new_vm();
-    vm.set_rounding_mode(_MM_ROUND_UP);
+    vm.set_rounding_mode(ROUND_UP);
 
     vm.reg.f[0] = m128d::from_u64(0x3ffd2c97cc4ef015, 0xc1ce30b3c4223576);
     vm.reg.a[1] = m128d::from_u64(0x402a26a86a60c8fb, 0x40b8f684057a59e1); 
@@ -267,7 +271,7 @@ fn test_exec_fadd_r_round_up() {
 fn test_exec_fadd_r_round_to_zero() {
     let instr = Instr{op: Opcode::FADD_R, dst: f_reg(0), src: a_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fadd_r};
     let mut vm = new_vm();
-    vm.set_rounding_mode(_MM_ROUND_TOWARD_ZERO);
+    vm.set_rounding_mode(ROUND_TO_ZERO);
 
     vm.reg.f[0] = m128d::from_u64(0x3ffd2c97cc4ef015, 0xc1ce30b3c4223576);
     vm.reg.a[1] = m128d::from_u64(0x402a26a86a60c8fb, 0x40b8f684057a59e1); 
@@ -292,7 +296,7 @@ fn test_exec_fscal_r() {
 fn test_exec_fmul_r_round_to_nearest() {
     let instr = Instr{op: Opcode::FMUL_R, dst: e_reg(0), src: a_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fmul_r};
     let mut vm = new_vm();
-    vm.set_rounding_mode(_MM_ROUND_NEAREST);
+    vm.set_rounding_mode(ROUND_TO_NEAREST);
 
     vm.reg.e[0] = m128d::from_u64(0x41dbc35cef248783, 0x40fdfdabb6173d07);
     vm.reg.a[1] = m128d::from_u64(0x40eba861aa31c7c0, 0x41c4561212ae2d50); 
@@ -306,7 +310,7 @@ fn test_exec_fmul_r_round_to_nearest() {
 fn test_exec_fmul_r_round_round_down() {
     let instr = Instr{op: Opcode::FMUL_R, dst: e_reg(0), src: a_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fmul_r};
     let mut vm = new_vm();
-    vm.set_rounding_mode(_MM_ROUND_DOWN);
+    vm.set_rounding_mode(ROUND_DOWN);
 
     vm.reg.e[0] = m128d::from_u64(0x41dbc35cef248783, 0x40fdfdabb6173d07);
     vm.reg.a[1] = m128d::from_u64(0x40eba861aa31c7c0, 0x41c4561212ae2d50); 
@@ -320,7 +324,7 @@ fn test_exec_fmul_r_round_round_down() {
 fn test_exec_fmul_r_round_up() {
     let instr = Instr{op: Opcode::FMUL_R, dst: e_reg(0), src: a_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fmul_r};
     let mut vm = new_vm();
-    vm.set_rounding_mode(_MM_ROUND_UP);
+    vm.set_rounding_mode(ROUND_UP);
 
     vm.reg.e[0] = m128d::from_u64(0x41dbc35cef248783, 0x40fdfdabb6173d07);
     vm.reg.a[1] = m128d::from_u64(0x40eba861aa31c7c0, 0x41c4561212ae2d50); 
@@ -334,7 +338,7 @@ fn test_exec_fmul_r_round_up() {
 fn test_exec_fmul_r_round_to_zero() {
     let instr = Instr{op: Opcode::FMUL_R, dst: e_reg(0), src: a_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fmul_r};
     let mut vm = new_vm();
-    vm.set_rounding_mode(_MM_ROUND_TOWARD_ZERO);
+    vm.set_rounding_mode(ROUND_TO_ZERO);
 
     vm.reg.e[0] = m128d::from_u64(0x41dbc35cef248783, 0x40fdfdabb6173d07);
     vm.reg.a[1] = m128d::from_u64(0x40eba861aa31c7c0, 0x41c4561212ae2d50); 
@@ -348,7 +352,7 @@ fn test_exec_fmul_r_round_to_zero() {
 fn test_exec_fsqrt_r_round_to_nearest() {
     let instr = Instr{op: Opcode::FSQRT_R, dst: e_reg(0), src: Store::NONE, imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fsqrt_r};
     let mut vm = new_vm();
-    vm.set_rounding_mode(_MM_ROUND_NEAREST);
+    vm.set_rounding_mode(ROUND_TO_NEAREST);
 
     vm.reg.e[0] = m128d::from_u64(0x41b6b21c11affea7, 0x40526a7e778d9824);
 
@@ -361,7 +365,7 @@ fn test_exec_fsqrt_r_round_to_nearest() {
 fn test_exec_fsqrt_r_round_up() {
     let instr = Instr{op: Opcode::FSQRT_R, dst: e_reg(0), src: Store::NONE, imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fsqrt_r};
     let mut vm = new_vm();
-    vm.set_rounding_mode(_MM_ROUND_UP);
+    vm.set_rounding_mode(ROUND_UP);
 
     vm.reg.e[0] = m128d::from_u64(0x41b6b21c11affea7, 0x40526a7e778d9824);
 
@@ -374,7 +378,7 @@ fn test_exec_fsqrt_r_round_up() {
 fn test_exec_fsqrt_r_round_down() {
     let instr = Instr{op: Opcode::FSQRT_R, dst: e_reg(0), src: Store::NONE, imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fsqrt_r};
     let mut vm = new_vm();
-    vm.set_rounding_mode(_MM_ROUND_DOWN);
+    vm.set_rounding_mode(ROUND_DOWN);
 
     vm.reg.e[0] = m128d::from_u64(0x41b6b21c11affea7, 0x40526a7e778d9824);
 
@@ -387,7 +391,7 @@ fn test_exec_fsqrt_r_round_down() {
 fn test_exec_fsqrt_r_round_to_zero() {
     let instr = Instr{op: Opcode::FSQRT_R, dst: e_reg(0), src: Store::NONE, imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fsqrt_r};
     let mut vm = new_vm();
-    vm.set_rounding_mode(_MM_ROUND_TOWARD_ZERO);
+    vm.set_rounding_mode(ROUND_TO_ZERO);
 
     vm.reg.e[0] = m128d::from_u64(0x41b6b21c11affea7, 0x40526a7e778d9824);
 
@@ -408,6 +412,26 @@ fn test_exec_fadd_m() {
     instr.execute(&mut vm);
     
     assert_eq!(vm.reg.f[0], m128d::from_u64(0x41b2345678000000, 0xc1dbd50c84400000));
+}
+
+#[test]
+fn test_exec_cfround() {
+    let instr = Instr{op: Opcode::CFROUND, dst: Store::NONE, src: r_reg(0), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_cfround};
+    let mut vm = new_vm();
+    vm.reg.r[0] = 0xFFFFFFFFFFFC6800;
+
+    assert_eq!(vm.get_rounding_mode(), ROUND_TO_NEAREST); //new vm starts with default rounding mode
+
+    instr.execute(&mut vm);
+
+    assert_eq!(vm.get_rounding_mode(), ROUND_TO_ZERO);
+    /*
+    runTest("CFROUND (execute)", RANDOMX_FREQ_CFROUND > 0, [&] {
+        reg.r[registerSrc] = 0xFFFFFFFFFFFC6800;
+        decoder.executeInstruction(ibc, pc, nullptr, config);
+        assert(rx_get_rounding_mode() == 0x3);
+      });
+    */
 }
 
 /*
