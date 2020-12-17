@@ -11,7 +11,9 @@ pub const SCRATCHPAD_L2_MASK : u64 = 0x3fff8;
 pub const SCRATCHPAD_L3_MASK : u64 = 0x1ffff8;
 
 const SCRATCHPAD_SIZE : usize = 262144;
-const MXCSR_DEFAULT : u32 = 0x9FC0; 
+const MXCSR_DEFAULT : u32 = 0x9FC0;
+const CONDITION_OFFSET : u64 = 8;
+const CONDITION_MASK : u64 = (1 << CONDITION_OFFSET) - 1;
 
 pub struct Register {
     pub r: [u64; MAX_REG as usize],
@@ -32,6 +34,7 @@ pub fn new_register() -> Register {
 pub struct Vm {
     pub reg: Register,
     pub scratchpad: Box<Vec<u64>>,
+    pub pc : usize,
 }
 
 impl Vm {
@@ -80,7 +83,7 @@ impl Vm {
     pub fn exec_iadd_rs(&mut self, instr: &Instr) {
         let mut v = self.read_r(&instr.src) << shift_mode(instr);
         if let Some(imm) = instr.imm {
-            v = v.wrapping_add(imm as u64 | 0xffffffff00000000);
+            v = v.wrapping_add(u64_imm(imm));
         }
         self.write_r(&instr.dst, self.read_r(&instr.dst).wrapping_add(v));
     }
@@ -188,6 +191,18 @@ impl Vm {
         self.set_rounding_mode(mode);
     }
 
+    pub fn exec_cbranch(&mut self, instr: &Instr) {
+        let shift = cond_mode(instr) as u64 + CONDITION_OFFSET;
+        let mut imm = u64_imm(instr.imm.unwrap()) | 1 << shift;
+        imm &= !(1 << (shift - 1));
+        let v_dst = self.read_r(&instr.dst).wrapping_add(imm);
+
+        self.write_r(&instr.dst, v_dst);
+        if v_dst & (CONDITION_MASK << shift) == 0 {
+            self.pc = instr.target.unwrap() as usize;   
+        }
+    }
+
     //helper
 
     fn imm_or_r(&self, instr: &Instr) -> u64 {
@@ -265,10 +280,17 @@ fn u64_imm(imm: i32) -> u64 {
 fn shift_mode(instr: &Instr) -> u8 {
     match instr.mode {
         Mode::Shft(x) => x,
-        _ => panic!("illegal mode {}", instr.mode),
+        _ => panic!("illegal shift mode {}", instr.mode),
+    }
+}
+
+fn cond_mode(instr: &Instr) -> u8 {
+    match instr.mode {
+        Mode::Cond(x) => x,
+        _ => panic!("illegal cond mode {}", instr.mode),
     }
 }
 
 pub fn new_vm() -> Vm {
-    Vm{reg: new_register(), scratchpad: Box::new(vec![0; SCRATCHPAD_SIZE])}
+    Vm{reg: new_register(), scratchpad: Box::new(vec![0; SCRATCHPAD_SIZE]), pc: 0}
 }

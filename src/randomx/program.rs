@@ -3,8 +3,8 @@ use super::vm::{Vm, SCRATCHPAD_L3_MASK};
 use strum::Display;
 use std::fmt;
 
-pub const MAX_FLOAT_REG : i64 = 4;
-pub const MAX_REG : i64 = 8;
+pub const MAX_FLOAT_REG : usize = 4;
+pub const MAX_REG : usize = 8;
 pub const REG_NEEDS_DISPLACEMENT_IX : usize = 5;
 pub const REG_NEEDS_DISPLACEMENT: Store = Store::R(REG_NEEDS_DISPLACEMENT_IX);
 const STORE_L3_CONDITION : u8 = 14;
@@ -84,27 +84,28 @@ pub struct Instr {
     pub imm: Option<i32>,
     pub unsigned_imm: bool,
     pub mode: Mode,
+    pub target: Option<i32>,
     pub effect: fn(&mut Vm, &Instr)
 }
 
 fn new_instr(op: Opcode, dst: Store, src: Store, imm: i32, mode: Mode, effect: fn(&mut Vm, &Instr)) -> Instr {
     if src == dst {
-        return Instr{op, dst, src: Store::NONE, imm: Some(imm), unsigned_imm: false, mode, effect: effect};
+        return Instr{op, dst, src: Store::NONE, imm: Some(imm), unsigned_imm: false, mode, target: None, effect: effect};
     }
-    Instr{op, dst, src, imm: None, unsigned_imm: false, mode, effect: effect}
+    Instr{op, dst, src, imm: None, unsigned_imm: false, mode, target: None, effect: effect}
 }
 
 fn new_imm_instr(op: Opcode, dst: Store, imm: i32, mode: Mode) -> Instr {
-    Instr{op, dst, src: Store::NONE, imm: Some(imm), unsigned_imm: false, mode, effect: nop}
+    Instr{op, dst, src: Store::NONE, imm: Some(imm), unsigned_imm: false, mode, target: None, effect: nop}
 }
  
-pub fn new_lcache_instr(op: Opcode, dst_reg: Store, src: i64, imm: i32, modi: u8, effect: fn(&mut Vm, &Instr)) -> Instr {
+pub fn new_lcache_instr(op: Opcode, dst_reg: Store, src: usize, imm: i32, modi: u8, effect: fn(&mut Vm, &Instr)) -> Instr {
     let src_reg = r_reg(src);
     if src_reg == dst_reg {
-        return Instr{op, dst: dst_reg, src: Store::L3(Box::new(Store::Imm)), imm: Some(imm & (SCRATCHPAD_L3_MASK as i32)), unsigned_imm: false, mode: Mode::None, effect};
+        return Instr{op, dst: dst_reg, src: Store::L3(Box::new(Store::Imm)), imm: Some(imm & (SCRATCHPAD_L3_MASK as i32)), unsigned_imm: false, mode: Mode::None, target: None, effect};
     }
     let lx = l12_cache(src, modi);
-    return Instr{op, dst: dst_reg, src: lx, imm: Some(imm), unsigned_imm: false, mode: Mode::None, effect}
+    return Instr{op, dst: dst_reg, src: lx, imm: Some(imm), unsigned_imm: false, mode: Mode::None, target: None, effect}
 
 }
 
@@ -175,7 +176,8 @@ fn write_l_access(f: &mut fmt::Formatter<'_>, instr: &Instr, reg: &Store, lstore
 }
 
 pub struct Program {
-    program: Vec<Instr>
+    pub program: Vec<Instr>,
+    pub register_usage: [i32; MAX_REG]
 }
 
 impl fmt::Display for Program {
@@ -190,24 +192,25 @@ impl fmt::Display for Program {
 pub fn from_bytes(bytes: Vec<m128i>) -> Program {
     
     let mut program = Vec::with_capacity((bytes.len() - 8) * 2);
-    
+    let mut register_usage = [-1; MAX_REG];
+
     //first 8 m128 are generated for entropy. We skip them.
     for i in 8..bytes.len() {
         let (op2, op1) = bytes[i].to_i64();
-        let instr1 = decode_instruction(op1);
-        let instr2 = decode_instruction(op2);
+        let instr1 = decode_instruction(op1, ((i-8)*2) as i32, &mut register_usage);
+        let instr2 = decode_instruction(op2, (((i-8)*2)+1) as i32, &mut register_usage);
         program.push(instr1);
         program.push(instr2);
     }
     
-    Program{program}
+    Program{program, register_usage}
 }
 
 #[allow(overflowing_literals)]
-fn decode_instruction(bytes: i64) -> Instr {
+fn decode_instruction(bytes: i64, i: i32, register_usage: &mut [i32; MAX_REG]) -> Instr {
     let op = bytes & 0xFF;
-    let dst = (bytes & 0xFF00) >> 8;
-    let src = (bytes & 0xFF0000) >> 16;
+    let dst = ((bytes & 0xFF00) >> 8) as usize;
+    let src = ((bytes & 0xFF0000) >> 16) as usize;
     let modi = ((bytes & 0xFF000000) >> 24) as u8;
     let imm = ((bytes & 0xFFFFFFFF00000000) >> 32) as i32;
     
@@ -219,57 +222,77 @@ fn decode_instruction(bytes: i64) -> Instr {
         } else {
             imm_val = None;
         }
-        return Instr{op: Opcode::IADD_RS, dst: dst_reg, src: r_reg(src), imm: imm_val, unsigned_imm: false, mode: mod_shft(modi), effect: Vm::exec_iadd_rs}
+        register_usage[dst%MAX_REG] = i;
+        return Instr{op: Opcode::IADD_RS, dst: dst_reg, src: r_reg(src), imm: imm_val, unsigned_imm: false, mode: mod_shft(modi), target: None, effect: Vm::exec_iadd_rs}
     }
     if op < Opcode::IADD_M as i64 {
+        register_usage[dst%MAX_REG] = i;
         return new_lcache_instr(Opcode::IADD_M, r_reg(dst), src, imm, modi, nop);
     }
     if op < Opcode::ISUB_R as i64 {
+        register_usage[dst%MAX_REG] = i;
         return new_instr(Opcode::ISUB_R, r_reg(dst), r_reg(src), imm, Mode::None, Vm::exec_isub_r);
     }
     if op < Opcode::ISUB_M as i64 {
+        register_usage[dst%MAX_REG] = i;
         return new_lcache_instr(Opcode::ISUB_M, r_reg(dst), src, imm, modi, nop);
     }
     if op < Opcode::IMUL_R as i64 {
+        register_usage[dst%MAX_REG] = i;
         return new_instr(Opcode::IMUL_R, r_reg(dst), r_reg(src), imm, Mode::None, Vm::exec_imul_r);
     }
     if op < Opcode::IMUL_M as i64 {
+        register_usage[dst%MAX_REG] = i;
         return new_lcache_instr(Opcode::IMUL_M, r_reg(dst), src, imm, modi, nop);
     }
     if op < Opcode::IMULH_R as i64 {
-        return Instr{op: Opcode::IMULH_R, dst: r_reg(dst), src: r_reg(src), imm: None, unsigned_imm: false, mode: Mode::None, effect: Vm::exec_imulh_r}
+        register_usage[dst%MAX_REG] = i;
+        return Instr{op: Opcode::IMULH_R, dst: r_reg(dst), src: r_reg(src), imm: None, unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_imulh_r}
     }
     if op < Opcode::IMULH_M as i64 {
+        register_usage[dst%MAX_REG] = i;
         return new_lcache_instr(Opcode::IMULH_M, r_reg(dst), src, imm, modi, nop);
     }
     if op < Opcode::ISMULH_R as i64 {
-        return Instr{op: Opcode::ISMULH_R, dst: r_reg(dst), src: r_reg(src), imm: None, unsigned_imm: false, mode: Mode::None, effect: nop}
+        register_usage[dst%MAX_REG] = i;
+        return Instr{op: Opcode::ISMULH_R, dst: r_reg(dst), src: r_reg(src), imm: None, unsigned_imm: false, mode: Mode::None, target: None, effect: nop}
     }
     if op < Opcode::ISMULH_M as i64 {
+        register_usage[dst%MAX_REG] = i;
         return new_lcache_instr(Opcode::ISMULH_M, r_reg(dst), src, imm, modi, nop);
     }
     if op < Opcode::IMUL_RCP as i64 {
+        //TODO NOP Instruction if uint64_t divisor = instr.getImm32();
+		//	if (!isZeroOrPowerOf2(divisor)) {
+        register_usage[dst%MAX_REG] = i;
         let mut instr = new_imm_instr(Opcode::IMUL_RCP, r_reg(dst), imm, Mode::None);
         instr.unsigned_imm = true;
         return instr;
     }
     if op < Opcode::INEG_R as i64 {
+        register_usage[dst%MAX_REG] = i;
         return new_instr(Opcode::INEG_R, r_reg(dst), Store::NONE, imm, Mode::None, Vm::exec_ineg_r);
     }
     if op < Opcode::IXOR_R as i64 {
+        register_usage[dst%MAX_REG] = i;
         return new_instr(Opcode::IXOR_R, r_reg(dst), r_reg(src), imm, Mode::None, nop);
     }
     if op < Opcode::IXOR_M as i64 {
+        register_usage[dst%MAX_REG] = i;
         return new_lcache_instr(Opcode::IXOR_M, r_reg(dst), src, imm, modi, nop);
     }
     if op < Opcode::IROR_R as i64 {
+        register_usage[dst%MAX_REG] = i;
         return new_instr(Opcode::IROR_R, r_reg(dst), r_reg(src), imm & 63, Mode::None, Vm::exec_iror_r);
     }
     if op < Opcode::IROL_R as i64 {
+        register_usage[dst%MAX_REG] = i;
         return new_instr(Opcode::IROL_R, r_reg(dst), r_reg(src), imm & 63, Mode::None, Vm::exec_irol_r);
     }
     if op < Opcode::ISWAP_R as i64 {
-        return Instr{op: Opcode::ISWAP_R, dst: r_reg(dst), src: r_reg(src), imm: None, unsigned_imm: false, mode: Mode::None, effect: Vm::exec_iswap_r}
+        register_usage[dst%MAX_REG] = i;
+        register_usage[src%MAX_REG] = i;
+        return Instr{op: Opcode::ISWAP_R, dst: r_reg(dst), src: r_reg(src), imm: None, unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_iswap_r}
     }
     if op < Opcode::FSWAP_R as i64 {
         let dst_ix = dst % MAX_REG;
@@ -304,18 +327,22 @@ fn decode_instruction(bytes: i64) -> Instr {
         return new_instr(Opcode::FSQRT_R, e_reg(dst), Store::NONE, imm, Mode::None, nop);
     }
     if op < Opcode::CBRANCH as i64 {
-        return new_imm_instr(Opcode::CBRANCH, r_reg(dst), imm, mod_cond(modi));
+        let target = register_usage[dst%MAX_REG];
+        for r_i in 0..MAX_REG {
+            register_usage[r_i] = i;
+        }
+        return Instr{op: Opcode::CBRANCH, dst: r_reg(dst), src: Store::NONE, imm: Some(imm), unsigned_imm: false, mode: mod_cond(modi), target: Some(target), effect: nop}
     }
     if op < Opcode::CFROUND as i64 {
-        return Instr{op: Opcode::CFROUND , dst: Store::NONE, src: r_reg(src), imm: Some(imm & 63), unsigned_imm: false, mode: Mode::None, effect: nop}
+        return Instr{op: Opcode::CFROUND , dst: Store::NONE, src: r_reg(src), imm: Some(imm & 63), unsigned_imm: false, mode: Mode::None, target: None, effect: nop}
     }
     if op < Opcode::ISTORE as i64 {
-        return Instr{op: Opcode::ISTORE, dst: l_cache(dst, modi), src: r_reg(src), imm: Some(imm), unsigned_imm: false, mode: Mode::None, effect: nop};
+        return Instr{op: Opcode::ISTORE, dst: l_cache(dst, modi), src: r_reg(src), imm: Some(imm), unsigned_imm: false, mode: Mode::None, target: None, effect: nop};
     }
     return new_instr(Opcode::NOP, Store::NONE, Store::NONE, imm, Mode::None, nop);
 }
 
-pub fn r_reg(dst: i64) -> Store {
+pub fn r_reg(dst: usize) -> Store {
     match dst%MAX_REG {
         0 => Store::R(0),
         1 => Store::R(1),
@@ -329,7 +356,7 @@ pub fn r_reg(dst: i64) -> Store {
     }
 }
 
-pub fn a_reg(dst: i64) -> Store {
+pub fn a_reg(dst: usize) -> Store {
     match dst%MAX_FLOAT_REG {
         0 => Store::A(0),
         1 => Store::A(1),
@@ -339,11 +366,11 @@ pub fn a_reg(dst: i64) -> Store {
     }
 }
 
-pub fn e_reg(dst: i64) -> Store {
+pub fn e_reg(dst: usize) -> Store {
     e_reg_ix(dst%MAX_FLOAT_REG)
 }
 
-fn e_reg_ix(ix: i64) -> Store {
+fn e_reg_ix(ix: usize) -> Store {
     match ix {
         0 => Store::E(0),
         1 => Store::E(1),
@@ -353,11 +380,11 @@ fn e_reg_ix(ix: i64) -> Store {
     }
 }
 
-pub fn f_reg(dst: i64) -> Store {
+pub fn f_reg(dst: usize) -> Store {
     f_reg_ix(dst%MAX_FLOAT_REG)
 }
 
-fn f_reg_ix(ix: i64) -> Store {
+fn f_reg_ix(ix: usize) -> Store {
     match ix {
         0 => Store::F(0),
         1 => Store::F(1),
@@ -367,7 +394,7 @@ fn f_reg_ix(ix: i64) -> Store {
     }
 }
 
-fn l_cache(dst: i64, modi: u8) -> Store {
+fn l_cache(dst: usize, modi: u8) -> Store {
     let reg = r_reg(dst);
     let cond = mod_cond_u8(modi);
     if cond < STORE_L3_CONDITION {
@@ -379,7 +406,7 @@ fn l_cache(dst: i64, modi: u8) -> Store {
     return Store::L3(Box::new(reg));
 }
 
-fn l12_cache(src: i64, modi: u8) -> Store {
+fn l12_cache(src: usize, modi: u8) -> Store {
     let reg = r_reg(src);
     if mod_mem_u8(modi) == 0 {
         return Store::L2(Box::new(reg));

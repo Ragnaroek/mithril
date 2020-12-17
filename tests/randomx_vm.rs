@@ -22,10 +22,9 @@ const ROUND_DOWN : u32 = 1;
 const ROUND_UP : u32 = 2;
 const ROUND_TO_ZERO : u32 = 3;
 
-
 #[test]
 fn test_exec_iadd_rs() {
-    let instr = Instr{op: Opcode::IADD_RS, dst: r_reg(0), src: r_reg(1), imm: None,  unsigned_imm: false, mode: Mode::Shft(3), effect: Vm::exec_iadd_rs};
+    let instr = Instr{op: Opcode::IADD_RS, dst: r_reg(0), src: r_reg(1), imm: None,  unsigned_imm: false, mode: Mode::Shft(3), target: None, effect: Vm::exec_iadd_rs};
     
     let mut vm = new_vm();
     vm.reg.r[0] = 0x8000000000000000;
@@ -38,7 +37,7 @@ fn test_exec_iadd_rs() {
 
 #[test]
 fn test_exec_iadd_rs_with_immediate() {
-    let instr = Instr{op: Opcode::IADD_RS, dst: REG_NEEDS_DISPLACEMENT, src: r_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::Shft(2), effect: Vm::exec_iadd_rs};
+    let instr = Instr{op: Opcode::IADD_RS, dst: REG_NEEDS_DISPLACEMENT, src: r_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::Shft(2), target: None, effect: Vm::exec_iadd_rs};
     let mut vm = new_vm();
     vm.reg.r[REG_NEEDS_DISPLACEMENT_IX] = 0x8000000000000000;
     vm.reg.r[1] = 0x2000000000000000;
@@ -51,7 +50,7 @@ fn test_exec_iadd_rs_with_immediate() {
 #[test]
 #[allow(overflowing_literals)]
 fn test_exec_isub_r() {
-    let instr = Instr{op: Opcode::ISUB_R, dst: r_reg(0), src: r_reg(1), imm: None, unsigned_imm: false, mode: Mode::None, effect: Vm::exec_isub_r};
+    let instr = Instr{op: Opcode::ISUB_R, dst: r_reg(0), src: r_reg(1), imm: None, unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_isub_r};
     let mut vm = new_vm();
     vm.reg.r[0] = 1;
     vm.reg.r[1] = 0xFFFFFFFF;
@@ -63,7 +62,7 @@ fn test_exec_isub_r() {
 
 #[test]
 fn test_exec_isub_r_with_immediate() {
-    let instr = Instr{op: Opcode::ISUB_R, dst: r_reg(0), src: Store::NONE, imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_isub_r};
+    let instr = Instr{op: Opcode::ISUB_R, dst: r_reg(0), src: Store::NONE, imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_isub_r};
     let mut vm = new_vm();
     vm.reg.r[0] = 0;
     
@@ -74,7 +73,7 @@ fn test_exec_isub_r_with_immediate() {
 
 #[test]
 fn test_exec_imul_r() {
-    let instr = Instr{op: Opcode::IMUL_R, dst: r_reg(0), src: r_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_imul_r};
+    let instr = Instr{op: Opcode::IMUL_R, dst: r_reg(0), src: r_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_imul_r};
     let mut vm = new_vm();
     vm.reg.r[0] = 0xBC550E96BA88A72B;
     vm.reg.r[1] = 0xF5391FA9F18D6273;
@@ -86,7 +85,7 @@ fn test_exec_imul_r() {
 
 #[test]
 fn test_exec_imul_r_with_immediate() {
-    let instr = Instr{op: Opcode::IMUL_R, dst: r_reg(0), src: Store::NONE, imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_imul_r};
+    let instr = Instr{op: Opcode::IMUL_R, dst: r_reg(0), src: Store::NONE, imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_imul_r};
     let mut vm = new_vm();
     vm.reg.r[0] = 1;
 
@@ -97,7 +96,7 @@ fn test_exec_imul_r_with_immediate() {
 
 #[test]
 fn test_exec_imulh_r() {
-    let instr = Instr{op: Opcode::IMULH_R, dst: r_reg(0), src: r_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_imulh_r};
+    let instr = Instr{op: Opcode::IMULH_R, dst: r_reg(0), src: r_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_imulh_r};
     let mut vm = new_vm();
     vm.reg.r[0] = 0xBC550E96BA88A72B;
     vm.reg.r[1] = 0xF5391FA9F18D6273;
@@ -109,7 +108,7 @@ fn test_exec_imulh_r() {
 
 #[test]
 fn test_exec_ismulh_r() {
-    let instr = Instr{op: Opcode::ISMULH_R, dst: r_reg(0), src: r_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_ismulh_r};
+    let instr = Instr{op: Opcode::ISMULH_R, dst: r_reg(0), src: r_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_ismulh_r};
     let mut vm = new_vm();
     vm.reg.r[0] = 0xBC550E96BA88A72B;
     vm.reg.r[1] = 0xF5391FA9F18D6273;
@@ -121,7 +120,7 @@ fn test_exec_ismulh_r() {
 
 #[test]
 fn test_exec_ineg_r() {
-    let instr = Instr{op: Opcode::INEG_R, dst: r_reg(0), src: Store::NONE, imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_ineg_r};
+    let instr = Instr{op: Opcode::INEG_R, dst: r_reg(0), src: Store::NONE, imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_ineg_r};
     let mut vm = new_vm(); 
     vm.reg.r[0] = 0xFFFFFFFFFFFFFFFF;
 
@@ -132,7 +131,7 @@ fn test_exec_ineg_r() {
 
 #[test]
 fn test_exec_ixor_r() {
-    let instr = Instr{op: Opcode::IXOR_R, dst: r_reg(0), src: r_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_ixor_r};
+    let instr = Instr{op: Opcode::IXOR_R, dst: r_reg(0), src: r_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_ixor_r};
     let mut vm = new_vm(); 
     vm.reg.r[0] = 0x8888888888888888;
     vm.reg.r[1] = 0xAAAAAAAAAAAAAAAA;
@@ -144,7 +143,7 @@ fn test_exec_ixor_r() {
 
 #[test]
 fn test_exec_ixor_r_with_immediate() {
-    let instr = Instr{op: Opcode::IXOR_R, dst: r_reg(0), src: Store::NONE, imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_ixor_r};
+    let instr = Instr{op: Opcode::IXOR_R, dst: r_reg(0), src: Store::NONE, imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_ixor_r};
     let mut vm = new_vm(); 
     vm.reg.r[0] = 0xFFFFFFFFFFFFFFFF;
 
@@ -155,7 +154,7 @@ fn test_exec_ixor_r_with_immediate() {
 
 #[test]
 fn test_exec_iror_r() {
-    let instr = Instr{op: Opcode::IROR_R, dst: r_reg(0), src: r_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_iror_r};
+    let instr = Instr{op: Opcode::IROR_R, dst: r_reg(0), src: r_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_iror_r};
     let mut vm = new_vm(); 
     vm.reg.r[0] = 953360005391419562;
     vm.reg.r[1] = 4569451684712230561;
@@ -168,7 +167,7 @@ fn test_exec_iror_r() {
 #[test]
 #[allow(overflowing_literals)]
 fn test_exec_iror_r_with_immediate() {
-    let instr = Instr{op: Opcode::IROR_R, dst: r_reg(0), src: Store::NONE, imm: Some(4569451684712230561 as i32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_iror_r};
+    let instr = Instr{op: Opcode::IROR_R, dst: r_reg(0), src: Store::NONE, imm: Some(4569451684712230561 as i32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_iror_r};
     let mut vm = new_vm(); 
     vm.reg.r[0] = 953360005391419562;
 
@@ -179,7 +178,7 @@ fn test_exec_iror_r_with_immediate() {
 
 #[test]
 fn test_exec_irol_r() {
-    let instr = Instr{op: Opcode::IROL_R, dst: r_reg(0), src: r_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_irol_r};
+    let instr = Instr{op: Opcode::IROL_R, dst: r_reg(0), src: r_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_irol_r};
     let mut vm = new_vm();
     vm.reg.r[0] = 953360005391419562;
     vm.reg.r[1] = 4569451684712230561;
@@ -192,7 +191,7 @@ fn test_exec_irol_r() {
 #[test]
 #[allow(overflowing_literals)]
 fn test_exec_irol_r_with_immediate() {
-    let instr = Instr{op: Opcode::IROL_R, dst: r_reg(0), src: Store::NONE, imm: Some(4569451684712230561 as i32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_irol_r};
+    let instr = Instr{op: Opcode::IROL_R, dst: r_reg(0), src: Store::NONE, imm: Some(4569451684712230561 as i32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_irol_r};
     let mut vm = new_vm();
     vm.reg.r[0] = 953360005391419562;
 
@@ -203,7 +202,7 @@ fn test_exec_irol_r_with_immediate() {
 
 #[test]
 fn test_exec_iswap_r() {
-    let instr = Instr{op: Opcode::ISWAP_R, dst: r_reg(0), src: r_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_iswap_r};
+    let instr = Instr{op: Opcode::ISWAP_R, dst: r_reg(0), src: r_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_iswap_r};
     let mut vm = new_vm();
     vm.reg.r[0] = 953360005391419562;
     vm.reg.r[1] = 4569451684712230561; 
@@ -216,7 +215,7 @@ fn test_exec_iswap_r() {
 
 #[test]
 fn test_exec_fswap_r() {
-    let instr = Instr{op: Opcode::FSWAP_R, dst: f_reg(0), src: Store::NONE, imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fswap_r};
+    let instr = Instr{op: Opcode::FSWAP_R, dst: f_reg(0), src: Store::NONE, imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_fswap_r};
     let mut vm = new_vm();
     vm.reg.f[0] = m128d::from_u64(953360005391419562, 4569451684712230561); 
 
@@ -227,7 +226,7 @@ fn test_exec_fswap_r() {
 
 #[test]
 fn test_exec_fadd_r_round_to_nearest() {
-    let instr = Instr{op: Opcode::FADD_R, dst: f_reg(0), src: a_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fadd_r};
+    let instr = Instr{op: Opcode::FADD_R, dst: f_reg(0), src: a_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_fadd_r};
     let mut vm = new_vm();
     vm.set_rounding_mode(ROUND_TO_NEAREST);
 
@@ -241,7 +240,7 @@ fn test_exec_fadd_r_round_to_nearest() {
 
 #[test]
 fn test_exec_fadd_r_round_down() {
-    let instr = Instr{op: Opcode::FADD_R, dst: f_reg(0), src: a_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fadd_r};
+    let instr = Instr{op: Opcode::FADD_R, dst: f_reg(0), src: a_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_fadd_r};
     let mut vm = new_vm();
     vm.set_rounding_mode(ROUND_DOWN);
 
@@ -255,7 +254,7 @@ fn test_exec_fadd_r_round_down() {
 
 #[test]
 fn test_exec_fadd_r_round_up() {
-    let instr = Instr{op: Opcode::FADD_R, dst: f_reg(0), src: a_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fadd_r};
+    let instr = Instr{op: Opcode::FADD_R, dst: f_reg(0), src: a_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_fadd_r};
     let mut vm = new_vm();
     vm.set_rounding_mode(ROUND_UP);
 
@@ -269,7 +268,7 @@ fn test_exec_fadd_r_round_up() {
 
 #[test]
 fn test_exec_fadd_r_round_to_zero() {
-    let instr = Instr{op: Opcode::FADD_R, dst: f_reg(0), src: a_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fadd_r};
+    let instr = Instr{op: Opcode::FADD_R, dst: f_reg(0), src: a_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_fadd_r};
     let mut vm = new_vm();
     vm.set_rounding_mode(ROUND_TO_ZERO);
 
@@ -283,7 +282,7 @@ fn test_exec_fadd_r_round_to_zero() {
 
 #[test]
 fn test_exec_fscal_r() {
-    let instr = Instr{op: Opcode::FSCAL_R, dst: f_reg(0), src: Store::L1(Box::new(Store::R(1))), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fscal_r};
+    let instr = Instr{op: Opcode::FSCAL_R, dst: f_reg(0), src: Store::L1(Box::new(Store::R(1))), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_fscal_r};
     let mut vm = new_vm();
     vm.reg.f[0] = m128d::from_u64(0x41dbc35cef248783, 0x40fdfdabb6173d07);
     
@@ -294,7 +293,7 @@ fn test_exec_fscal_r() {
 
 #[test]
 fn test_exec_fmul_r_round_to_nearest() {
-    let instr = Instr{op: Opcode::FMUL_R, dst: e_reg(0), src: a_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fmul_r};
+    let instr = Instr{op: Opcode::FMUL_R, dst: e_reg(0), src: a_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_fmul_r};
     let mut vm = new_vm();
     vm.set_rounding_mode(ROUND_TO_NEAREST);
 
@@ -308,7 +307,7 @@ fn test_exec_fmul_r_round_to_nearest() {
 
 #[test]
 fn test_exec_fmul_r_round_round_down() {
-    let instr = Instr{op: Opcode::FMUL_R, dst: e_reg(0), src: a_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fmul_r};
+    let instr = Instr{op: Opcode::FMUL_R, dst: e_reg(0), src: a_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_fmul_r};
     let mut vm = new_vm();
     vm.set_rounding_mode(ROUND_DOWN);
 
@@ -322,7 +321,7 @@ fn test_exec_fmul_r_round_round_down() {
 
 #[test]
 fn test_exec_fmul_r_round_up() {
-    let instr = Instr{op: Opcode::FMUL_R, dst: e_reg(0), src: a_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fmul_r};
+    let instr = Instr{op: Opcode::FMUL_R, dst: e_reg(0), src: a_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_fmul_r};
     let mut vm = new_vm();
     vm.set_rounding_mode(ROUND_UP);
 
@@ -336,7 +335,7 @@ fn test_exec_fmul_r_round_up() {
 
 #[test]
 fn test_exec_fmul_r_round_to_zero() {
-    let instr = Instr{op: Opcode::FMUL_R, dst: e_reg(0), src: a_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fmul_r};
+    let instr = Instr{op: Opcode::FMUL_R, dst: e_reg(0), src: a_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_fmul_r};
     let mut vm = new_vm();
     vm.set_rounding_mode(ROUND_TO_ZERO);
 
@@ -350,7 +349,7 @@ fn test_exec_fmul_r_round_to_zero() {
 
 #[test]
 fn test_exec_fsqrt_r_round_to_nearest() {
-    let instr = Instr{op: Opcode::FSQRT_R, dst: e_reg(0), src: Store::NONE, imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fsqrt_r};
+    let instr = Instr{op: Opcode::FSQRT_R, dst: e_reg(0), src: Store::NONE, imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_fsqrt_r};
     let mut vm = new_vm();
     vm.set_rounding_mode(ROUND_TO_NEAREST);
 
@@ -363,7 +362,7 @@ fn test_exec_fsqrt_r_round_to_nearest() {
 
 #[test]
 fn test_exec_fsqrt_r_round_up() {
-    let instr = Instr{op: Opcode::FSQRT_R, dst: e_reg(0), src: Store::NONE, imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fsqrt_r};
+    let instr = Instr{op: Opcode::FSQRT_R, dst: e_reg(0), src: Store::NONE, imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_fsqrt_r};
     let mut vm = new_vm();
     vm.set_rounding_mode(ROUND_UP);
 
@@ -376,7 +375,7 @@ fn test_exec_fsqrt_r_round_up() {
 
 #[test]
 fn test_exec_fsqrt_r_round_down() {
-    let instr = Instr{op: Opcode::FSQRT_R, dst: e_reg(0), src: Store::NONE, imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fsqrt_r};
+    let instr = Instr{op: Opcode::FSQRT_R, dst: e_reg(0), src: Store::NONE, imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_fsqrt_r};
     let mut vm = new_vm();
     vm.set_rounding_mode(ROUND_DOWN);
 
@@ -389,7 +388,7 @@ fn test_exec_fsqrt_r_round_down() {
 
 #[test]
 fn test_exec_fsqrt_r_round_to_zero() {
-    let instr = Instr{op: Opcode::FSQRT_R, dst: e_reg(0), src: Store::NONE, imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fsqrt_r};
+    let instr = Instr{op: Opcode::FSQRT_R, dst: e_reg(0), src: Store::NONE, imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_fsqrt_r};
     let mut vm = new_vm();
     vm.set_rounding_mode(ROUND_TO_ZERO);
 
@@ -403,7 +402,7 @@ fn test_exec_fsqrt_r_round_to_zero() {
 #[test]
 #[allow(overflowing_literals)]
 fn test_exec_fadd_m() {
-    let instr = Instr{op: Opcode::FADD_M, dst: f_reg(0), src: Store::L1(Box::new(Store::R(1))), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_fadd_m};
+    let instr = Instr{op: Opcode::FADD_M, dst: f_reg(0), src: Store::L1(Box::new(Store::R(1))), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_fadd_m};
     let mut vm = new_vm();
     vm.scratchpad[0] = 0x1234567890abcdef;
     vm.reg.r[1] = 0xFFFFFFFFFFFFE930;
@@ -416,7 +415,7 @@ fn test_exec_fadd_m() {
 
 #[test]
 fn test_exec_cfround() {
-    let instr = Instr{op: Opcode::CFROUND, dst: Store::NONE, src: r_reg(0), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, effect: Vm::exec_cfround};
+    let instr = Instr{op: Opcode::CFROUND, dst: Store::NONE, src: r_reg(0), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_cfround};
     let mut vm = new_vm();
     vm.reg.r[0] = 0xFFFFFFFFFFFC6800;
 
@@ -425,13 +424,32 @@ fn test_exec_cfround() {
     instr.execute(&mut vm);
 
     assert_eq!(vm.get_rounding_mode(), ROUND_TO_ZERO);
-    /*
-    runTest("CFROUND (execute)", RANDOMX_FREQ_CFROUND > 0, [&] {
-        reg.r[registerSrc] = 0xFFFFFFFFFFFC6800;
-        decoder.executeInstruction(ibc, pc, nullptr, config);
-        assert(rx_get_rounding_mode() == 0x3);
-      });
-    */
+}
+
+#[test]
+#[allow(overflowing_literals)]
+fn test_exec_cbranch_taken() {
+    let instr = Instr{op: Opcode::CBRANCH, dst: r_reg(0), src: Store::NONE, imm: Some(0xFFFFFFFFC0CB9AD2), unsigned_imm: false, mode: Mode::Cond(3), target: Some(100), effect: Vm::exec_cbranch};
+    let mut vm = new_vm();
+    vm.pc = 200;    
+    vm.reg.r[0] = 0xFFFFFFFFFFFC6800;
+
+    instr.execute(&mut vm);
+
+    assert_eq!(vm.pc, 100)
+}
+
+#[test]
+#[allow(overflowing_literals)]
+fn test_exec_cbranch_not_taken() {
+    let instr = Instr{op: Opcode::CBRANCH, dst: r_reg(0), src: Store::NONE, imm: Some(0xFFFFFFFFC0CB9AD2), unsigned_imm: false, mode: Mode::Cond(3), target: None, effect: Vm::exec_cbranch};
+    let mut vm = new_vm();
+    vm.pc = 200;    
+    vm.reg.r[0] = 0;
+
+    instr.execute(&mut vm);
+
+    assert_eq!(vm.pc, 200)
 }
 
 /*
