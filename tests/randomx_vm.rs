@@ -452,6 +452,45 @@ fn test_exec_cbranch_not_taken() {
     assert_eq!(vm.pc, 200)
 }
 
+#[test]
+#[allow(overflowing_literals)]
+fn test_exec_istore_l1() {
+    let instr = Instr{op: Opcode::ISTORE, dst: Store::L1(Box::new(r_reg(0))), src: r_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_istore};
+    let mut vm = new_vm();
+    vm.reg.r[1] = 0xFFFFFFFFFFFC6800;
+    vm.reg.r[0] = 0xFFFFFFFFC0C802D2;
+
+    instr.execute(&mut vm);
+
+    assert_eq!(vm.scratchpad[0x19A0 / 8], 0xFFFFFFFFFFFC6800);
+}
+
+#[test]
+#[allow(overflowing_literals)]
+fn test_exec_istore_l2() {
+    let instr = Instr{op: Opcode::ISTORE, dst: Store::L2(Box::new(r_reg(0))), src: r_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_istore};
+    let mut vm = new_vm();
+    vm.reg.r[1] = 0xFFFFFFFFFFFC6800;
+    vm.reg.r[0] = 0xFFFFFFFFC0C802D2;
+
+    instr.execute(&mut vm);
+
+    assert_eq!(vm.scratchpad[0x399A0 / 8], 0xFFFFFFFFFFFC6800);
+}
+
+#[test]
+#[allow(overflowing_literals)]
+fn test_exec_istore_l3() {
+    let instr = Instr{op: Opcode::ISTORE, dst: Store::L3(Box::new(r_reg(0))), src: r_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_istore};
+    let mut vm = new_vm();
+    vm.reg.r[1] = 0xFFFFFFFFFFFC6800;
+    vm.reg.r[0] = 0xFFFFFFFFC0C802D2;
+
+    instr.execute(&mut vm);
+
+    assert_eq!(vm.scratchpad[0x1399A0 / 8], 0xFFFFFFFFFFFC6800);
+}
+
 /*
 #[test]
 fn test_exec_iadd_m() {

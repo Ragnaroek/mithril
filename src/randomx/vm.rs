@@ -80,14 +80,6 @@ impl Vm {
         } 
     }
     
-    pub fn exec_iadd_rs(&mut self, instr: &Instr) {
-        let mut v = self.read_r(&instr.src) << shift_mode(instr);
-        if let Some(imm) = instr.imm {
-            v = v.wrapping_add(u64_imm(imm));
-        }
-        self.write_r(&instr.dst, self.read_r(&instr.dst).wrapping_add(v));
-    }
-    
     //f...
 
     pub fn exec_fadd_m(&mut self, instr: &Instr) {
@@ -129,6 +121,14 @@ impl Vm {
 
     pub fn exec_iadd_m(&mut self, instr: &Instr) {
         //TODO
+    }
+   
+    pub fn exec_iadd_rs(&mut self, instr: &Instr) {
+        let mut v = self.read_r(&instr.src) << shift_mode(instr);
+        if let Some(imm) = instr.imm {
+            v = v.wrapping_add(u64_imm(imm));
+        }
+        self.write_r(&instr.dst, self.read_r(&instr.dst).wrapping_add(v));
     }
     
     pub fn exec_isub_r(&mut self, instr: &Instr) {
@@ -181,6 +181,18 @@ impl Vm {
         let v_dst = self.read_r(&instr.dst);
         self.write_r(&instr.dst, v_src);
         self.write_r(&instr.src, v_dst);
+    }
+
+    pub fn exec_istore(&mut self, instr: &Instr) {
+        let imm = u64_imm(instr.imm.unwrap());
+        let (mask, dst) = match &instr.dst {
+            Store::L1(dst) => (SCRATCHPAD_L1_MASK, dst),
+            Store::L2(dst) => (SCRATCHPAD_L2_MASK, dst),
+            Store::L3(dst) => (SCRATCHPAD_L3_MASK, dst),
+            _ => panic!("illegal ISTORE dst: {}", instr.dst),
+        };
+        let offset = (((self.read_r(&dst).wrapping_add(imm)) & mask) / 8) as usize;
+        self.scratchpad[offset] = self.read_r(&instr.src);
     }
   
     //c..
