@@ -128,6 +128,11 @@ impl Vm {
         let ix = self.scratchpad_src_ix(instr);
         self.write_r(&instr.dst, self.read_r(&instr.dst).wrapping_sub(self.scratchpad[ix]));
     }
+
+    pub fn exec_imul_m(&mut self, instr: &Instr) {
+        let ix = self.scratchpad_src_ix(instr);
+        self.write_r(&instr.dst, self.read_r(&instr.dst).wrapping_mul(self.scratchpad[ix]));
+    }
    
     pub fn exec_iadd_rs(&mut self, instr: &Instr) {
         let mut v = self.read_r(&instr.src) << shift_mode(instr);
