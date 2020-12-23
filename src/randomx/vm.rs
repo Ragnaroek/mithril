@@ -33,7 +33,7 @@ pub fn new_register() -> Register {
 
 pub struct Vm {
     pub reg: Register,
-    pub scratchpad: Box<Vec<u64>>,
+    pub scratchpad: Vec<u64>,
     pub pc : usize,
 }
 
@@ -312,5 +312,5 @@ fn cond_mode(instr: &Instr) -> u8 {
 }
 
 pub fn new_vm() -> Vm {
-    Vm{reg: new_register(), scratchpad: Box::new(vec![0; SCRATCHPAD_SIZE]), pc: 0}
+    Vm{reg: new_register(), scratchpad: vec![0; SCRATCHPAD_SIZE], pc: 0}
 }
