@@ -158,6 +158,12 @@ impl Vm {
         self.write_r(&instr.dst, (v_src.wrapping_mul(v_dst) >> 64) as u64);
     }
 
+    pub fn exec_imulh_m(&mut self, instr: &Instr) {
+        let v_dst = self.read_r(&instr.dst) as u128;
+        let v_src = self.scratchpad[self.scratchpad_src_ix(instr)] as u128;
+        self.write_r(&instr.dst, (v_src.wrapping_mul(v_dst) >> 64) as u64);
+    }
+
     pub fn exec_ismulh_r(&mut self, instr: &Instr) {
         let v_src = (self.read_r(&instr.src) as i64) as i128; //we have to go through i64 to get the proper complement version in i128 if the u64 is negative in i64
         let v_dst = (self.read_r(&instr.dst) as i64) as i128; 
