@@ -121,10 +121,12 @@ impl Vm {
 
     pub fn exec_iadd_m(&mut self, instr: &Instr) {
         let ix = self.scratchpad_src_ix(instr);
-        self.write_r(&instr.dst, self.read_r(&instr.dst) + self.scratchpad[ix]);
-        /*
-        *ibc.idst += load64(getScratchpadAddress(ibc, scratchpad));
-        */
+        self.write_r(&instr.dst, self.read_r(&instr.dst).wrapping_add(self.scratchpad[ix]));
+    }
+
+    pub fn exec_isub_m(&mut self, instr: &Instr) {
+        let ix = self.scratchpad_src_ix(instr);
+        self.write_r(&instr.dst, self.read_r(&instr.dst).wrapping_sub(self.scratchpad[ix]));
     }
    
     pub fn exec_iadd_rs(&mut self, instr: &Instr) {
