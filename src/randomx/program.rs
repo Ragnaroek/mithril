@@ -259,7 +259,7 @@ fn decode_instruction(bytes: i64, i: i32, register_usage: &mut [i32; MAX_REG]) -
     }
     if op < Opcode::ISMULH_M as i64 {
         register_usage[dst%MAX_REG] = i;
-        return new_lcache_instr(Opcode::ISMULH_M, r_reg(dst), src, imm, modi, nop);
+        return new_lcache_instr(Opcode::ISMULH_M, r_reg(dst), src, imm, modi, Vm::exec_ismulh_m);
     }
     if op < Opcode::IMUL_RCP as i64 {
         //TODO NOP Instruction if uint64_t divisor = instr.getImm32();

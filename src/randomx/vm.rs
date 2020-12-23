@@ -170,6 +170,12 @@ impl Vm {
         self.write_r(&instr.dst, (v_src.wrapping_mul(v_dst) >> 64) as u64); 
     }
 
+    pub fn exec_ismulh_m(&mut self, instr: &Instr) {
+        let v_src = (self.scratchpad[self.scratchpad_src_ix(instr)] as i64) as i128;
+        let v_dst = (self.read_r(&instr.dst) as i64) as i128; 
+        self.write_r(&instr.dst, (v_src.wrapping_mul(v_dst) >> 64) as u64);
+    }
+
     pub fn exec_ineg_r(&mut self, instr: &Instr) {
         let v_dst = self.read_r(&instr.dst);
         self.write_r(&instr.dst, !v_dst + 1);
