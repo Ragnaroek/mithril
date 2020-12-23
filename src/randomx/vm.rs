@@ -83,7 +83,7 @@ impl Vm {
     //f...
 
     pub fn exec_fadd_m(&mut self, instr: &Instr) {
-        let ix = self.scratchpad_ix(instr);
+        let ix = self.scratchpad_src_ix(instr);
         let v = self.scratchpad[ix];
         let iv = m128i::from_u64(0, v);
         self.write_f(&instr.dst, self.read_f(&instr.dst) + iv.to_m128d());
@@ -120,7 +120,11 @@ impl Vm {
     //i...
 
     pub fn exec_iadd_m(&mut self, instr: &Instr) {
-        //TODO
+        let ix = self.scratchpad_src_ix(instr);
+        self.write_r(&instr.dst, self.read_r(&instr.dst) + self.scratchpad[ix]);
+        /*
+        *ibc.idst += load64(getScratchpadAddress(ibc, scratchpad));
+        */
     }
    
     pub fn exec_iadd_rs(&mut self, instr: &Instr) {
@@ -184,15 +188,8 @@ impl Vm {
     }
 
     pub fn exec_istore(&mut self, instr: &Instr) {
-        let imm = u64_imm(instr.imm.unwrap());
-        let (mask, dst) = match &instr.dst {
-            Store::L1(dst) => (SCRATCHPAD_L1_MASK, dst),
-            Store::L2(dst) => (SCRATCHPAD_L2_MASK, dst),
-            Store::L3(dst) => (SCRATCHPAD_L3_MASK, dst),
-            _ => panic!("illegal ISTORE dst: {}", instr.dst),
-        };
-        let offset = (((self.read_r(&dst).wrapping_add(imm)) & mask) / 8) as usize;
-        self.scratchpad[offset] = self.read_r(&instr.src);
+        let ix = self.scratchpad_dst_ix(instr);
+        self.scratchpad[ix] = self.read_r(&instr.src);
     }
   
     //c..
@@ -273,9 +270,20 @@ impl Vm {
         }
     }
     
-    fn scratchpad_ix(&self, instr: &Instr) -> usize {
+    fn scratchpad_src_ix(&self, instr: &Instr) -> usize {
         let imm = u64_imm(instr.imm.unwrap());
         let addr : usize = match &instr.src {
+            Store::L1(d) => (self.read_r(d).wrapping_add(imm)) & SCRATCHPAD_L1_MASK,
+            Store::L2(d) => (self.read_r(d).wrapping_add(imm)) & SCRATCHPAD_L2_MASK,
+            Store::L3(_) => imm & SCRATCHPAD_L3_MASK,
+            _ => panic!("illegal read from scratchpad"),
+        }.try_into().unwrap();
+        addr / 8
+    }
+
+    fn scratchpad_dst_ix(&self, instr: &Instr) -> usize {
+        let imm = u64_imm(instr.imm.unwrap());
+        let addr : usize = match &instr.dst {
             Store::L1(d) => (self.read_r(d).wrapping_add(imm)) & SCRATCHPAD_L1_MASK,
             Store::L2(d) => (self.read_r(d).wrapping_add(imm)) & SCRATCHPAD_L2_MASK,
             Store::L3(d) => (self.read_r(d).wrapping_add(imm)) & SCRATCHPAD_L3_MASK,

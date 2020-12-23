@@ -491,15 +491,44 @@ fn test_exec_istore_l3() {
     assert_eq!(vm.scratchpad[0x1399A0 / 8], 0xFFFFFFFFFFFC6800);
 }
 
-/*
+
 #[test]
-fn test_exec_iadd_m() {
-    let instr = new_lcache_instr(Opcode::IADD_M, r_reg(0), 1, 666, 1);
+fn test_exec_iadd_m_l1() {
+    let instr = Instr{op: Opcode::IADD_M, dst: r_reg(0), src: Store::L1(Box::new(r_reg(1))), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_iadd_m};
     let mut vm = new_vm();
+    vm.reg.r[1] = 0xFFFFFFFFFFFFE930;
+    vm.reg.r[0] = 0x666;
+    vm.scratchpad[0] = 0x0203;
     
     instr.execute(&mut vm);
+
+    assert_eq!(vm.reg.r[0], 0x869);
+}
+
+#[test]
+fn test_exec_iadd_m_l2() {
+    let instr = Instr{op: Opcode::IADD_M, dst: r_reg(0), src: Store::L2(Box::new(r_reg(1))), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_iadd_m};
+    let mut vm = new_vm();
+    vm.reg.r[1] = 0xFFFFFFFFFFFFE930;
+    vm.reg.r[0] = 0x666;
+    vm.scratchpad[0x38000/8] = 0x0203;
     
-    assert_eq!(vm.reg.r[0], 0x0);
-}*/
+    instr.execute(&mut vm);
+
+    assert_eq!(vm.reg.r[0], 0x869);
+}
+
+#[test]
+fn test_exec_iadd_m_l3() {
+    let instr = Instr{op: Opcode::IADD_M, dst: r_reg(0), src: Store::L3(Box::new(r_reg(1))), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_iadd_m};
+    let mut vm = new_vm();
+    vm.reg.r[1] = 0xFFFFFFFFFFFFE930;
+    vm.reg.r[0] = 0x666;
+    vm.scratchpad[0xb96d0/8] = 0x0203;
+    
+    instr.execute(&mut vm);
+
+    assert_eq!(vm.reg.r[0], 0x869);
+}
 
 pub fn nop(_state: &mut Vm) {}
