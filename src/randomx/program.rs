@@ -1,5 +1,5 @@
 use super::m128::{m128i};
-use super::vm::{Vm, SCRATCHPAD_L3_MASK};
+use super::vm::{Vm, SCRATCHPAD_L3_MASK, is_zero_or_power_of_2};
 use strum::Display;
 use std::fmt;
 
@@ -10,7 +10,7 @@ pub const REG_NEEDS_DISPLACEMENT: Store = Store::R(REG_NEEDS_DISPLACEMENT_IX);
 const STORE_L3_CONDITION : u8 = 14;
 
 #[allow(nonstandard_style)]
-#[derive(Display)]
+#[derive(Display, Debug, PartialEq)]
 pub enum Opcode {
     NOP = 0,
     IADD_RS = 0x10,
@@ -207,7 +207,7 @@ pub fn from_bytes(bytes: Vec<m128i>) -> Program {
 }
 
 #[allow(overflowing_literals)]
-fn decode_instruction(bytes: i64, i: i32, register_usage: &mut [i32; MAX_REG]) -> Instr {
+pub fn decode_instruction(bytes: i64, i: i32, register_usage: &mut [i32; MAX_REG]) -> Instr {
     let op = bytes & 0xFF;
     let dst = ((bytes & 0xFF00) >> 8) as usize;
     let src = ((bytes & 0xFF0000) >> 16) as usize;
@@ -262,9 +262,9 @@ fn decode_instruction(bytes: i64, i: i32, register_usage: &mut [i32; MAX_REG]) -
         return new_lcache_instr(Opcode::ISMULH_M, r_reg(dst), src, imm, modi, Vm::exec_ismulh_m);
     }
     if op < Opcode::IMUL_RCP as i64 {
-        //TODO NOP Instruction if uint64_t divisor = instr.getImm32();
-		//	if (!isZeroOrPowerOf2(divisor)) {
-        register_usage[dst%MAX_REG] = i;
+        if !is_zero_or_power_of_2(imm as u64) {
+            register_usage[dst%MAX_REG] = i;
+        }
         let mut instr = new_imm_instr(Opcode::IMUL_RCP, r_reg(dst), imm, Mode::None);
         instr.unsigned_imm = true;
         return instr;

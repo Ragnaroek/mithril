@@ -15,6 +15,8 @@ const MXCSR_DEFAULT : u32 = 0x9FC0;
 const CONDITION_OFFSET : u64 = 8;
 const CONDITION_MASK : u64 = (1 << CONDITION_OFFSET) - 1;
 
+const P_2EXP63 : u64 = 1 << 63;
+
 pub struct Register {
     pub r: [u64; MAX_REG as usize],
     pub f: [m128d; MAX_FLOAT_REG as usize],
@@ -150,6 +152,13 @@ impl Vm {
     pub fn exec_imul_r(&mut self, instr: &Instr) {
         let v = self.imm_or_r(instr); 
         self.write_r(&instr.dst, self.read_r(&instr.dst).wrapping_mul(v)); 
+    }
+
+    pub fn exec_imul_rcp(&mut self, instr: &Instr) {
+        if !is_zero_or_power_of_2(instr.imm.unwrap() as u64) {
+            let v = randomx_reciprocal((instr.imm.unwrap() as u64) & 0x00000000FFFFFFFF);
+            self.write_r(&instr.dst, self.read_r(&instr.dst).wrapping_mul(v)); 
+        } //else: nop
     }
 
     pub fn exec_imulh_r(&mut self, instr: &Instr) {
@@ -328,6 +337,54 @@ fn cond_mode(instr: &Instr) -> u8 {
         Mode::Cond(x) => x,
         _ => panic!("illegal cond mode {}", instr.mode),
     }
+}
+
+pub fn is_zero_or_power_of_2(imm: u64) -> bool {
+    imm & imm.wrapping_sub(1) == 0
+}
+
+/*
+    Directly taken from: https://github.com/tevador/RandomX    
+    Calculates rcp = 2**x / divisor for highest integer x such that rcp < 2**64.
+	divisor must not be 0 or a power of 2
+
+	Equivalent x86 assembly (divisor in rcx):
+
+	mov edx, 1
+	mov r8, rcx
+	xor eax, eax
+	bsr rcx, rcx
+	shl rdx, cl
+	div r8
+	ret
+*/
+pub fn randomx_reciprocal(divisor: u64) -> u64 {
+    assert_ne!(divisor, 0);
+
+    let mut quotient = P_2EXP63 / divisor;
+    let mut remainder = P_2EXP63 % divisor;
+    let mut bsr = 0;
+
+    let mut bit = divisor;
+
+    loop {
+        if bit == 0 {
+            break;
+        }
+        bsr += 1;
+        bit >>= 1;
+    }
+
+    for _ in 0..bsr {        
+        if remainder >= divisor.wrapping_sub(remainder) {
+            quotient = quotient.wrapping_mul(2).wrapping_add(1);
+            remainder = remainder.wrapping_mul(2).wrapping_sub(divisor);
+        } else {
+            quotient = quotient.wrapping_mul(2);
+            remainder = remainder.wrapping_mul(2);
+        }
+    }
+    quotient
 }
 
 pub fn new_vm() -> Vm {

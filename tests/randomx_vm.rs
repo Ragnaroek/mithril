@@ -2,7 +2,7 @@ extern crate mithril;
 
 use mithril::randomx::m128::{m128d};
 use mithril::randomx::program::{Instr, Opcode, Store, e_reg, f_reg, a_reg, r_reg, Mode, REG_NEEDS_DISPLACEMENT_IX, REG_NEEDS_DISPLACEMENT};
-use mithril::randomx::vm::{new_vm, Vm};
+use mithril::randomx::vm::{new_vm, Vm, randomx_reciprocal};
 //use mithril::byte_string::{u8_array_to_string};
 
 /*
@@ -685,6 +685,34 @@ fn test_exec_ismulh_m_l3() {
     instr.execute(&mut vm);
 
     assert_eq!(vm.reg.r[0], 0x02D93EF1269D3EE5);
+}
+
+#[test]
+fn test_exec_imul_rcp_non_zero_imm_from_reg() {
+    let instr = Instr{op: Opcode::IMUL_RCP, dst: r_reg(0), src: Store::NONE, imm: Some(IMM32), unsigned_imm: true, mode: Mode::None, target: None, effect: Vm::exec_imul_rcp};
+    let mut vm = new_vm();
+    vm.reg.r[0] = 666;
+
+    instr.execute(&mut vm);
+
+    assert_eq!(vm.reg.r[0], 0x2B2462DE8506B218);
+}
+
+#[test]
+fn test_exec_imul_rcp_zero_imm() {
+    let instr = Instr{op: Opcode::IMUL_RCP, dst: r_reg(0), src: r_reg(1), imm: Some(0), unsigned_imm: true, mode: Mode::None, target: None, effect: Vm::exec_imul_rcp};
+    let mut vm = new_vm();
+    vm.reg.r[0] = 0x666;
+
+    instr.execute(&mut vm);
+
+    assert_eq!(vm.reg.r[0], 0x666);
+}
+
+#[test]
+fn test_randomx_reciprocal() {
+    let result = randomx_reciprocal(0xc0cb96d2);
+    assert_eq!(result, 0xa9f671ed1d69b73c);
 }
 
 pub fn nop(_state: &mut Vm) {}

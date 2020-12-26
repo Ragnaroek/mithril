@@ -4,7 +4,18 @@ extern crate difference;
 
 use mithril::randomx::hash::{gen_program_aes_1rx4, gen_program_aes_4rx4};
 use mithril::randomx::m128::{m128i};
-use mithril::randomx::program::{from_bytes};
+use mithril::randomx::program::{from_bytes, Opcode, MAX_REG, decode_instruction};
+
+#[test]
+fn test_decode_instruction_imul_rcp() {
+    let bytes = (Opcode::IMUL_RCP as i64) - 1; //imm = 0
+    let mut register_usage = [-1; MAX_REG];
+    
+    let instr = decode_instruction(bytes, 6, &mut register_usage);
+
+    assert_eq!(instr.op, Opcode::IMUL_RCP);
+    assert_eq!(register_usage[0], -1);
+}
 
 #[test]
 fn test_decode_program_1000() {
