@@ -710,9 +710,50 @@ fn test_exec_imul_rcp_zero_imm() {
 }
 
 #[test]
+fn test_exec_ixor_m_l1() {
+    let instr = Instr{op: Opcode::IXOR_M, dst: r_reg(0), src: Store::L1(Box::new(r_reg(1))), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_ixor_m};
+    let mut vm = new_vm();
+    vm.reg.r[1] = 0xFFFFFFFFFFFFE930;
+    vm.reg.r[0] = 0x666;
+    vm.scratchpad[0] = 0x0203;
+    
+    instr.execute(&mut vm);
+
+    assert_eq!(vm.reg.r[0], 0x666 ^ 0x203);
+}
+
+#[test]
+fn test_exec_ixor_m_l2() {
+    let instr = Instr{op: Opcode::IXOR_M, dst: r_reg(0), src: Store::L2(Box::new(r_reg(1))), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_ixor_m};
+    let mut vm = new_vm();
+    vm.reg.r[1] = 0xFFFFFFFFFFFFE930;
+    vm.reg.r[0] = 0x666;
+    vm.scratchpad[0x38000/8] = 0x0203;
+    
+    instr.execute(&mut vm);
+
+    assert_eq!(vm.reg.r[0], 0x666 ^ 0x203);
+}
+
+#[test]
+fn test_exec_ixor_m_l3() {
+    let instr = Instr{op: Opcode::IXOR_M, dst: r_reg(0), src: Store::L3(Box::new(r_reg(1))), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_ixor_m};
+    let mut vm = new_vm();
+    vm.reg.r[1] = 0xFFFFFFFFFFFFE930;
+    vm.reg.r[0] = 0x666;
+    vm.scratchpad[0xb96d0/8] = 0x0203;
+    
+    instr.execute(&mut vm);
+
+    assert_eq!(vm.reg.r[0], 0x666 ^ 0x203);
+}
+
+#[test]
 fn test_randomx_reciprocal() {
     let result = randomx_reciprocal(0xc0cb96d2);
     assert_eq!(result, 0xa9f671ed1d69b73c);
 }
+
+//helper
 
 pub fn nop(_state: &mut Vm) {}

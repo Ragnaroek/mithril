@@ -196,6 +196,12 @@ impl Vm {
         self.write_r(&instr.dst, v_dst^v_src);
     }
 
+    pub fn exec_ixor_m(&mut self, instr: &Instr) {
+        let v_src = self.scratchpad[self.scratchpad_src_ix(instr)];
+        let v_dst = self.read_r(&instr.dst);
+        self.write_r(&instr.dst, v_dst^v_src);
+    }
+
     pub fn exec_iror_r(&mut self, instr: &Instr) {
         let v_src = (self.imm_or_r(instr) & 0xFFFFFF) as u32;
         let v_dst = self.read_r(&instr.dst);

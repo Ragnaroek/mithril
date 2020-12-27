@@ -90,13 +90,13 @@ pub struct Instr {
 
 fn new_instr(op: Opcode, dst: Store, src: Store, imm: i32, mode: Mode, effect: fn(&mut Vm, &Instr)) -> Instr {
     if src == dst {
-        return Instr{op, dst, src: Store::NONE, imm: Some(imm), unsigned_imm: false, mode, target: None, effect: effect};
+        return Instr{op, dst, src: Store::NONE, imm: Some(imm), unsigned_imm: false, mode, target: None, effect};
     }
-    Instr{op, dst, src, imm: None, unsigned_imm: false, mode, target: None, effect: effect}
+    Instr{op, dst, src, imm: None, unsigned_imm: false, mode, target: None, effect}
 }
 
-fn new_imm_instr(op: Opcode, dst: Store, imm: i32, mode: Mode) -> Instr {
-    Instr{op, dst, src: Store::NONE, imm: Some(imm), unsigned_imm: false, mode, target: None, effect: nop}
+fn new_imm_instr(op: Opcode, dst: Store, imm: i32, mode: Mode, effect: fn(&mut Vm, &Instr)) -> Instr {
+    Instr{op, dst, src: Store::NONE, imm: Some(imm), unsigned_imm: false, mode, target: None, effect}
 }
  
 pub fn new_lcache_instr(op: Opcode, dst_reg: Store, src: usize, imm: i32, modi: u8, effect: fn(&mut Vm, &Instr)) -> Instr {
@@ -265,7 +265,7 @@ pub fn decode_instruction(bytes: i64, i: i32, register_usage: &mut [i32; MAX_REG
         if !is_zero_or_power_of_2(imm as u64) {
             register_usage[dst%MAX_REG] = i;
         }
-        let mut instr = new_imm_instr(Opcode::IMUL_RCP, r_reg(dst), imm, Mode::None);
+        let mut instr = new_imm_instr(Opcode::IMUL_RCP, r_reg(dst), imm, Mode::None, Vm::exec_imul_rcp);
         instr.unsigned_imm = true;
         return instr;
     }
@@ -279,7 +279,7 @@ pub fn decode_instruction(bytes: i64, i: i32, register_usage: &mut [i32; MAX_REG
     }
     if op < Opcode::IXOR_M as i64 {
         register_usage[dst%MAX_REG] = i;
-        return new_lcache_instr(Opcode::IXOR_M, r_reg(dst), src, imm, modi, nop);
+        return new_lcache_instr(Opcode::IXOR_M, r_reg(dst), src, imm, modi, Vm::exec_ixor_m);
     }
     if op < Opcode::IROR_R as i64 {
         register_usage[dst%MAX_REG] = i;
