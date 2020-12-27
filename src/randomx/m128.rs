@@ -9,7 +9,7 @@ use std::fmt;
 use std::arch::x86_64::{_mm_set_epi32, __m128i, __m128d, _mm_extract_epi64, _mm_aesdec_si128, 
     _mm_aesenc_si128, _mm_cmpeq_epi32, _mm_movemask_epi8, _mm_cvtepi32_pd, _mm_storeh_pd, 
     _mm_store_sd, _mm_set_pd, _mm_cmpeq_pd, _mm_movemask_pd, _mm_add_pd, _mm_set_epi64x, _mm_shuffle_pd,
-    _mm_xor_pd, _mm_mul_pd, _mm_sqrt_pd};
+    _mm_xor_pd, _mm_mul_pd, _mm_sqrt_pd, _mm_sub_pd};
 
 #[allow(nonstandard_style)]
 #[derive(Copy, Clone)]
@@ -157,6 +157,16 @@ impl std::ops::Add for m128d {
     fn add(self, other: Self) -> Self {
         unsafe {
             return m128d(_mm_add_pd(self.0, other.0));
+        }
+    }
+}
+
+impl std::ops::Sub for m128d {
+    type Output = Self;
+
+    fn sub(self, other: Self) -> Self {
+        unsafe {
+            return m128d(_mm_sub_pd(self.0, other.0));
         }
     }
 }

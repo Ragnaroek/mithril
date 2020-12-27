@@ -281,6 +281,62 @@ fn test_exec_fadd_r_round_to_zero() {
 }
 
 #[test]
+fn test_exec_fsub_r_round_to_nearest() {
+    let instr = Instr{op: Opcode::FSUB_R, dst: f_reg(0), src: a_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_fsub_r};
+    let mut vm = new_vm();
+    vm.set_rounding_mode(ROUND_TO_NEAREST);
+
+    vm.reg.f[0] = m128d::from_u64(0x3ffd2c97cc4ef015, 0xc1ce30b3c4223576);
+    vm.reg.a[1] = m128d::from_u64(0x402a26a86a60c8fb, 0x40b8f684057a59e1); 
+
+    instr.execute(&mut vm);
+
+    assert_eq!(vm.reg.f[0], m128d::from_u64(0xc026811570d6eaf8, 0xc1ce30c03f643833))
+}
+
+#[test]
+fn test_exec_fsub_r_round_down() {
+    let instr = Instr{op: Opcode::FSUB_R, dst: f_reg(0), src: a_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_fsub_r};
+    let mut vm = new_vm();
+    vm.set_rounding_mode(ROUND_DOWN);
+
+    vm.reg.f[0] = m128d::from_u64(0x3ffd2c97cc4ef015, 0xc1ce30b3c4223576);
+    vm.reg.a[1] = m128d::from_u64(0x402a26a86a60c8fb, 0x40b8f684057a59e1); 
+
+    instr.execute(&mut vm);
+
+    assert_eq!(vm.reg.f[0], m128d::from_u64(0xc026811570d6eaf9, 0xc1ce30c03f643834))
+}
+
+#[test]
+fn test_exec_fsub_r_round_up() {
+    let instr = Instr{op: Opcode::FSUB_R, dst: f_reg(0), src: a_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_fsub_r};
+    let mut vm = new_vm();
+    vm.set_rounding_mode(ROUND_UP);
+
+    vm.reg.f[0] = m128d::from_u64(0x3ffd2c97cc4ef015, 0xc1ce30b3c4223576);
+    vm.reg.a[1] = m128d::from_u64(0x402a26a86a60c8fb, 0x40b8f684057a59e1); 
+
+    instr.execute(&mut vm);
+
+    assert_eq!(vm.reg.f[0], m128d::from_u64(0xc026811570d6eaf8, 0xc1ce30c03f643833))
+}
+
+#[test]
+fn test_exec_fsub_r_round_to_zero() {
+    let instr = Instr{op: Opcode::FSUB_R, dst: f_reg(0), src: a_reg(1), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_fsub_r};
+    let mut vm = new_vm();
+    vm.set_rounding_mode(ROUND_TO_ZERO);
+
+    vm.reg.f[0] = m128d::from_u64(0x3ffd2c97cc4ef015, 0xc1ce30b3c4223576);
+    vm.reg.a[1] = m128d::from_u64(0x402a26a86a60c8fb, 0x40b8f684057a59e1); 
+
+    instr.execute(&mut vm);
+
+    assert_eq!(vm.reg.f[0], m128d::from_u64(0xc026811570d6eaf8, 0xc1ce30c03f643833))
+}
+
+#[test]
 fn test_exec_fscal_r() {
     let instr = Instr{op: Opcode::FSCAL_R, dst: f_reg(0), src: Store::L1(Box::new(Store::R(1))), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_fscal_r};
     let mut vm = new_vm();

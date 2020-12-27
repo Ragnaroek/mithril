@@ -309,7 +309,7 @@ pub fn decode_instruction(bytes: i64, i: i32, register_usage: &mut [i32; MAX_REG
         return new_lcache_instr(Opcode::FADD_M, f_reg(dst), src, imm, modi, Vm::exec_fadd_m);
     }
     if op < Opcode::FSUB_R as i64 {
-        return new_instr(Opcode::FSUB_R, f_reg(dst), a_reg(src), imm, Mode::None, nop);
+        return new_instr(Opcode::FSUB_R, f_reg(dst), a_reg(src), imm, Mode::None, Vm::exec_fsub_r);
     }
     if op < Opcode::FSUB_M as i64 {
         return new_lcache_instr(Opcode::FSUB_M, f_reg(dst), src, imm, modi, nop);
