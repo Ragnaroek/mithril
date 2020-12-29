@@ -16,6 +16,9 @@ const CONDITION_OFFSET : u64 = 8;
 const CONDITION_MASK : u64 = (1 << CONDITION_OFFSET) - 1;
 
 const P_2EXP63 : u64 = 1 << 63;
+const MANTISSA_SIZE : u64 = 52;
+const DYNAMIC_EXPONENT_BITS : u64 = 4;
+const DYNAMIC_MANTISSA_MASK : u64 = (1 << (MANTISSA_SIZE + DYNAMIC_EXPONENT_BITS)) - 1;
 
 pub struct Register {
     pub r: [u64; MAX_REG as usize],
@@ -33,10 +36,15 @@ pub fn new_register() -> Register {
     }
 }
 
+pub struct VmConfig {
+    pub e_mask: [u64; 2], 
+}
+
 pub struct Vm {
     pub reg: Register,
     pub scratchpad: Vec<u64>,
     pub pc : usize,
+    pub config: VmConfig,
 }
 
 impl Vm {
@@ -130,6 +138,13 @@ impl Vm {
     pub fn exec_fsqrt_r(&mut self, instr: &Instr) {
         let v_dst = self.read_e(&instr.dst);
         self.write_e(&instr.dst, v_dst.sqrt());
+    }
+
+    pub fn exec_fdiv_m(&mut self, instr: &Instr) {
+        let v = self.scratchpad[self.scratchpad_src_ix(instr)];
+        let v_src = self.mask_register_exponent_mantissa(m128i::from_u64(0, v).to_m128d());
+        let v_dst = self.read_e(&instr.dst);
+        self.write_e(&instr.dst, v_dst / v_src); 
     }
 
     //i...
@@ -338,6 +353,12 @@ impl Vm {
         }.try_into().unwrap();
         addr / 8
     }
+
+    fn mask_register_exponent_mantissa(&self, v: m128d) -> m128d {
+        let mantissa_mask = m128d::from_u64(DYNAMIC_MANTISSA_MASK, DYNAMIC_MANTISSA_MASK);
+        let exponent_mask = m128d::from_u64(self.config.e_mask[1], self.config.e_mask[0]);
+        (v & mantissa_mask) | exponent_mask
+    }
 }
 
 fn u64_imm(imm: i32) -> u64 {
@@ -407,5 +428,6 @@ pub fn randomx_reciprocal(divisor: u64) -> u64 {
 }
 
 pub fn new_vm() -> Vm {
-    Vm{reg: new_register(), scratchpad: vec![0; SCRATCHPAD_SIZE], pc: 0}
+    //TODO take entropy as param and init VmConfig properly from there
+    Vm{reg: new_register(), scratchpad: vec![0; SCRATCHPAD_SIZE], pc: 0, config: VmConfig{e_mask: [0, 2]}}
 }

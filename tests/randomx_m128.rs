@@ -75,6 +75,33 @@ fn test_m128d_sub() {
 }
 
 #[test]
+fn test_m128d_div() {
+    let m1 = m128d::from_f64(788.888, 54920.0);
+    let m2 = m128d::from_f64(63.839, 65638.3748);
+    
+    let m_dived = m1 / m2;
+    assert_eq!(m_dived, m128d::from_f64(788.888/63.839, 54920.0/65638.3748));
+}
+
+#[test]
+fn test_m128d_and() {
+    let m1 = m128d::from_u64(0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF);
+    let m2 = m128d::from_u64(0xAAAAAAAAAAAAAAAA, 0xAAAAAAAAAAAAAAAA);
+    
+    let m_anded = m1 & m2;
+    assert_eq!(m_anded, m128d::from_u64(0xAAAAAAAAAAAAAAAA, 0xAAAAAAAAAAAAAAAA));
+}
+
+#[test]
+fn test_m128d_or() {
+    let m1 = m128d::from_u64(0x0, 0x0);
+    let m2 = m128d::from_u64(0xAAAAAAAAAAAAAAAA, 0xAAAAAAAAAAAAAAAA);
+    
+    let m_anded = m1 | m2;
+    assert_eq!(m_anded, m128d::from_u64(0xAAAAAAAAAAAAAAAA, 0xAAAAAAAAAAAAAAAA));
+}
+
+#[test]
 fn test_m128d_shuffle_1() {
     let m1 = m128d::from_f64(788.888, 54920.0);
     let m2 = m128d::from_f64(63.839, 65638.3748);

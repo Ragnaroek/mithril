@@ -9,7 +9,7 @@ use std::fmt;
 use std::arch::x86_64::{_mm_set_epi32, __m128i, __m128d, _mm_extract_epi64, _mm_aesdec_si128, 
     _mm_aesenc_si128, _mm_cmpeq_epi32, _mm_movemask_epi8, _mm_cvtepi32_pd, _mm_storeh_pd, 
     _mm_store_sd, _mm_set_pd, _mm_cmpeq_pd, _mm_movemask_pd, _mm_add_pd, _mm_set_epi64x, _mm_shuffle_pd,
-    _mm_xor_pd, _mm_mul_pd, _mm_sqrt_pd, _mm_sub_pd};
+    _mm_xor_pd, _mm_mul_pd, _mm_sqrt_pd, _mm_sub_pd, _mm_div_pd, _mm_and_pd, _mm_or_pd};
 
 #[allow(nonstandard_style)]
 #[derive(Copy, Clone)]
@@ -199,6 +199,26 @@ impl std::ops::BitXor for m128d {
     }
 }
 
+impl std::ops::BitAnd for m128d {
+    type Output = Self;
+
+    fn bitand(self, rhs: Self) -> Self::Output {
+        unsafe {
+            return m128d(_mm_and_pd(self.0, rhs.0));
+        }
+    } 
+}
+
+impl std::ops::BitOr for m128d {
+    type Output = Self;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        unsafe {
+            return m128d(_mm_or_pd(self.0, rhs.0));
+        }
+    } 
+}
+
 impl std::ops::Mul for m128d {
     type Output = Self;
 
@@ -207,4 +227,14 @@ impl std::ops::Mul for m128d {
             return m128d(_mm_mul_pd(self.0, rhs.0));
         }
     }
+}
+
+impl std::ops::Div for m128d {
+    type Output = Self;
+
+    fn div(self, rhs: Self) -> Self {
+        unsafe {
+            return m128d(_mm_div_pd(self.0, rhs.0));
+        }
+    } 
 }

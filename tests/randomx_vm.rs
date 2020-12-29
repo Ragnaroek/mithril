@@ -336,8 +336,6 @@ fn test_exec_fsub_r_round_to_zero() {
     assert_eq!(vm.reg.f[0], m128d::from_u64(0xc026811570d6eaf8, 0xc1ce30c03f643833))
 }
 
-
-
 #[test]
 fn test_exec_fscal_r() {
     let instr = Instr{op: Opcode::FSCAL_R, dst: f_reg(0), src: Store::L1(Box::new(Store::R(1))), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_fscal_r};
@@ -817,6 +815,70 @@ fn test_exec_ixor_m_l3() {
     instr.execute(&mut vm);
 
     assert_eq!(vm.reg.r[0], 0x666 ^ 0x203);
+}
+
+#[test]
+fn test_exec_fdiv_m_round_to_nearest() {
+    let instr = Instr{op: Opcode::FDIV_M, dst: e_reg(0), src: Store::L1(Box::new(r_reg(1))), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_fdiv_m};
+    let mut vm = new_vm();
+    vm.reg.r[1] = 0xFFFFFFFFFFFFE930;
+    vm.reg.e[0] = m128d::from_u64(0x41937f76fede16ee, 0x411b414296ce93b6);
+    vm.set_rounding_mode(ROUND_TO_NEAREST);
+    vm.config.e_mask[0] = 0x3a0000000005d11a;
+    vm.config.e_mask[1] = 0x39000000001ba31e;
+    vm.scratchpad[0] = 0x8b2460d9d350a1b6;
+
+    instr.execute(&mut vm);
+
+    assert_eq!(vm.reg.e[0], m128d::from_u64(0x47a55b63664a4732, 0x464384946369b2e7));
+}
+
+#[test]
+fn test_exec_fdiv_m_round_down_and_to_zero() {
+    let instr = Instr{op: Opcode::FDIV_M, dst: e_reg(0), src: Store::L1(Box::new(r_reg(1))), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_fdiv_m};
+    let mut vm = new_vm();
+    vm.reg.r[1] = 0xFFFFFFFFFFFFE930;
+    vm.reg.e[0] = m128d::from_u64(0x41937f76fede16ee, 0x411b414296ce93b6);
+    vm.set_rounding_mode(ROUND_TO_ZERO);
+    vm.config.e_mask[0] = 0x3a0000000005d11a;
+    vm.config.e_mask[1] = 0x39000000001ba31e;
+    vm.scratchpad[0] = 0x8b2460d9d350a1b6;
+
+    instr.execute(&mut vm);
+
+    assert_eq!(vm.reg.e[0], m128d::from_u64(0x47a55b63664a4732, 0x464384946369b2e6));
+}
+
+#[test]
+fn test_exec_fdiv_m_round_to_zero() {
+    let instr = Instr{op: Opcode::FDIV_M, dst: e_reg(0), src: Store::L1(Box::new(r_reg(1))), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_fdiv_m};
+    let mut vm = new_vm();
+    vm.reg.r[1] = 0xFFFFFFFFFFFFE930;
+    vm.reg.e[0] = m128d::from_u64(0x41937f76fede16ee, 0x411b414296ce93b6);
+    vm.set_rounding_mode(ROUND_DOWN);
+    vm.config.e_mask[0] = 0x3a0000000005d11a;
+    vm.config.e_mask[1] = 0x39000000001ba31e;
+    vm.scratchpad[0] = 0x8b2460d9d350a1b6;
+
+    instr.execute(&mut vm);
+
+    assert_eq!(vm.reg.e[0], m128d::from_u64(0x47a55b63664a4732, 0x464384946369b2e6));
+}
+
+#[test]
+fn test_exec_fdiv_m_round_up() {
+    let instr = Instr{op: Opcode::FDIV_M, dst: e_reg(0), src: Store::L1(Box::new(r_reg(1))), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_fdiv_m};
+    let mut vm = new_vm();
+    vm.reg.r[1] = 0xFFFFFFFFFFFFE930;
+    vm.reg.e[0] = m128d::from_u64(0x41937f76fede16ee, 0x411b414296ce93b6);
+    vm.set_rounding_mode(ROUND_UP);
+    vm.config.e_mask[0] = 0x3a0000000005d11a;
+    vm.config.e_mask[1] = 0x39000000001ba31e;
+    vm.scratchpad[0] = 0x8b2460d9d350a1b6;
+
+    instr.execute(&mut vm);
+
+    assert_eq!(vm.reg.e[0], m128d::from_u64(0x47a55b63664a4733, 0x464384946369b2e7));
 }
 
 #[test]
