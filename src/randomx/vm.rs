@@ -84,13 +84,6 @@ impl Vm {
     
     //f...
 
-    pub fn exec_fadd_m(&mut self, instr: &Instr) {
-        let ix = self.scratchpad_src_ix(instr);
-        let v = self.scratchpad[ix];
-        let iv = m128i::from_u64(0, v);
-        self.write_f(&instr.dst, self.read_f(&instr.dst) + iv.to_m128d());
-    }
-
     pub fn exec_fswap_r(&mut self, instr: &Instr) {
         let v_dst = self.read_f(&instr.dst);
         self.write_f(&instr.dst, v_dst.shuffle_1(&v_dst));  
@@ -102,11 +95,25 @@ impl Vm {
         self.write_f(&instr.dst, v_src + v_dst);
     }
 
+    pub fn exec_fadd_m(&mut self, instr: &Instr) {
+        let v = self.scratchpad[self.scratchpad_src_ix(instr)];
+        let v_src = m128i::from_u64(0, v).to_m128d();
+        let v_dst = self.read_f(&instr.dst);
+        self.write_f(&instr.dst, v_dst + v_src);
+    }
+
     pub fn exec_fsub_r(&mut self, instr: &Instr) {
         let v_src = self.read_a(&instr.src);
         let v_dst = self.read_f(&instr.dst);
         self.write_f(&instr.dst, v_dst - v_src); 
     }
+
+    pub fn exec_fsub_m(&mut self, instr: &Instr) {
+        let v = self.scratchpad[self.scratchpad_src_ix(instr)];
+        let v_src = m128i::from_u64(0, v).to_m128d();
+        let v_dst = self.read_f(&instr.dst);
+        self.write_f(&instr.dst, v_dst - v_src); 
+    } 
 
     pub fn exec_fscal_r(&mut self, instr: &Instr) {
         let v_dst = self.read_f(&instr.dst);

@@ -336,6 +336,8 @@ fn test_exec_fsub_r_round_to_zero() {
     assert_eq!(vm.reg.f[0], m128d::from_u64(0xc026811570d6eaf8, 0xc1ce30c03f643833))
 }
 
+
+
 #[test]
 fn test_exec_fscal_r() {
     let instr = Instr{op: Opcode::FSCAL_R, dst: f_reg(0), src: Store::L1(Box::new(Store::R(1))), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_fscal_r};
@@ -467,6 +469,19 @@ fn test_exec_fadd_m() {
     instr.execute(&mut vm);
     
     assert_eq!(vm.reg.f[0], m128d::from_u64(0x41b2345678000000, 0xc1dbd50c84400000));
+}
+
+#[test]
+fn test_exec_fsub_m() {
+    let instr = Instr{op: Opcode::FSUB_M, dst: f_reg(0), src: Store::L1(Box::new(r_reg(1))), imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_fsub_m};
+    let mut vm = new_vm();
+    vm.reg.r[1] = 0xFFFFFFFFFFFFE930;
+    vm.reg.f[0] = m128d::from_u64(0x3ffd2c97cc4ef015, 0xc1ce30b3c4223576);
+    vm.scratchpad[0] = 0x0203;
+    
+    instr.execute(&mut vm);
+
+    assert_eq!(vm.reg.f[0], m128d::from_u64(0x3ffd2c97cc4ef015, 0xc1ce30b4c5a23576));
 }
 
 #[test]
