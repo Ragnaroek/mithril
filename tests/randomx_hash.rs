@@ -6,13 +6,14 @@ use mithril::randomx::m128::{m128i};
 #[test]
 #[allow(overflowing_literals)]
 fn test_gen_program_aes_1rx4() {
+    //nonce 1000 randomx-codegen
     let input0 = m128i::from_i32(0x31903876, 0xbb7a2914, 0xb370f616, 0xd6f7e4f3);
     let input1 = m128i::from_i32(0xb5a8ef67, 0x749809c8, 0xf349884a, 0x05c9f5ef);
     let input2 = m128i::from_i32(0xa9a93ab0, 0x22e46d0a, 0x1a1fe305, 0xb42708c0);
     let input3 = m128i::from_i32(0x68247034, 0xed99ee84, 0x438f563a, 0x138612ff);    
     let input:[m128i;4] = [input0, input1, input2, input3];
     
-    let result = gen_program_aes_1rx4(input, 136);
+    let (result, new_seed) = gen_program_aes_1rx4(&input, 136);
 
     assert_eq!(result.len(), 136);
     assert_eq!(result[0],   m128i::from_i32(0x27117584, 0x121aeeb3, 0x2f620901, 0xf788e553));
@@ -23,6 +24,11 @@ fn test_gen_program_aes_1rx4() {
     assert_eq!(result[79],  m128i::from_i32(0x36881166, 0xf619e667, 0xf728102c, 0x103e2d56));
     assert_eq!(result[99],  m128i::from_i32(0xdda1adbf, 0xec39dc8a, 0x89884695, 0xc61ff1dd));
     assert_eq!(result[135], m128i::from_i32(0x778d555d, 0x82dfe800, 0xedbe8cae, 0x2fe08b9f));
+
+    assert_eq!(new_seed[0].to_i64(), (0xbc020491ce094c80, 0x3eb2be0994e80b6a));
+    assert_eq!(new_seed[1].to_i64(), (0xb5ef741cae93a328, 0x2b0e778ebd40eb43));
+    assert_eq!(new_seed[2].to_i64(), (0xd375785cc9d9bb9a, 0x75725136c964ad02));
+    assert_eq!(new_seed[3].to_i64(), (0x778d555d82dfe800, 0xedbe8cae2fe08b9f));
 }
 
 #[test]
@@ -34,7 +40,7 @@ fn test_gen_program_aes_4rx4() {
     let input3 = m128i::from_i32(0x2fd5f11,  0x28e94c44, 0x8a756cec, 0x33c0d189);
     let input:[m128i;4] = [input0, input1, input2, input3];
     
-    let result = gen_program_aes_4rx4(input, 136);
+    let result = gen_program_aes_4rx4(&input, 136);
 
     assert_eq!(result.len(), 136);
     assert_eq!(result[0],   m128i::from_i32(0xf76214a7, 0xcbe6ca8a, 0x71e1f016, 0x44ba2d2d));

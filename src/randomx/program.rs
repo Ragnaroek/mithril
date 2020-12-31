@@ -176,8 +176,34 @@ fn write_l_access(f: &mut fmt::Formatter<'_>, instr: &Instr, reg: &Store, lstore
 }
 
 pub struct Program {
+    pub entropy: Vec<u64>,
     pub program: Vec<Instr>,
     pub register_usage: [i32; MAX_REG]
+}
+
+impl Program {
+    pub fn from_bytes(bytes: Vec<m128i>) -> Program {
+        
+        let mut entropy = Vec::with_capacity(16);
+        let mut program = Vec::with_capacity((bytes.len() - 8) * 2);
+        let mut register_usage = [-1; MAX_REG];
+
+        for i in 0..8 {
+            let (e1, e0) = bytes[i].to_i64();
+            entropy.push(e0 as u64);
+            entropy.push(e1 as u64);
+        }
+
+        for i in 8..bytes.len() {
+            let (op2, op1) = bytes[i].to_i64();
+            let instr1 = decode_instruction(op1, ((i-8)*2) as i32, &mut register_usage);
+            let instr2 = decode_instruction(op2, (((i-8)*2)+1) as i32, &mut register_usage);
+            program.push(instr1);
+            program.push(instr2);
+        }
+        
+        Program{entropy, program, register_usage}
+    }
 }
 
 impl fmt::Display for Program {
@@ -187,23 +213,6 @@ impl fmt::Display for Program {
         }
         Ok(())
     }
-}
-
-pub fn from_bytes(bytes: Vec<m128i>) -> Program {
-    
-    let mut program = Vec::with_capacity((bytes.len() - 8) * 2);
-    let mut register_usage = [-1; MAX_REG];
-
-    //first 8 m128 are generated for entropy. We skip them.
-    for i in 8..bytes.len() {
-        let (op2, op1) = bytes[i].to_i64();
-        let instr1 = decode_instruction(op1, ((i-8)*2) as i32, &mut register_usage);
-        let instr2 = decode_instruction(op2, (((i-8)*2)+1) as i32, &mut register_usage);
-        program.push(instr1);
-        program.push(instr2);
-    }
-    
-    Program{program, register_usage}
 }
 
 #[allow(overflowing_literals)]

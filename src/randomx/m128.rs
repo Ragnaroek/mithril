@@ -132,6 +132,11 @@ impl m128d {
         return (f1, f2);
     }
 
+    pub fn to_u64(&self) -> (u64, u64) {
+        let (f1, f0) = self.to_f64();
+        (f1.to_bits(), f0.to_bits())
+    }
+
     //_mm_shuffle_pd(a, b, 1)
     pub fn shuffle_1(&self, other: &m128d) -> m128d {
         unsafe {

@@ -1,9 +1,9 @@
 extern crate blake2b_simd;
 
 use self::blake2b_simd::{blake2b, Hash};
-use super::program::{Instr, Store, Mode, MAX_REG, MAX_FLOAT_REG};
+use super::program::{Program, Instr, Store, Mode, MAX_REG, MAX_FLOAT_REG};
 use super::m128::{m128d, m128i};
-use super::hash::{fill_aes_1rx4_u64};
+use super::hash::{fill_aes_1rx4_u64, gen_program_aes_4rx4};
 use std::convert::TryInto;
 use std::arch::x86_64::{_mm_setcsr, _mm_getcsr};
 
@@ -18,8 +18,16 @@ const CONDITION_MASK : u64 = (1 << CONDITION_OFFSET) - 1;
 
 const P_2EXP63 : u64 = 1 << 63;
 const MANTISSA_SIZE : u64 = 52;
+const MANTISSA_MASK : u64 = (1 << MANTISSA_SIZE) - 1;
+const EXPONENT_SIZE : u64 = 11;
+const EXPONENT_BIAS : u64 = 1023;
+const EXPONENT_MASK : u64 = (1 << EXPONENT_SIZE) - 1;
+const EXPONENT_BITS : u64 = 0x300;
 const DYNAMIC_EXPONENT_BITS : u64 = 4;
+const STATIC_EXPONENT_BITS : u64 = 4;
 const DYNAMIC_MANTISSA_MASK : u64 = (1 << (MANTISSA_SIZE + DYNAMIC_EXPONENT_BITS)) - 1;
+
+const RANDOMX_PROGRAM_COUNT : usize = 8;
 
 pub struct Register {
     pub r: [u64; MAX_REG as usize],
@@ -51,9 +59,14 @@ pub struct Vm {
 impl Vm {
     pub fn calculate_hash(&mut self, input: &str) -> Hash {
         let hash = blake2b(input.as_bytes());
-        self.init_scratchpad(&hash);
+        let seed = hash_to_m128i_array(&hash);
+        let seed = self.init_scratchpad(&seed);
         self.reset_rounding_mode();
 
+        for _ in 0..RANDOMX_PROGRAM_COUNT {
+            self.run(&seed);
+            //TODO generate hash from register state!
+        }
         /* TODO
 		for (int chain = 0; chain < RANDOMX_PROGRAM_COUNT - 1; ++chain) {
 			machine->run(&tempHash);
@@ -68,19 +81,24 @@ impl Vm {
     }
     
     /// Runs one round
-    pub fn run() {
-        //TODO Implement, once all instructions are implemented
-        //generate program here from seed
+    pub fn run(&mut self, seed: &[m128i;4]) {
+        let prog = Program::from_bytes(gen_program_aes_4rx4(seed, 136));
+        self.init_vm(&prog);
+        //TODO Execute!
     }
 
-    pub fn init_scratchpad(&mut self, hash: &Hash) {
-        let bytes = hash.as_bytes();
-        let i1 = m128i::from_u8(&bytes[0..16]);
-        let i2 = m128i::from_u8(&bytes[16..32]);
-        let i3 = m128i::from_u8(&bytes[32..48]);
-        let i4 = m128i::from_u8(&bytes[48..64]);
+    pub fn init_vm(&mut self, prog: &Program) {
+        self.reg.a[0] = m128d::from_u64(small_positive_float_bit(prog.entropy[1]), small_positive_float_bit(prog.entropy[0]));
+        self.reg.a[1] = m128d::from_u64(small_positive_float_bit(prog.entropy[3]), small_positive_float_bit(prog.entropy[2]));
+        self.reg.a[2] = m128d::from_u64(small_positive_float_bit(prog.entropy[5]), small_positive_float_bit(prog.entropy[4]));
+        self.reg.a[3] = m128d::from_u64(small_positive_float_bit(prog.entropy[7]), small_positive_float_bit(prog.entropy[6]));
 
-        fill_aes_1rx4_u64([i1, i2, i3, i4], &mut self.scratchpad);
+        self.config.e_mask[0] = float_mask(prog.entropy[14]);
+        self.config.e_mask[1] = float_mask(prog.entropy[15]);
+    }
+
+    pub fn init_scratchpad(&mut self, seed: &[m128i;4]) -> [m128i;4] {
+        fill_aes_1rx4_u64(seed, &mut self.scratchpad)
     }
 
     pub fn reset_rounding_mode(&mut self) {
@@ -372,6 +390,15 @@ impl Vm {
     }
 }
 
+pub fn hash_to_m128i_array(hash: &Hash) -> [m128i;4] {
+    let bytes = hash.as_bytes();
+    let i1 = m128i::from_u8(&bytes[0..16]);
+    let i2 = m128i::from_u8(&bytes[16..32]);
+    let i3 = m128i::from_u8(&bytes[32..48]);
+    let i4 = m128i::from_u8(&bytes[48..64]);
+    [i1, i2, i3, i4]
+}
+
 fn u64_imm(imm: i32) -> u64 {
     (imm as u64) | 0xffffffff00000000
 }
@@ -438,7 +465,26 @@ pub fn randomx_reciprocal(divisor: u64) -> u64 {
     quotient
 }
 
+fn small_positive_float_bit(entropy: u64) -> u64 {
+    let mut exponent = entropy >> 59; //0..31
+    let mantissa = entropy & MANTISSA_MASK;
+    exponent += EXPONENT_BIAS;
+    exponent &= EXPONENT_MASK;
+    exponent <<= MANTISSA_SIZE;
+    exponent | mantissa
+}
+
+fn float_mask(entropy: u64) -> u64 {
+    let mask22bit = (1 << 22) - 1;
+    entropy & mask22bit | static_exponent(entropy)
+}
+
+fn static_exponent(entropy: u64) -> u64 {
+    let mut exponent = EXPONENT_BITS;
+    exponent |= (entropy >> (64 - STATIC_EXPONENT_BITS)) << DYNAMIC_EXPONENT_BITS;
+    exponent << MANTISSA_SIZE
+}
+
 pub fn new_vm() -> Vm {
-    //TODO take entropy as param and init VmConfig properly from there
     Vm{reg: new_register(), scratchpad: vec![0; SCRATCHPAD_SIZE], pc: 0, config: VmConfig{e_mask: [0, 2]}}
 }

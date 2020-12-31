@@ -8,7 +8,7 @@ fn keys_1rx4() ->  (m128i, m128i, m128i, m128i) {
      m128i::from_i32(0x49169154, 0x16314c88, 0xb1ba317c, 0x6aef8135))
 }
 
-pub fn fill_aes_1rx4_u64(input:[m128i;4], into: &mut Vec<u64>) {
+pub fn fill_aes_1rx4_u64(input: &[m128i;4], into: &mut Vec<u64>) -> [m128i;4] {
     let (key0, key1, key2, key3) = keys_1rx4();
     
     let mut state0 = input[0];
@@ -23,24 +23,25 @@ pub fn fill_aes_1rx4_u64(input:[m128i;4], into: &mut Vec<u64>) {
         state2 = state2.aesdec(key2);
         state3 = state3.aesenc(key3);
         
-        let (s0_0, s0_1) = state0.to_i64();
-        let (s1_0, s1_1) = state1.to_i64();
-        let (s2_0, s2_1) = state2.to_i64();
-        let (s3_0, s3_1) = state3.to_i64();
-        into[out_ix] = s0_1 as u64;
-        into[out_ix + 1] = s0_0 as u64;
-        into[out_ix + 2] = s1_1 as u64;
-        into[out_ix + 3] = s1_0 as u64;
-        into[out_ix + 4] = s2_1 as u64;
-        into[out_ix + 5] = s2_0 as u64;
-        into[out_ix + 6] = s3_1 as u64;
-        into[out_ix + 7] = s3_0 as u64;
+        let (s0_1, s0_0) = state0.to_i64();
+        let (s1_1, s1_0) = state1.to_i64();
+        let (s2_1, s2_0) = state2.to_i64();
+        let (s3_1, s3_0) = state3.to_i64();
+        into[out_ix] = s0_0 as u64;
+        into[out_ix + 1] = s0_1 as u64;
+        into[out_ix + 2] = s1_0 as u64;
+        into[out_ix + 3] = s1_1 as u64;
+        into[out_ix + 4] = s2_0 as u64;
+        into[out_ix + 5] = s2_1 as u64;
+        into[out_ix + 6] = s3_0 as u64;
+        into[out_ix + 7] = s3_1 as u64;
 
 		out_ix = out_ix + 8;
-	}
+    }
+    [state0, state1, state2, state3]
 }
 
-fn fill_aes_1rx4_m128i(input:[m128i;4], into: &mut Vec<m128i>) {
+fn fill_aes_1rx4_m128i(input: &[m128i;4], into: &mut Vec<m128i>) -> [m128i;4] {
     
     let (key0, key1, key2, key3) = keys_1rx4();
     
@@ -62,19 +63,20 @@ fn fill_aes_1rx4_m128i(input:[m128i;4], into: &mut Vec<m128i>) {
         into[out_ix + 3] = state3;
 
 		out_ix = out_ix + 4;
-	}
+    }
+    [state0, state1, state2, state3]
 }
 
-pub fn gen_program_aes_1rx4(input:[m128i;4], output_size: usize) -> Vec<m128i> {
+pub fn gen_program_aes_1rx4(input: &[m128i;4], output_size: usize) -> (Vec<m128i>,[m128i;4]) {
     debug_assert!(output_size % 4 == 0);
     
     let mut result : Vec<m128i> = vec![m128i::zero(); output_size];
-    fill_aes_1rx4_m128i(input, &mut result);
-    result
+    let new_seed = fill_aes_1rx4_m128i(input, &mut result);
+    (result, new_seed)
 }
 
 #[allow(overflowing_literals)]
-pub fn gen_program_aes_4rx4(input:[m128i;4], output_size: usize) -> Vec<m128i> {
+pub fn gen_program_aes_4rx4(input: &[m128i;4], output_size: usize) -> Vec<m128i> {
     debug_assert!(output_size % 4 == 0);
     
     let mut result = Vec::with_capacity(output_size);
@@ -92,7 +94,12 @@ pub fn gen_program_aes_4rx4(input:[m128i;4], output_size: usize) -> Vec<m128i> {
 	let mut state1 = input[1];
 	let mut state2 = input[2];
 	let mut state3 = input[3];
-    
+   
+    println!("state0={:x}", state0);
+    println!("state1={:x}", state1);
+    println!("state2={:x}", state2);
+    println!("state3={:x}", state3);
+
     let mut out_ix = 0;
     while out_ix < output_size {
         state0 = state0.aesdec(key0);

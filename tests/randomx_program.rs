@@ -4,7 +4,7 @@ extern crate difference;
 
 use mithril::randomx::hash::{gen_program_aes_1rx4, gen_program_aes_4rx4};
 use mithril::randomx::m128::{m128i};
-use mithril::randomx::program::{from_bytes, Opcode, MAX_REG, decode_instruction};
+use mithril::randomx::program::{Program, Opcode, MAX_REG, decode_instruction};
 
 #[test]
 fn test_decode_instruction_imul_rcp() {
@@ -20,28 +20,79 @@ fn test_decode_instruction_imul_rcp() {
 #[test]
 fn test_decode_program_1000() {
     let bytes = gen_test_program_nonce_1000();
-    let program = from_bytes(bytes);
+    let program = Program::from_bytes(bytes);
     assert_diff!(EXPECTED_OUT_NONCE_1000, &program.to_string(), "\n", 0);
+
+    assert_eq!(program.entropy[0],  0x2f620901f788e553);
+    assert_eq!(program.entropy[1],  0x27117584121aeeb3);
+    assert_eq!(program.entropy[2],  0xf09f9310248ffc66);
+    assert_eq!(program.entropy[3],  0x7b1951c72ca4ef19);
+    assert_eq!(program.entropy[4],  0x75daf0468b69979b);
+    assert_eq!(program.entropy[5],  0x27490b9fc7d5780c);
+    assert_eq!(program.entropy[6],  0xcef9c6548540827a);
+    assert_eq!(program.entropy[7],  0x71dec002d699679b);
+    assert_eq!(program.entropy[8],  0x7c8f9b39fe6e2ce);
+    assert_eq!(program.entropy[9],  0x3f56cbe73bee91f5);
+    assert_eq!(program.entropy[10], 0xa6964f1aef62c576);
+    assert_eq!(program.entropy[11], 0xd5e966b8d149a75c);
+    assert_eq!(program.entropy[12], 0xa555fb305a9a45c7);
+    assert_eq!(program.entropy[13], 0x54bab0fd03033a77);
+    assert_eq!(program.entropy[14], 0x7c87b02218b8a210);
+    assert_eq!(program.entropy[15], 0xad5a86e0940ba7f7);
 }
 
 #[test]
 fn test_decode_program_1002() {
     let bytes = gen_test_program_nonce_1002();
-    let program = from_bytes(bytes);
+    let program = Program::from_bytes(bytes);
     assert_diff!(EXPECTED_OUT_NONCE_1002, &program.to_string(), "\n", 0);
+
+    assert_eq!(program.entropy[0],  0xebdaaac029c3dbbe);
+    assert_eq!(program.entropy[1],  0x768e0b6aef7a3e4f);
+    assert_eq!(program.entropy[2],  0xf93e05a39c578f91);
+    assert_eq!(program.entropy[3],  0x14121a504e8f828);
+    assert_eq!(program.entropy[4],  0x2462296c38322d97);
+    assert_eq!(program.entropy[5],  0xda1b705ea7183a54);
+    assert_eq!(program.entropy[6],  0x26f3668b426af31b);
+    assert_eq!(program.entropy[7],  0x1b60f295b6489453);
+    assert_eq!(program.entropy[8],  0x1574e1fb78e29870);
+    assert_eq!(program.entropy[9],  0xa25aa7feacbacc06);
+    assert_eq!(program.entropy[10], 0xff45b987fd3f3244);
+    assert_eq!(program.entropy[11], 0x39a60397c4ea72ce);
+    assert_eq!(program.entropy[12], 0x3817afbcb94e0789);
+    assert_eq!(program.entropy[13], 0x4b419dcd54b03bb7);
+    assert_eq!(program.entropy[14], 0x5c6a0f9ca43d11d8);
+    assert_eq!(program.entropy[15], 0xabf9f8544453593c);
 }
 
 #[test]
 fn test_decode_program_666() {
     let bytes = gen_test_program_nonce_666();
-    let program = from_bytes(bytes);
+    let program = Program::from_bytes(bytes);
     assert_diff!(EXPECTED_OUT_NONCE_666, &program.to_string(), "\n", 0);
+
+    assert_eq!(program.entropy[0],  0x5dcde953f1956205);
+    assert_eq!(program.entropy[1],  0xa080c1593d96f6df);
+    assert_eq!(program.entropy[2],  0x69a4d4a680094c6e);
+    assert_eq!(program.entropy[3],  0x7c3fa466dac20c1e);
+    assert_eq!(program.entropy[4],  0xf51b7350758b690b);
+    assert_eq!(program.entropy[5],  0x618b2c6196323fea);
+    assert_eq!(program.entropy[6],  0x28770bf378f2c4a8);
+    assert_eq!(program.entropy[7],  0x948ee8de5e215c0d);
+    assert_eq!(program.entropy[8],  0xe8ad582b2b031559);
+    assert_eq!(program.entropy[9],  0x3f5eeff88e1b6b00);
+    assert_eq!(program.entropy[10], 0xe216e0e49ad1dfcf);
+    assert_eq!(program.entropy[11], 0x96d0314d200cc9bf);
+    assert_eq!(program.entropy[12], 0xb7cf61d90fa2736a);
+    assert_eq!(program.entropy[13], 0x660eb6e084c41a7a);
+    assert_eq!(program.entropy[14], 0x96103f1da5812b08);
+    assert_eq!(program.entropy[15], 0x370ee8e70e280236);
 }
 
 #[test]
 fn test_decode_program_1_4rx4_and_register_usage() {
     let bytes = gen_test_program_1_4rx4_with_register_usage();
-    let program = from_bytes(bytes);
+    let program = Program::from_bytes(bytes);
     assert_diff!(EXPECTED_OUT_WITH_REGISTER_USAGE_1, &program.to_string(), "\n", 0);
     
     assert_eq!(program.register_usage[0], 253);
@@ -57,7 +108,7 @@ fn test_decode_program_1_4rx4_and_register_usage() {
 #[test]
 fn test_decode_program_2_4rx4_and_register_usage() {
     let bytes = gen_test_program_2_4rx4_with_register_usage();
-    let program = from_bytes(bytes);
+    let program = Program::from_bytes(bytes);
     assert_diff!(EXPECTED_OUT_WITH_REGISTER_USAGE_2, &program.to_string(), "\n", 0);
     
     assert_eq!(program.register_usage[0], 250);
@@ -80,7 +131,7 @@ fn gen_test_program_1_4rx4_with_register_usage() -> Vec<m128i> {
     let input3 = m128i::from_i32(0x2fd5f11,  0x28e94c44, 0x8a756cec, 0x33c0d189);
 
     let input:[m128i;4] = [input0, input1, input2, input3];
-    gen_program_aes_4rx4(input, 136)
+    gen_program_aes_4rx4(&input, 136)
 }
 
 #[allow(overflowing_literals)]
@@ -91,7 +142,7 @@ fn gen_test_program_2_4rx4_with_register_usage() -> Vec<m128i> {
     let input3 = m128i::from_i32(0x50d0a58a, 0x94bc4a44, 0x8c9a51c5, 0x03ba4681);
 
     let input:[m128i;4] = [input0, input1, input2, input3];
-    gen_program_aes_4rx4(input, 136)
+    gen_program_aes_4rx4(&input, 136)
 }
 
 #[allow(overflowing_literals)]
@@ -102,7 +153,8 @@ fn gen_test_program_nonce_1000() -> Vec<m128i> {
     let input3 = m128i::from_i32(0x68247034, 0xed99ee84, 0x438f563a, 0x138612ff);
     
     let input:[m128i;4] = [input0, input1, input2, input3];
-    gen_program_aes_1rx4(input, 136)
+    let (data, _) = gen_program_aes_1rx4(&input, 136);
+    data
 }
 
 #[allow(overflowing_literals)]
@@ -113,7 +165,8 @@ fn gen_test_program_nonce_1002() -> Vec<m128i> {
     let input3 = m128i::from_i32(0x064195be, 0x2cd32a66, 0x21d727dd, 0xe5d1da28);
     
     let input:[m128i;4] = [input0, input1, input2, input3];
-    gen_program_aes_1rx4(input, 136)
+    let (data, _) = gen_program_aes_1rx4(&input, 136);
+    data
 }
 
 #[allow(overflowing_literals)]
@@ -124,7 +177,8 @@ fn gen_test_program_nonce_666() -> Vec<m128i> {
     let input3 = m128i::from_i32(0xbc9ce7b6, 0x1d52c94c, 0x650bea68, 0x898b02d9);
     
     let input:[m128i;4] = [input0, input1, input2, input3];
-    gen_program_aes_1rx4(input, 136)
+    let (data, _) = gen_program_aes_1rx4(&input, 136);
+    data
 }
 
 const EXPECTED_OUT_NONCE_1000 : &str = r#"FMUL_R e0, a3

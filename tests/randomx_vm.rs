@@ -2,17 +2,18 @@ extern crate mithril;
 extern crate blake2b_simd;
 
 use self::blake2b_simd::{blake2b};
+use mithril::randomx::hash::{gen_program_aes_4rx4};
 use mithril::randomx::m128::{m128d};
-use mithril::randomx::program::{Instr, Opcode, Store, e_reg, f_reg, a_reg, r_reg, Mode, REG_NEEDS_DISPLACEMENT_IX, REG_NEEDS_DISPLACEMENT};
-use mithril::randomx::vm::{new_vm, Vm, randomx_reciprocal};
+use mithril::randomx::program::{Program, Instr, Opcode, Store, e_reg, f_reg, a_reg, r_reg, Mode, REG_NEEDS_DISPLACEMENT_IX, REG_NEEDS_DISPLACEMENT};
+use mithril::randomx::vm::{new_vm, Vm, randomx_reciprocal, hash_to_m128i_array};
 use mithril::byte_string::{u8_array_to_string};
 
 #[test]
 fn test_init_scratchpad() {
     let mut vm = new_vm();
     let hash = blake2b("This is a test".as_bytes());
-
-    vm.init_scratchpad(&hash);
+    
+    vm.init_scratchpad(&hash_to_m128i_array(&hash));
 
     //sample test scratchpad layout
     assert_eq!(vm.scratchpad[0], 0x45a1b4e3e7fea6c);
@@ -32,14 +33,33 @@ fn test_init_scratchpad() {
     assert_eq!(vm.scratchpad[262143], 0x66db274303c4fd4);
 }
 
+#[test]
+fn test_init_vm() {
+    let mut vm = new_vm();
+
+    let hash = blake2b("This is a test".as_bytes());
+    let seed = hash_to_m128i_array(&hash);
+    let seed = vm.init_scratchpad(&seed);
+    let prog = Program::from_bytes(gen_program_aes_4rx4(&seed, 136));
+    
+    vm.init_vm(&prog);
+
+    assert_eq!(vm.reg.a[0].to_u64(), (0x4019c856c26708a9, 0x418e4a297ebfc304));
+    assert_eq!(vm.reg.a[1].to_u64(), (0x41e807a5dc7740b5, 0x40cd8725df13238a));
+    assert_eq!(vm.reg.a[2].to_u64(), (0x417112c274f91d68, 0x4176971a789beed7));
+    assert_eq!(vm.reg.a[3].to_u64(), (0x40bd229eeedd8e98, 0x414e441747df76c6));
+
+    assert_eq!(vm.config.e_mask[0], 0x3c000000001e145f);
+    assert_eq!(vm.config.e_mask[1], 0x3a0000000011d432);
+}
+
 /*
 #[test]
 fn test_calc_hash_1() {
     let mut vm = new_vm();
     let result = vm.calculate_hash("This is a test");
     assert_eq!("639183aae1bf4c9a35884cb46b09cad9175f04efd7684e7262a0ac1c2f0b4e3f", u8_array_to_string(result.as_bytes()));
-}
-*/
+}*/
 
 #[allow(overflowing_literals)]
 const IMM32 : i32 = 0xc0cb96d2; //3234567890
