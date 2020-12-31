@@ -6,6 +6,7 @@
 )]
 
 use std::fmt;
+use std::convert::TryInto;
 use std::arch::x86_64::{_mm_set_epi32, __m128i, __m128d, _mm_extract_epi64, _mm_aesdec_si128, 
     _mm_aesenc_si128, _mm_cmpeq_epi32, _mm_movemask_epi8, _mm_cvtepi32_pd, _mm_storeh_pd, 
     _mm_store_sd, _mm_set_pd, _mm_cmpeq_pd, _mm_movemask_pd, _mm_add_pd, _mm_set_epi64x, _mm_shuffle_pd,
@@ -19,6 +20,15 @@ impl m128i {
     
     pub fn zero() -> m128i {
         m128i::from_i32(0, 0, 0, 0)
+    }
+   
+    pub fn from_u8(bytes: &[u8]) -> m128i {
+        debug_assert_eq!(bytes.len(), 16);
+
+        let u0 = u64::from_le_bytes(bytes[0..8].try_into().unwrap());
+        let u1 = u64::from_le_bytes(bytes[8..16].try_into().unwrap());
+
+        return m128i::from_u64(u1, u0);
     }
     
     pub fn from_i32(i3: i32, i2: i32, i1: i32, i0: i32) -> m128i {
@@ -68,15 +78,12 @@ impl PartialEq for m128i {
         }
     }
 }
+
 impl Eq for m128i {}
 
 fn format_m128i(m: &m128i, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     let (low, high) = m.to_i64();
-    f.write_str("(")?;
-    fmt::LowerHex::fmt(&high, f)?;
-    f.write_str(",")?;
-    fmt::LowerHex::fmt(&low, f)?;
-    f.write_str(")")
+    f.write_fmt(format_args!("({:x},{:x})", high, low))
 }
 
 impl fmt::LowerHex for m128i {
@@ -179,7 +186,7 @@ fn format_m128d(m: &m128d, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 impl fmt::LowerHex for m128d {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let (low, high) = self.to_f64();
-        f.write_fmt(format_args!("({:x},{:x})", low.to_bits(), high.to_bits()))
+        f.write_fmt(format_args!("({:x},{:x})", high.to_bits(), low.to_bits()))
     }
 }
 

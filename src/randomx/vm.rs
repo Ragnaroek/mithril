@@ -3,6 +3,7 @@ extern crate blake2b_simd;
 use self::blake2b_simd::{blake2b, Hash};
 use super::program::{Instr, Store, Mode, MAX_REG, MAX_FLOAT_REG};
 use super::m128::{m128d, m128i};
+use super::hash::{fill_aes_1rx4_u64};
 use std::convert::TryInto;
 use std::arch::x86_64::{_mm_setcsr, _mm_getcsr};
 
@@ -48,18 +49,12 @@ pub struct Vm {
 }
 
 impl Vm {
-    pub fn calculate_hash(&self, input: &str) -> Hash {
-        //TODO Implement, once all instructions are implemented
+    pub fn calculate_hash(&mut self, input: &str) -> Hash {
         let hash = blake2b(input.as_bytes());
-        println!("##hash={:?}", hash);
-        /*
-		fenv_t fpstate;
-		fegetenv(&fpstate);
-		alignas(16) uint64_t tempHash[8];
-		int blakeResult = blake2b(tempHash, sizeof(tempHash), input, inputSize, nullptr, 0);
-		assert(blakeResult == 0);
-		machine->initScratchpad(&tempHash);
-		machine->resetRoundingMode();
+        self.init_scratchpad(&hash);
+        self.reset_rounding_mode();
+
+        /* TODO
 		for (int chain = 0; chain < RANDOMX_PROGRAM_COUNT - 1; ++chain) {
 			machine->run(&tempHash);
 			blakeResult = blake2b(tempHash, sizeof(tempHash), machine->getRegisterFile(), sizeof(randomx::RegisterFile), nullptr, 0);
@@ -76,6 +71,22 @@ impl Vm {
     pub fn run() {
         //TODO Implement, once all instructions are implemented
         //generate program here from seed
+    }
+
+    pub fn init_scratchpad(&mut self, hash: &Hash) {
+        let bytes = hash.as_bytes();
+        let i1 = m128i::from_u8(&bytes[0..16]);
+        let i2 = m128i::from_u8(&bytes[16..32]);
+        let i3 = m128i::from_u8(&bytes[32..48]);
+        let i4 = m128i::from_u8(&bytes[48..64]);
+
+        fill_aes_1rx4_u64([i1, i2, i3, i4], &mut self.scratchpad);
+    }
+
+    pub fn reset_rounding_mode(&mut self) {
+        unsafe {
+            _mm_setcsr(MXCSR_DEFAULT);
+        }
     }
 
     pub fn set_rounding_mode(&mut self, mode: u32) {

@@ -1,14 +1,41 @@
 extern crate mithril;
+extern crate blake2b_simd;
 
+use self::blake2b_simd::{blake2b};
 use mithril::randomx::m128::{m128d};
 use mithril::randomx::program::{Instr, Opcode, Store, e_reg, f_reg, a_reg, r_reg, Mode, REG_NEEDS_DISPLACEMENT_IX, REG_NEEDS_DISPLACEMENT};
 use mithril::randomx::vm::{new_vm, Vm, randomx_reciprocal};
-//use mithril::byte_string::{u8_array_to_string};
+use mithril::byte_string::{u8_array_to_string};
+
+#[test]
+fn test_init_scratchpad() {
+    let mut vm = new_vm();
+    let hash = blake2b("This is a test".as_bytes());
+
+    vm.init_scratchpad(&hash);
+
+    //sample test scratchpad layout
+    assert_eq!(vm.scratchpad[0], 0x45a1b4e3e7fea6c);
+    assert_eq!(vm.scratchpad[1], 0xe287d43cd65fd299);
+    assert_eq!(vm.scratchpad[2], 0xbb1f8ec38ad6bcef);
+    assert_eq!(vm.scratchpad[3], 0xc138a9a5c95e7b0f);
+    assert_eq!(vm.scratchpad[4], 0x5cb93a85f06ef6e8);
+    assert_eq!(vm.scratchpad[5], 0x6db2f212bf8390f8);
+    assert_eq!(vm.scratchpad[6], 0x742a671fe69f28ab);
+    assert_eq!(vm.scratchpad[7], 0xd6eb5539a8b4e48f);
+
+    assert_eq!(vm.scratchpad[33333], 0x5b85caaea16199bf);
+    assert_eq!(vm.scratchpad[66666], 0x3b35256a8a5afc64);
+    assert_eq!(vm.scratchpad[131071], 0xc87ac0bce6ef30e8);
+    assert_eq!(vm.scratchpad[191000], 0xf5e560770bdd6a4f);
+    assert_eq!(vm.scratchpad[262142], 0x2e417916bf21fc05);
+    assert_eq!(vm.scratchpad[262143], 0x66db274303c4fd4);
+}
 
 /*
 #[test]
-fn test_calc_hash() {
-    let vm = new_vm();
+fn test_calc_hash_1() {
+    let mut vm = new_vm();
     let result = vm.calculate_hash("This is a test");
     assert_eq!("639183aae1bf4c9a35884cb46b09cad9175f04efd7684e7262a0ac1c2f0b4e3f", u8_array_to_string(result.as_bytes()));
 }
