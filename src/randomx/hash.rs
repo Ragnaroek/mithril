@@ -94,11 +94,6 @@ pub fn gen_program_aes_4rx4(input: &[m128i;4], output_size: usize) -> Vec<m128i>
 	let mut state1 = input[1];
 	let mut state2 = input[2];
 	let mut state3 = input[3];
-   
-    println!("state0={:x}", state0);
-    println!("state1={:x}", state1);
-    println!("state2={:x}", state2);
-    println!("state3={:x}", state3);
 
     let mut out_ix = 0;
     while out_ix < output_size {

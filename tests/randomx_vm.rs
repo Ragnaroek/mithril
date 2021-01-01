@@ -261,7 +261,7 @@ fn test_exec_iswap_r() {
 }
 
 #[test]
-fn test_exec_fswap_r() {
+fn test_exec_fswap_r_from_f_reg() {
     let instr = Instr{op: Opcode::FSWAP_R, dst: f_reg(0), src: Store::NONE, imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_fswap_r};
     let mut vm = new_vm();
     vm.reg.f[0] = m128d::from_u64(953360005391419562, 4569451684712230561); 
@@ -269,6 +269,17 @@ fn test_exec_fswap_r() {
     instr.execute(&mut vm);
     
     assert_eq!(vm.reg.f[0], m128d::from_u64(4569451684712230561, 953360005391419562));
+}
+
+#[test]
+fn test_exec_fswap_r_from_e_reg() {
+    let instr = Instr{op: Opcode::FSWAP_R, dst: e_reg(3), src: Store::NONE, imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_fswap_r};
+    let mut vm = new_vm();
+    vm.reg.e[3] = m128d::from_u64(953360005391419562, 4569451684712230561); 
+
+    instr.execute(&mut vm);
+    
+    assert_eq!(vm.reg.e[3], m128d::from_u64(4569451684712230561, 953360005391419562));
 }
 
 #[test]

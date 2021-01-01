@@ -15,6 +15,7 @@ const SCRATCHPAD_SIZE : usize = 262144;
 const MXCSR_DEFAULT : u32 = 0x9FC0;
 const CONDITION_OFFSET : u64 = 8;
 const CONDITION_MASK : u64 = (1 << CONDITION_OFFSET) - 1;
+const RANDOMX_PROGRAM_ITERATIONS : usize = 2048;
 
 const P_2EXP63 : u64 = 1 << 63;
 const MANTISSA_SIZE : u64 = 52;
@@ -57,6 +58,21 @@ pub struct Vm {
 }
 
 impl Vm {
+
+    pub fn init_vm(&mut self, prog: &Program) {
+        self.reg.a[0] = m128d::from_u64(small_positive_float_bit(prog.entropy[1]), small_positive_float_bit(prog.entropy[0]));
+        self.reg.a[1] = m128d::from_u64(small_positive_float_bit(prog.entropy[3]), small_positive_float_bit(prog.entropy[2]));
+        self.reg.a[2] = m128d::from_u64(small_positive_float_bit(prog.entropy[5]), small_positive_float_bit(prog.entropy[4]));
+        self.reg.a[3] = m128d::from_u64(small_positive_float_bit(prog.entropy[7]), small_positive_float_bit(prog.entropy[6]));
+
+        self.config.e_mask[0] = float_mask(prog.entropy[14]);
+        self.config.e_mask[1] = float_mask(prog.entropy[15]);
+    }
+
+    pub fn init_scratchpad(&mut self, seed: &[m128i;4]) -> [m128i;4] {
+        fill_aes_1rx4_u64(seed, &mut self.scratchpad)
+    }
+
     pub fn calculate_hash(&mut self, input: &str) -> Hash {
         let hash = blake2b(input.as_bytes());
         let seed = hash_to_m128i_array(&hash);
@@ -84,21 +100,12 @@ impl Vm {
     pub fn run(&mut self, seed: &[m128i;4]) {
         let prog = Program::from_bytes(gen_program_aes_4rx4(seed, 136));
         self.init_vm(&prog);
-        //TODO Execute!
-    }
 
-    pub fn init_vm(&mut self, prog: &Program) {
-        self.reg.a[0] = m128d::from_u64(small_positive_float_bit(prog.entropy[1]), small_positive_float_bit(prog.entropy[0]));
-        self.reg.a[1] = m128d::from_u64(small_positive_float_bit(prog.entropy[3]), small_positive_float_bit(prog.entropy[2]));
-        self.reg.a[2] = m128d::from_u64(small_positive_float_bit(prog.entropy[5]), small_positive_float_bit(prog.entropy[4]));
-        self.reg.a[3] = m128d::from_u64(small_positive_float_bit(prog.entropy[7]), small_positive_float_bit(prog.entropy[6]));
-
-        self.config.e_mask[0] = float_mask(prog.entropy[14]);
-        self.config.e_mask[1] = float_mask(prog.entropy[15]);
-    }
-
-    pub fn init_scratchpad(&mut self, seed: &[m128i;4]) -> [m128i;4] {
-        fill_aes_1rx4_u64(seed, &mut self.scratchpad)
+        for _ in 0..RANDOMX_PROGRAM_ITERATIONS {
+            for instr in &prog.program {
+                instr.execute(self);
+            }   
+        }
     }
 
     pub fn reset_rounding_mode(&mut self) {
@@ -122,8 +129,8 @@ impl Vm {
     //f...
 
     pub fn exec_fswap_r(&mut self, instr: &Instr) {
-        let v_dst = self.read_f(&instr.dst);
-        self.write_f(&instr.dst, v_dst.shuffle_1(&v_dst));  
+        let v_dst = self.read_float_reg(&instr.dst);
+        self.write_float_reg(&instr.dst, v_dst.shuffle_1(&v_dst));  
     }
 
     pub fn exec_fadd_r(&mut self, instr: &Instr) {
@@ -310,6 +317,24 @@ impl Vm {
             return instr.imm.unwrap() as u64;
         }
         self.read_r(&instr.src)
+    }
+
+    fn read_float_reg(&self, store: &Store) -> m128d {
+        match store {
+            Store::A(i) => self.reg.a[*i],
+            Store::E(i) => self.reg.e[*i],
+            Store::F(i) => self.reg.f[*i],
+            _ => panic!("illegal read from float register"),
+        }
+    }
+
+    fn write_float_reg(&mut self, store: &Store, v: m128d) {
+        match store {
+            Store::A(i) => self.reg.a[*i] = v,
+            Store::E(i) => self.reg.e[*i] = v,
+            Store::F(i) => self.reg.f[*i] = v ,
+            _ => panic!("illegal write to float register"),
+        } 
     }
 
     fn read_r(&self, store: &Store) -> u64 {
