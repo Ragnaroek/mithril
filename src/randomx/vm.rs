@@ -251,7 +251,7 @@ impl Vm {
 
     pub fn exec_ineg_r(&mut self, instr: &Instr) {
         let v_dst = self.read_r(&instr.dst);
-        self.write_r(&instr.dst, !v_dst + 1);
+        self.write_r(&instr.dst, (!v_dst).wrapping_add(1));
     }
 
     pub fn exec_ixor_r(&mut self, instr: &Instr) {

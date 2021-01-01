@@ -8,6 +8,14 @@ use mithril::randomx::program::{Program, Instr, Opcode, Store, e_reg, f_reg, a_r
 use mithril::randomx::vm::{new_vm, Vm, randomx_reciprocal, hash_to_m128i_array};
 use mithril::byte_string::{u8_array_to_string};
 
+/*
+#[test]
+fn test_calc_hash_1() {
+    let mut vm = new_vm();
+    let result = vm.calculate_hash("This is a test");
+    assert_eq!("639183aae1bf4c9a35884cb46b09cad9175f04efd7684e7262a0ac1c2f0b4e3f", u8_array_to_string(result.as_bytes()));
+}*/
+
 #[test]
 fn test_init_scratchpad() {
     let mut vm = new_vm();
@@ -52,14 +60,6 @@ fn test_init_vm() {
     assert_eq!(vm.config.e_mask[0], 0x3c000000001e145f);
     assert_eq!(vm.config.e_mask[1], 0x3a0000000011d432);
 }
-
-/*
-#[test]
-fn test_calc_hash_1() {
-    let mut vm = new_vm();
-    let result = vm.calculate_hash("This is a test");
-    assert_eq!("639183aae1bf4c9a35884cb46b09cad9175f04efd7684e7262a0ac1c2f0b4e3f", u8_array_to_string(result.as_bytes()));
-}*/
 
 #[allow(overflowing_literals)]
 const IMM32 : i32 = 0xc0cb96d2; //3234567890
@@ -174,6 +174,17 @@ fn test_exec_ineg_r() {
     instr.execute(&mut vm);
     
     assert_eq!(vm.reg.r[0], 1); 
+}
+
+#[test]
+fn test_exec_ineg_r_overflow() {
+    let instr = Instr{op: Opcode::INEG_R, dst: r_reg(0), src: Store::NONE, imm: Some(IMM32), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_ineg_r};
+    let mut vm = new_vm(); 
+    vm.reg.r[0] = 0x0;
+
+    instr.execute(&mut vm);
+    
+    assert_eq!(vm.reg.r[0], 0); 
 }
 
 #[test]
