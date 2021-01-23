@@ -4,7 +4,7 @@ use mithril::randomx::superscalar::{ScProgram};
 
 #[test]
 fn test_generate() {
-    let prog = ScProgram::generate();
+    //let prog = ScProgram::generate();
 }
 /*
 	runTest("SuperscalarHash generator", RANDOMX_SUPERSCALAR_LATENCY == 170, []() {
