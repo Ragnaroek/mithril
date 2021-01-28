@@ -4,11 +4,15 @@ use self::blake2b_simd::{blake2b, Hash, Params};
 use strum::Display;
 use std::convert::TryInto;
 
+use super::program::{REG_NEEDS_DISPLACEMENT_IX};
+
 const RANDOMX_SUPERSCALAR_LATENCY : usize = 17;
+const CYCLE_MAP_SIZE : usize = RANDOMX_SUPERSCALAR_LATENCY + 4;
 const SUPERSCALAR_MAX_SIZE : usize = 3 * RANDOMX_SUPERSCALAR_LATENCY + 2;
+const LOOK_FORWARD_CYCLES : usize = 4;
 
 #[allow(nonstandard_style)]
-#[derive(Display, Debug, PartialEq)]
+#[derive(Copy, Clone, Display, Debug, PartialEq)]
 pub enum ScOpcode {
     INVALID = -1,
     ISUB_R = 0,
@@ -28,13 +32,80 @@ pub enum ScOpcode {
 	COUNT = 14,
 }
 
+#[derive(Copy, Clone)]
+struct RegisterInfo {
+	pub last_op_group: ScOpcode,
+	pub latency: usize,
+	pub last_op_par : i32,
+	pub value : usize,
+}
+
+impl RegisterInfo {
+	fn new() -> RegisterInfo {
+		RegisterInfo{
+			latency: 0,
+			last_op_group: ScOpcode::INVALID,
+			last_op_par: -1,
+			value: 0,
+		}		
+	}
+}
+
 pub struct ScInstr<'a> {
 	pub info: &'a ScInstrInfo,
+	pub dst: i32,
+	pub src : i32,
 	pub mod_v: u8,
 	pub imm32: u32,
 	pub op_group: ScOpcode,
 	pub op_group_par: i32,
 	pub group_par_is_source: bool,
+}
+
+impl ScInstr<'_> {
+	fn select_source(&mut self, cycle: usize, registers: &[RegisterInfo; 8], gen: &mut Blake2Generator) -> bool {
+		
+		let mut available_registers = Vec::with_capacity(8);
+
+		for i in 0..8 {
+			if registers[i].latency <= cycle {
+				available_registers.push(i);
+			}
+		}
+
+		if available_registers.len() == 2 && self.info.op == ScOpcode::IADD_RS {
+			if available_registers[0] == REG_NEEDS_DISPLACEMENT_IX || available_registers[1] == REG_NEEDS_DISPLACEMENT_IX {
+				self.op_group_par = REG_NEEDS_DISPLACEMENT_IX as i32;
+				self.src = REG_NEEDS_DISPLACEMENT_IX as i32;
+				return true;
+			}	
+		}
+		if self.select_register(&available_registers, gen, true) {
+			if self.group_par_is_source {
+				self.op_group_par = self.src;
+			}
+			return true;
+		}
+		false
+	}
+
+	fn select_register(&mut self, available_registers: &Vec<usize>, gen: &mut Blake2Generator, reg_src: bool) -> bool {
+		if available_registers.is_empty() {
+			return false;
+		} 
+		let index = if available_registers.len() > 1 {
+			gen.get_u32() as usize % available_registers.len()
+		} else {
+			0
+		};
+
+		if reg_src {
+			self.src = available_registers[index] as i32;
+		} else {
+			self.dst = available_registers[index] as i32;
+		}
+		true
+	}
 }
 
 static SLOT_3L : [&ScInstrInfo; 4] = [&ISUB_R, &IXOR_R, &IMULH_R, &ISMULH_R];
@@ -83,35 +154,36 @@ impl ScInstr<'_> {
 
     fn create<'a>(info: &'static ScInstrInfo, gen: &mut Blake2Generator) -> ScInstr<'a> {
 		match info.op {
-			ScOpcode::ISUB_R => ScInstr{info, mod_v: 0, imm32: 0, op_group: ScOpcode::IADD_RS, group_par_is_source: true, op_group_par: 0 },
-			ScOpcode::IXOR_R => ScInstr{info, mod_v: 0, imm32: 0, op_group: ScOpcode::IXOR_R, group_par_is_source: true, op_group_par: 0 },
-			ScOpcode::IADD_RS => ScInstr{info, mod_v: gen.get_byte(), imm32: 0, op_group: ScOpcode::IADD_RS, group_par_is_source: true, op_group_par: 0 },
-			ScOpcode::IMUL_R => ScInstr{info, mod_v: 0, imm32: 0, op_group: ScOpcode::IMUL_R, group_par_is_source: true, op_group_par: 0 },
+			ScOpcode::ISUB_R => ScInstr{info, dst: -1, src: -1, mod_v: 0, imm32: 0, op_group: ScOpcode::IADD_RS, group_par_is_source: true, op_group_par: 0 },
+			ScOpcode::IXOR_R => ScInstr{info, dst: -1, src: -1, mod_v: 0, imm32: 0, op_group: ScOpcode::IXOR_R, group_par_is_source: true, op_group_par: 0 },
+			ScOpcode::IADD_RS => ScInstr{info, dst: -1, src: -1, mod_v: gen.get_byte(), imm32: 0, op_group: ScOpcode::IADD_RS, group_par_is_source: true, op_group_par: 0 },
+			ScOpcode::IMUL_R => ScInstr{info, dst: -1, src: -1, mod_v: 0, imm32: 0, op_group: ScOpcode::IMUL_R, group_par_is_source: true, op_group_par: 0 },
 			ScOpcode::IROR_C => {
 				let mut imm32;
 				while {
 					imm32 = gen.get_byte() & 63;
 					imm32 == 0
 				}{};
-				ScInstr{info, mod_v: 0, imm32: imm32 as u32, op_group: ScOpcode::IROR_C, group_par_is_source: true, op_group_par: 0 }
+				ScInstr{info, dst: -1, src: -1, mod_v: 0, imm32: imm32 as u32, op_group: ScOpcode::IROR_C, group_par_is_source: true, op_group_par: 0 }
 			},
-			ScOpcode::IADD_C7 | ScOpcode::IADD_C8 | ScOpcode::IADD_C9 => ScInstr{info, mod_v: 0, imm32: gen.get_u32(), op_group: ScOpcode::IADD_C7, group_par_is_source: false, op_group_par: -1},
-			ScOpcode::IXOR_C7 | ScOpcode::IXOR_C8 | ScOpcode::IXOR_C9 => ScInstr{info, mod_v: 0, imm32: gen.get_u32(), op_group: ScOpcode::IXOR_C7, group_par_is_source: false, op_group_par: -1},
-			ScOpcode::IMULH_R => ScInstr{info, mod_v: 0, imm32: 0, op_group: ScOpcode::IMULH_R, group_par_is_source: true, op_group_par: gen.get_u32() as i32 },
-			ScOpcode::ISMULH_R => ScInstr{info, mod_v: 0, imm32: 0, op_group: ScOpcode::ISMULH_R, group_par_is_source: true, op_group_par: gen.get_u32() as i32 },
+			ScOpcode::IADD_C7 | ScOpcode::IADD_C8 | ScOpcode::IADD_C9 => ScInstr{info, dst: -1, src: -1, mod_v: 0, imm32: gen.get_u32(), op_group: ScOpcode::IADD_C7, group_par_is_source: false, op_group_par: -1},
+			ScOpcode::IXOR_C7 | ScOpcode::IXOR_C8 | ScOpcode::IXOR_C9 => ScInstr{info, dst: -1, src: -1, mod_v: 0, imm32: gen.get_u32(), op_group: ScOpcode::IXOR_C7, group_par_is_source: false, op_group_par: -1},
+			ScOpcode::IMULH_R => ScInstr{info, dst: -1, src: -1, mod_v: 0, imm32: 0, op_group: ScOpcode::IMULH_R, group_par_is_source: true, op_group_par: gen.get_u32() as i32 },
+			ScOpcode::ISMULH_R => ScInstr{info, dst: -1, src: -1, mod_v: 0, imm32: 0, op_group: ScOpcode::ISMULH_R, group_par_is_source: true, op_group_par: gen.get_u32() as i32 },
 			ScOpcode::IMUL_RCP => {
 				let mut imm32;
 				while {
 					imm32 = gen.get_u32();
 					is_zero_or_power_of_2(imm32)
 				}{};
-				ScInstr{info, mod_v: 0, imm32: 0, op_group: ScOpcode::IMUL_RCP, group_par_is_source: true, op_group_par: -1 }
+				ScInstr{info, dst: -1, src: -1, mod_v: 0, imm32: 0, op_group: ScOpcode::IMUL_RCP, group_par_is_source: true, op_group_par: -1 }
 			},
 			ScOpcode::INVALID | ScOpcode::COUNT => panic!("invalid opcode {} here", info.op)
 		}
 	}
 }
 
+#[derive(Copy, Clone, PartialEq)]
 #[repr(u8)]
 pub enum ExecutionPort {
 	NULL = 0,
@@ -121,6 +193,12 @@ pub enum ExecutionPort {
 	P01 = ExecutionPort::P0 as u8 | ExecutionPort::P1 as u8,
 	P05 = ExecutionPort::P0 as u8 | ExecutionPort::P5 as u8,
 	P015 =  ExecutionPort::P0 as u8 | ExecutionPort::P1 as u8 | ExecutionPort::P5 as u8
+}
+
+impl ExecutionPort {
+    fn is(self, check: ExecutionPort) -> bool {
+		(self as u8 & check as u8) != 0
+    }
 }
 
 pub struct ScMacroOp {
@@ -137,6 +215,14 @@ impl ScMacroOp {
 	}
 	pub const fn new_dep(size: u32, latency: u32, uop1: ExecutionPort, uop2: ExecutionPort) -> ScMacroOp {
 		ScMacroOp{size, latency, uop1, uop2, dependent: true}
+	}
+
+	pub fn is_eliminated(&self) -> bool {
+		self.uop1 == ExecutionPort::NULL
+	}
+
+	pub fn is_simple(&self) -> bool {
+		self.uop2 == ExecutionPort::NULL
 	}
 }
 
@@ -176,6 +262,10 @@ impl ScInstrInfo {
 
 	pub fn size(&self) -> usize {
 		self.macro_ops.len()
+	}
+
+	pub fn macro_op(&self, i: usize) -> &'static ScMacroOp {
+		return self.macro_ops[i];
 	}
 }
 
@@ -300,8 +390,11 @@ impl ScProgram<'_> {
 
 		let mut prog = Vec::with_capacity(SUPERSCALAR_MAX_SIZE);
 
-		let mut cycle = 0;
+		let mut port_busy = [[ExecutionPort::NULL; 3]; CYCLE_MAP_SIZE];
+		let mut registers = [RegisterInfo::new(); 8];
 
+		let mut cycle = 0;
+		let mut dep_cycle = 0;
 		let mut macro_op_index = 0;
 		let mut macro_op_count = 0;
 		let mut ports_saturated = false;
@@ -309,7 +402,7 @@ impl ScProgram<'_> {
 		let mut mul_count = 0;
 		let mut decode_cycle = 0;
 		let mut decode_buffer = &DecoderBuffer::initial();
-		let mut current_instr = ScInstr{info: &NOP, mod_v: 0, imm32: 0, op_group: ScOpcode::INVALID, group_par_is_source: false, op_group_par: -1 };
+		let mut current_instr = ScInstr{info: &NOP, dst: -1, src: -1, mod_v: 0, imm32: 0, op_group: ScOpcode::INVALID, group_par_is_source: false, op_group_par: -1 };
 		while decode_cycle < RANDOMX_SUPERSCALAR_LATENCY && !ports_saturated && program_size < SUPERSCALAR_MAX_SIZE {
 			decode_buffer = decode_buffer.fetch_next(&current_instr, decode_cycle, mul_count, gen);
 			
@@ -325,6 +418,27 @@ impl ScProgram<'_> {
 				    macro_op_index = 0
 				}
 
+				let mop = current_instr.info.macro_op(macro_op_index);
+				let schedule_cycle_mop = schedule_mop(mop, &mut port_busy, cycle, dep_cycle);
+				if schedule_cycle_mop.is_none() {
+					ports_saturated = true;
+					break;
+				}
+
+				let mut schedule_cycle = schedule_cycle_mop.unwrap();
+				if macro_op_index as i32 == current_instr.info.scr_op {
+					let mut forward = 0;
+					while forward < LOOK_FORWARD_CYCLES && current_instr.select_source(schedule_cycle, &registers, gen) {
+						schedule_cycle += 1;
+						cycle += 1;
+						forward += 1
+					}
+
+					if forward == LOOK_FORWARD_CYCLES {
+						//TODO Impl
+					}
+				}
+				
 				//TODO Impl 
 			}
 			
@@ -334,4 +448,49 @@ impl ScProgram<'_> {
 
 		ScProgram{prog}
 	}
+}
+
+fn schedule_mop(mop: &ScMacroOp, port_busy: &mut [[ExecutionPort; 3]; CYCLE_MAP_SIZE], cycle_in: usize, dep_cycle: usize) -> Option<usize> {
+	let mut cycle = if mop.dependent {
+		usize::max(cycle_in, dep_cycle)
+	} else {
+		cycle_in
+	};
+
+	if mop.is_eliminated() {
+		return Some(cycle);
+	} else if mop.is_simple() {
+		return schedule_uop(mop.uop1, port_busy, cycle);
+	} else {
+		while cycle < CYCLE_MAP_SIZE {
+			let cycle_1 = schedule_uop(mop.uop1, port_busy, cycle);
+			let cycle_2 = schedule_uop(mop.uop2, port_busy, cycle);
+
+			if cycle >= 0 && cycle_1 == cycle_2 {
+				return cycle_1;
+			}
+			cycle += 1
+		}
+	}
+	None
+}
+
+fn schedule_uop(uop: ExecutionPort, port_busy: &mut [[ExecutionPort; 3]; CYCLE_MAP_SIZE], cycle_in: usize) -> Option<usize> {
+	let mut cycle = cycle_in;
+	while cycle < CYCLE_MAP_SIZE {
+		if uop.is(ExecutionPort::P5) && port_busy[cycle][2] == ExecutionPort::NULL {
+			port_busy[cycle][2] = uop;
+			return Some(cycle);
+		}
+		if uop.is(ExecutionPort::P0) && port_busy[cycle][0] == ExecutionPort::NULL {
+			port_busy[cycle][0] = uop;
+			return Some(cycle);
+		}
+		if uop.is(ExecutionPort::P1) && port_busy[cycle][1] == ExecutionPort::NULL {
+			port_busy[cycle][1] = uop;
+			return Some(cycle);
+		}
+		cycle += 1
+	}
+	None
 }
