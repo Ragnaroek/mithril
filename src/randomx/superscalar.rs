@@ -3,6 +3,7 @@ extern crate blake2b_simd;
 use self::blake2b_simd::{Params};
 use strum::Display;
 use std::convert::TryInto;
+use std::fmt;
 
 use super::program::{REG_NEEDS_DISPLACEMENT_IX};
 
@@ -58,6 +59,7 @@ impl RegisterInfo {
 	}
 }
 
+#[derive(Copy, Clone, Debug)]
 pub struct ScInstr<'a> {
 	pub info: &'a ScInstrInfo,
 	pub dst: i32,
@@ -77,6 +79,9 @@ impl ScInstr<'_> {
 	}
 
 	fn select_destination(&mut self, cycle: usize, allow_chain_mul: bool, registers: &[RegisterInfo; 8], gen: &mut Blake2Generator) -> bool {
+		
+		println!("### selectDestination, cycle = {}, allowChainMul = {}\n", cycle, allow_chain_mul);
+		
 		let mut available_registers = Vec::with_capacity(8);
 		for i in 0..8 {
 			if registers[i].latency <= cycle && (self.can_reuse || i as i32 != self.src) && (allow_chain_mul || self.op_group != ScOpcode::IMUL_R || registers[i].last_op_group != ScOpcode::IMUL_R || registers[i].last_op_par != self.op_group_par) && (self.info.op != ScOpcode::IADD_RS || i != REG_NEEDS_DISPLACEMENT_IX) {
@@ -121,6 +126,8 @@ impl ScInstr<'_> {
 			0
 		};
 
+		println!("### reg = {}\n", available_registers[index]);
+
 		if reg_src {
 			self.src = available_registers[index] as i32;
 		} else {
@@ -143,6 +150,7 @@ fn is_zero_or_power_of_2(v: u32) -> bool {
 
 impl ScInstr<'_> {
 	pub fn create_for_slot<'a>(gen: &mut Blake2Generator, slot_size: u32, fetch_type: u32, is_last: bool) -> ScInstr<'a> {
+		println!("### create_for_slot: {}, is_last = {}", slot_size, is_last);
         match slot_size {
 			3 => {
 				if is_last {
@@ -184,6 +192,7 @@ impl ScInstr<'_> {
 				let mut imm32;
 				while {
 					imm32 = gen.get_byte() & 63;
+					println!("###imm32: {}", imm32);
 					imm32 == 0
 				}{};
 				ScInstr{info, dst: -1, src: -1, mod_v: 0, imm32: imm32 as u32, op_group: ScOpcode::IROR_C, can_reuse: false, group_par_is_source: true, op_group_par: 0 }
@@ -205,7 +214,7 @@ impl ScInstr<'_> {
 	}
 }
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 #[repr(u8)]
 pub enum ExecutionPort {
 	NULL = 0,
@@ -223,7 +232,9 @@ impl ExecutionPort {
     }
 }
 
+#[derive(Debug)]
 pub struct ScMacroOp {
+	name: &'static str,
 	size: usize,
 	latency: usize,
 	uop1: ExecutionPort,
@@ -232,11 +243,11 @@ pub struct ScMacroOp {
 }
 
 impl ScMacroOp {
-	pub const fn new(size: usize, latency: usize, uop1: ExecutionPort, uop2: ExecutionPort) -> ScMacroOp {
-		ScMacroOp{size, latency, uop1, uop2, dependent: false}
+	pub const fn new(name: &'static str, size: usize, latency: usize, uop1: ExecutionPort, uop2: ExecutionPort) -> ScMacroOp {
+		ScMacroOp{name, size, latency, uop1, uop2, dependent: false}
 	}
-	pub const fn new_dep(size: usize, latency: usize, uop1: ExecutionPort, uop2: ExecutionPort) -> ScMacroOp {
-		ScMacroOp{size, latency, uop1, uop2, dependent: true}
+	pub const fn new_dep(name: &'static str, size: usize, latency: usize, uop1: ExecutionPort, uop2: ExecutionPort) -> ScMacroOp {
+		ScMacroOp{name, size, latency, uop1, uop2, dependent: true}
 	}
 
 	pub fn is_eliminated(&self) -> bool {
@@ -248,40 +259,40 @@ impl ScMacroOp {
 	}
 }
 
-static MOP_SUB_RR : ScMacroOp = ScMacroOp::new(3, 1, ExecutionPort::P015, ExecutionPort::NULL); 
-static MOP_XOR_RR : ScMacroOp = ScMacroOp::new(3, 1, ExecutionPort::P015, ExecutionPort::NULL); 
-static MOP_IMUL_R : ScMacroOp = ScMacroOp::new(3, 4, ExecutionPort::P1, ExecutionPort::P5); 
-static MOP_MUL_R : ScMacroOp = ScMacroOp::new(3, 4, ExecutionPort::P1, ExecutionPort::P5); 
-static MOP_MOV_RR : ScMacroOp = ScMacroOp::new(3, 1, ExecutionPort::NULL, ExecutionPort::NULL); 
+static MOP_SUB_RR : ScMacroOp = ScMacroOp::new("SUB_RR", 3, 1, ExecutionPort::P015, ExecutionPort::NULL); 
+static MOP_XOR_RR : ScMacroOp = ScMacroOp::new("XOR_RR", 3, 1, ExecutionPort::P015, ExecutionPort::NULL); 
+static MOP_IMUL_R : ScMacroOp = ScMacroOp::new("IMUL_R", 3, 4, ExecutionPort::P1, ExecutionPort::P5); 
+static MOP_MUL_R : ScMacroOp = ScMacroOp::new("MUL_R", 3, 4, ExecutionPort::P1, ExecutionPort::P5); 
+static MOP_MOV_RR : ScMacroOp = ScMacroOp::new("MOV_RR", 3, 1, ExecutionPort::NULL, ExecutionPort::NULL); 
 
-static MOP_LEA_SIB : ScMacroOp = ScMacroOp::new(4, 1, ExecutionPort::P01, ExecutionPort::NULL);   
-static MOP_IMUL_RR_DEP : ScMacroOp = ScMacroOp::new_dep(4, 3, ExecutionPort::P1, ExecutionPort::NULL);   
-static MOP_ROR_RI : ScMacroOp = ScMacroOp::new(4, 1, ExecutionPort::P05, ExecutionPort::NULL);  
+static MOP_LEA_SIB : ScMacroOp = ScMacroOp::new("LEA_SIB", 4, 1, ExecutionPort::P01, ExecutionPort::NULL);   
+static MOP_IMUL_RR_DEP : ScMacroOp = ScMacroOp::new_dep("IMUL_RR_DEP", 4, 3, ExecutionPort::P1, ExecutionPort::NULL);   
+static MOP_ROR_RI : ScMacroOp = ScMacroOp::new("ROR_RI", 4, 1, ExecutionPort::P05, ExecutionPort::NULL);  
 
-static MOP_ADD_RI : ScMacroOp = ScMacroOp::new(7, 1, ExecutionPort::P015, ExecutionPort::NULL);   
-static MOP_XOR_RI : ScMacroOp = ScMacroOp::new(7, 1, ExecutionPort::P015, ExecutionPort::NULL);  
+static MOP_ADD_RI : ScMacroOp = ScMacroOp::new("ADD_RI", 7, 1, ExecutionPort::P015, ExecutionPort::NULL);   
+static MOP_XOR_RI : ScMacroOp = ScMacroOp::new("XOR_RI", 7, 1, ExecutionPort::P015, ExecutionPort::NULL);  
 
-static MOP_MOV_RI64 : ScMacroOp = ScMacroOp::new(10, 1, ExecutionPort::P015, ExecutionPort::NULL);   
+static MOP_MOV_RI64 : ScMacroOp = ScMacroOp::new("MOV_RI64", 10, 1, ExecutionPort::P015, ExecutionPort::NULL);   
 
-static MOP_IMUL_RR : ScMacroOp = ScMacroOp::new(4, 3, ExecutionPort::P1, ExecutionPort::NULL); 
+static MOP_IMUL_RR : ScMacroOp = ScMacroOp::new("IMUL_RR", 4, 3, ExecutionPort::P1, ExecutionPort::NULL); 
 
 #[allow(nonstandard_style)]
+#[derive(Debug)]
 pub struct ScInstrInfo {
-	op: ScOpcode,
-	macro_ops : &'static [&'static ScMacroOp],
-	result_op: usize,
-	scr_op: i32,
-	dst_op: i32,
+	pub op: ScOpcode,
+	pub macro_ops : &'static [&'static ScMacroOp],
+	pub result_op: usize,
+	pub src_op: i32, 
+	pub dst_op: i32,
 }
 
 impl ScInstrInfo {
-
-	pub const fn new(op: ScOpcode, macro_ops: &'static [&ScMacroOp], scr_op: i32, result_op: usize, dst_op: i32) -> ScInstrInfo {		
+	pub const fn new(op: ScOpcode, macro_ops: &'static [&ScMacroOp], result_op: usize, dst_op: i32, src_op: i32) -> ScInstrInfo {		
 		ScInstrInfo{
 			op,
 			macro_ops,
 			result_op,
-			scr_op,
+			src_op,
 			dst_op,
 		}
 	}
@@ -301,18 +312,18 @@ static ISUB_R : ScInstrInfo = ScInstrInfo::new(ScOpcode::ISUB_R, &[&MOP_SUB_RR],
 static IXOR_R : ScInstrInfo = ScInstrInfo::new(ScOpcode::IXOR_R, &[&MOP_XOR_RR], 0, 0, 0);
 static IADD_RS : ScInstrInfo = ScInstrInfo::new(ScOpcode::IADD_RS, &[&MOP_LEA_SIB], 0, 0, 0);
 static IMUL_R : ScInstrInfo = ScInstrInfo::new(ScOpcode::IMUL_R, &[&MOP_IMUL_RR], 0, 0, 0); 
-static IROR_C : ScInstrInfo = ScInstrInfo::new(ScOpcode::IROR_C, &[&MOP_ROR_RI], -1, 0, 0); 
+static IROR_C : ScInstrInfo = ScInstrInfo::new(ScOpcode::IROR_C, &[&MOP_ROR_RI], 0, 0, -1); 
 
-static IADD_C7 : ScInstrInfo = ScInstrInfo::new(ScOpcode::IADD_C7, &[&MOP_ADD_RI], -1, 0, 0);  
-static IXOR_C7 : ScInstrInfo = ScInstrInfo::new(ScOpcode::IXOR_C7, &[&MOP_XOR_RI], -1, 0, 0);  
-static IADD_C8 : ScInstrInfo = ScInstrInfo::new(ScOpcode::IADD_C8, &[&MOP_ADD_RI], -1, 0, 0);  
-static IXOR_C8 : ScInstrInfo = ScInstrInfo::new(ScOpcode::IXOR_C8, &[&MOP_XOR_RI], -1, 0, 0);  
-static IADD_C9 : ScInstrInfo = ScInstrInfo::new(ScOpcode::IADD_C9, &[&MOP_ADD_RI], -1, 0, 0);  
-static IXOR_C9 : ScInstrInfo = ScInstrInfo::new(ScOpcode::IXOR_C9, &[&MOP_XOR_RI], -1, 0, 0);  
+static IADD_C7 : ScInstrInfo = ScInstrInfo::new(ScOpcode::IADD_C7, &[&MOP_ADD_RI], 0, 0, -1);  
+static IXOR_C7 : ScInstrInfo = ScInstrInfo::new(ScOpcode::IXOR_C7, &[&MOP_XOR_RI], 0, 0, -1);  
+static IADD_C8 : ScInstrInfo = ScInstrInfo::new(ScOpcode::IADD_C8, &[&MOP_ADD_RI], 0, 0, -1);  
+static IXOR_C8 : ScInstrInfo = ScInstrInfo::new(ScOpcode::IXOR_C8, &[&MOP_XOR_RI], 0, 0, -1);  
+static IADD_C9 : ScInstrInfo = ScInstrInfo::new(ScOpcode::IADD_C9, &[&MOP_ADD_RI], 0, 0, -1);  
+static IXOR_C9 : ScInstrInfo = ScInstrInfo::new(ScOpcode::IXOR_C9, &[&MOP_XOR_RI], 0, 0, -1);  
 
 static IMULH_R : ScInstrInfo = ScInstrInfo::new(ScOpcode::IMULH_R, &[&MOP_MOV_RR, &MOP_MUL_R, &MOP_MOV_RR], 1, 0, 1);
 static ISMULH_R : ScInstrInfo = ScInstrInfo::new(ScOpcode::ISMULH_R, &[&MOP_MOV_RR, &MOP_IMUL_R, &MOP_MOV_RR], 1, 0, 1);
-static IMUL_RCP : ScInstrInfo = ScInstrInfo::new(ScOpcode::IMUL_RCP, &[&MOP_MOV_RI64, &MOP_IMUL_RR_DEP], -1, 1, 1);
+static IMUL_RCP : ScInstrInfo = ScInstrInfo::new(ScOpcode::IMUL_RCP, &[&MOP_MOV_RI64, &MOP_IMUL_RR_DEP], 1, 1, -1);
 
 const BLAKE_GEN_DATA_LEN : usize = 64;
 pub struct Blake2Generator {
@@ -331,7 +342,7 @@ impl Blake2Generator {
 		data[BLAKE_GEN_DATA_LEN-4..BLAKE_GEN_DATA_LEN].copy_from_slice(&nonce.to_le_bytes());
 
 		return Blake2Generator{
-			index: 0,
+			index: BLAKE_GEN_DATA_LEN,
 			data,
 			gen_params: params,
 		};
@@ -341,6 +352,7 @@ impl Blake2Generator {
 		self.check_data(1);
 		let v = self.data[self.index];
 		self.index += 1;
+		println!("###Gen: getByte(): {}", v);
 		v
 	}
 
@@ -348,6 +360,7 @@ impl Blake2Generator {
 		self.check_data(4);
 		let v = u32::from_le_bytes(self.data[self.index..(self.index+4)].try_into().unwrap());
 		self.index += 4;
+		println!("###Gen: getUInt32(): {}", v);
 		v
 	}
 	
@@ -403,7 +416,9 @@ impl DecoderBuffer {
 			return if gen.get_byte() & 0x1 == 1 {  &BUFFER_484 } else { &BUFFER_493 };
 		}
 		
-		return DECODE_BUFFERS[(gen.get_byte() & 0x11) as usize];
+		let ix = gen.get_byte();
+		println!("### buffer index = {}\n", ix & 3);
+		return DECODE_BUFFERS[(ix & 3) as usize];
 	}
 }
 
@@ -419,6 +434,15 @@ pub struct ScProgram<'a> {
 	pub cpu_latency : usize,
 	pub asic_latency : usize,
 	pub mul_count : usize,
+}
+
+impl fmt::Display for ScProgram<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for instr in &self.prog {
+			write!(f, "op: {}, src: {}, dst: {}\n", instr.info.op, instr.src, instr.dst).unwrap();
+        }
+        Ok(())
+    }
 }
 
 impl ScProgram<'_> {
@@ -444,31 +468,42 @@ impl ScProgram<'_> {
 		let mut decode_buffer = &DecoderBuffer::initial();
 		let mut current_instr = ScInstr::null(); 
 		while decode_cycle < RANDOMX_SUPERSCALAR_LATENCY && !ports_saturated && program_size < SUPERSCALAR_MAX_SIZE {
+			println!("\n\n### decode_cycle: {}", decode_cycle);
+			println!("###cycle = {}, dep_cycle = {}", cycle, dep_cycle);
+			println!("##current_instr.op = {}, decode_cyle = {}, mul_count = {}", current_instr.info.op, decode_cycle, mul_count);
 			decode_buffer = decode_buffer.fetch_next(&current_instr, decode_cycle, mul_count, gen);
 			
 			let mut buffer_index = 0;
+			println!("### decode_buffer.size() = {}", decode_buffer.size());
 			while buffer_index < decode_buffer.size() {
+				println!("\n### buffer index: {}", buffer_index);
 				let top_cycle = cycle;
 				if macro_op_index >= current_instr.info.size() {
 					if ports_saturated || program_size >= SUPERSCALAR_MAX_SIZE {
+						println!("### macro_op_index term");
 						break;
 					}
 
 					current_instr = ScInstr::create_for_slot(gen, decode_buffer.counts[buffer_index], decode_buffer.index, decode_buffer.size() == buffer_index + 1);
-				    macro_op_index = 0
+					println!("### END create_for_slot");
+					macro_op_index = 0
 				}
 
 				let mop = current_instr.info.macro_op(macro_op_index);
 				let schedule_cycle_mop = schedule_mop(false, mop, &mut port_busy, cycle, dep_cycle);
+				
+				println!("schedule_mop_false={:?}", schedule_cycle_mop);
 				if schedule_cycle_mop.is_none() {
+					println!("### schedule_mop false term");
 					ports_saturated = true;
 					break;
 				}
-				let mut schedule_cycle = schedule_cycle_mop.unwrap();
 
-				if macro_op_index as i32 == current_instr.info.scr_op {
+				println!("### macro_op_index = {}, scr_op = {}, cycle = {}", macro_op_index,current_instr.info.src_op, cycle);
+				let mut schedule_cycle = schedule_cycle_mop.unwrap();
+				if macro_op_index as i32 == current_instr.info.src_op {
 					let mut forward = 0;
-					while forward < LOOK_FORWARD_CYCLES && current_instr.select_source(schedule_cycle, &registers, gen) {
+					while forward < LOOK_FORWARD_CYCLES && !current_instr.select_source(schedule_cycle, &registers, gen) {
 						schedule_cycle += 1;
 						cycle += 1;
 						forward += 1;
@@ -485,13 +520,16 @@ impl ScProgram<'_> {
 					}
 				}
 				
+				println!("### current_instr = {:?}", current_instr);
+				println!("### macro_op_index = {}, dst_op = {}, cycle = {}", macro_op_index, current_instr.info.dst_op, cycle);
 				if macro_op_index as i32 == current_instr.info.dst_op {
 					let mut forward = 0;
-					while forward < LOOK_FORWARD_CYCLES && current_instr.select_destination(schedule_cycle, throw_away_count > 0, &registers, gen) {
+					while forward < LOOK_FORWARD_CYCLES && !current_instr.select_destination(schedule_cycle, throw_away_count > 0, &registers, gen) {
 						schedule_cycle += 1;
 						cycle += 1;
 						forward += 1;
 					}
+					println!("### dst cycle = {}", cycle);
 					if forward == LOOK_FORWARD_CYCLES {
 						if throw_away_count < MAX_THROWAWAY_COUNT {
 							throw_away_count += 1;
@@ -504,9 +542,11 @@ impl ScProgram<'_> {
 				}
 				throw_away_count = 0;
 
-				let schedule_cycle_mop = schedule_mop(true, mop, &mut port_busy, cycle, dep_cycle);
-				
+				println!("cycle (after loop): {}", cycle);
+				let schedule_cycle_mop = schedule_mop(true, mop, &mut port_busy, schedule_cycle, schedule_cycle);
+				println!("schedule_mop_true={:?}", schedule_cycle_mop);	
 				if schedule_cycle_mop.is_none() {
+					println!("### schedule_mop true term");
 					ports_saturated = true;
 					break;
 				}
@@ -514,7 +554,9 @@ impl ScProgram<'_> {
 			
 				dep_cycle = schedule_cycle + mop.latency;
 
+				println!("## current_instr = {:?}", current_instr);
 				if macro_op_index == current_instr.info.result_op {
+					println!("### current_instr.dst = {}", current_instr.dst);
 					let mut ri = &mut registers[current_instr.dst as usize];
 					retire_cycle = dep_cycle;
 					ri.latency = retire_cycle;
@@ -535,14 +577,13 @@ impl ScProgram<'_> {
 					if current_instr.info.op.is_multiplication() {
 						mul_count += 1;
 					} 
-					prog[program_size] = current_instr;
+					println!("op: {}, src: {}, dst: {}", current_instr.info.op, current_instr.src, current_instr.dst);
+					prog.push(current_instr);
 					program_size += 1;
-					current_instr = ScInstr::null();
-
 				}
 			}
-
-			decode_cycle += 1
+			cycle += 1;
+			decode_cycle += 1;
 		}
 
 		let ipc = macro_op_count as f64 / retire_cycle as f64;
@@ -580,6 +621,8 @@ impl ScProgram<'_> {
 }
 
 fn schedule_mop(commit: bool, mop: &ScMacroOp, port_busy: &mut [[ExecutionPort; 3]; CYCLE_MAP_SIZE], cycle_in: usize, dep_cycle: usize) -> Option<usize> {
+	
+	println!("schedule_mop: mop={}, cycle={}, depCycle={}", mop.name, cycle_in, dep_cycle);
 	let mut cycle = if mop.dependent {
 		usize::max(cycle_in, dep_cycle)
 	} else {

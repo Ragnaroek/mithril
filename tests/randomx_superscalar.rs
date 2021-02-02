@@ -1,11 +1,24 @@
 extern crate mithril;
+#[macro_use(assert_diff)]
+extern crate difference;
 
-use mithril::randomx::superscalar::{ScProgram};
+use mithril::randomx::superscalar::{ScProgram, Blake2Generator};
 
 #[test]
 fn test_generate() {
-    //let prog = ScProgram::generate();
+	let key_str = b"test key 000";
+	let mut key : [u8; 60] = [0; 60];
+	key[..key_str.len()].copy_from_slice(key_str);
+	
+	let mut gen = Blake2Generator::new(key, 0);
+	let prog = ScProgram::generate(&mut gen);
+	
+	//assert_diff!(EXPECTED_SUPERSCALAR_PROG_1, &prog.to_string(), "\n", 0);
+	//assert_eq!(true, false);
 }
+
+//helper
+
 /*
 	runTest("SuperscalarHash generator", RANDOMX_SUPERSCALAR_LATENCY == 170, []() {
 		char sprogHash[32];
@@ -37,446 +50,450 @@ fn test_generate() {
 
 
 
-const EXPECTED_SUPERSCALAR_PROG : &str = r#"IADD_RS r0, r6, SHFT 0
-IADD_RS r1, r2, SHFT 0
-IADD_RS r4, r3, SHFT 0
-IADD_RS r6, r2, SHFT 1
-IADD_RS r6, r7, SHFT 0
-IADD_RS r2, r2, SHFT 0
-IADD_RS r2, r7, SHFT 0
-IADD_RS r3, r5, SHFT 0
-IADD_RS r7, r7, SHFT 0
-IADD_RS r0, r0, SHFT 0
-IADD_RS r6, r2, SHFT 0
-IADD_RS r4, r4, SHFT 0
-IADD_RS r5, r0, 0, SHFT 0
-IADD_RS r2, r1, SHFT 0
-IADD_RS r7, r1, SHFT 3
-IADD_RS r1, r1, SHFT 0
-IADD_RS r3, r7, SHFT 0
-IADD_RS r1, r0, SHFT 0
-IADD_RS r0, r7, SHFT 0
-IADD_RS r3, r3, SHFT 0
-IADD_RS r1, r1, SHFT 0
-IADD_RS r4, r4, SHFT 0
-IADD_RS r3, r1, SHFT 0
-IADD_RS r4, r0, SHFT 0
-IADD_RS r6, r7, SHFT 0
-IADD_RS r7, r7, SHFT 0
-IADD_RS r0, r0, SHFT 0
-IADD_RS r1, r1, SHFT 0
-IADD_RS r2, r2, SHFT 0
-IADD_RS r1, r1, SHFT 0
-IADD_RS r2, r2, SHFT 0
-IADD_RS r5, r5, 60, SHFT 0
-IADD_RS r7, r1, SHFT 0
-IADD_RS r0, r3, SHFT 0
-IADD_RS r2, r1, SHFT 0
-IADD_RS r4, r4, SHFT 0
-IADD_RS r1, r5, SHFT 0
-IADD_RS r1, r1, SHFT 0
-IADD_RS r5, r3, 0, SHFT 0
-IADD_RS r3, r6, SHFT 0
-IADD_RS r1, r1, SHFT 0
-IADD_RS r5, r7, 0, SHFT 0
-IADD_RS r4, r7, SHFT 0
-IADD_RS r6, r5, SHFT 0
-IADD_RS r3, r3, SHFT 0
-IADD_RS r5, r1, 0, SHFT 0
-IADD_RS r4, r1, SHFT 0
-IADD_RS r0, r1, SHFT 3
-IADD_RS r2, r0, SHFT 0
-IADD_RS r0, r0, SHFT 0
-IADD_RS r1, r7, SHFT 0
-IADD_RS r7, r0, SHFT 0
-IADD_RS r1, r1, SHFT 0
-IADD_RS r7, r0, SHFT 0
-IADD_RS r5, r2, 0, SHFT 0
-IADD_RS r2, r0, SHFT 0
-IADD_RS r4, r4, SHFT 0
-IADD_RS r1, r5, SHFT 0
-IADD_RS r6, r0, SHFT 0
-IADD_RS r0, r0, SHFT 0
-IADD_RS r3, r7, SHFT 2
-IADD_RS r5, r5, 374267952, SHFT 0
-IADD_RS r3, r0, SHFT 0
-IADD_RS r0, r0, SHFT 0
-IADD_RS r7, r5, SHFT 0
-IADD_RS r5, r0, 0, SHFT 0
-IADD_RS r2, r7, SHFT 0
-IADD_RS r7, r0, SHFT 0
-IADD_RS r5, r0, 0, SHFT 0
-IADD_RS r3, r2, SHFT 0
-IADD_RS r1, r4, SHFT 3
-IADD_RS r4, r2, SHFT 0
-IADD_RS r0, r0, SHFT 0
-IADD_RS r4, r1, SHFT 0
-IADD_RS r4, r6, SHFT 0
-IADD_RS r6, r6, SHFT 0
-IADD_RS r0, r1, SHFT 0
-IADD_RS r6, r4, SHFT 0
-IADD_RS r5, r1, 0, SHFT 0
-IADD_RS r4, r0, SHFT 0
-IADD_RS r1, r2, SHFT 0
-IADD_RS r6, r0, SHFT 0
-IADD_RS r5, r5, 12, SHFT 0
-IADD_RS r7, r3, SHFT 2
-IADD_RS r0, r0, SHFT 0
-IADD_RS r2, r5, SHFT 0
-IADD_RS r7, r7, SHFT 0
-IADD_RS r4, r4, SHFT 0
-IADD_RS r4, r4, SHFT 0
-IADD_RS r1, r0, SHFT 0
-IADD_RS r3, r3, SHFT 0
-IADD_RS r6, r4, SHFT 0
-IADD_RS r4, r1, SHFT 0
-IADD_RS r4, r5, SHFT 0
-IADD_RS r0, r2, SHFT 0
-IADD_RS r2, r3, SHFT 0
-IADD_RS r6, r1, SHFT 1
-IADD_RS r3, r3, SHFT 0
-IADD_RS r3, r5, SHFT 0
-IADD_RS r5, r1, 0, SHFT 0
-IADD_RS r1, r5, SHFT 0
-IADD_RS r3, r3, SHFT 0
-IADD_RS r5, r5, -122520312, SHFT 0
-IADD_RS r4, r7, SHFT 0
-IADD_RS r4, r4, SHFT 0
-IADD_RS r6, r6, SHFT 0
-IADD_RS r4, r5, SHFT 0
-IADD_RS r6, r5, SHFT 0
-IADD_RS r5, r4, 0, SHFT 0
-IADD_RS r1, r4, SHFT 0
-IADD_RS r2, r2, SHFT 0
-IADD_RS r0, r4, SHFT 0
-IADD_RS r4, r4, SHFT 0
-IADD_RS r0, r4, SHFT 0
-IADD_RS r7, r0, SHFT 0
-IADD_RS r6, r6, SHFT 0
-IADD_RS r3, r3, SHFT 0
-IADD_RS r2, r3, SHFT 0
-IADD_RS r3, r3, SHFT 0
-IADD_RS r4, r4, SHFT 0
-IADD_RS r0, r5, SHFT 0
-IADD_RS r5, r5, -1103157738, SHFT 0
-IADD_RS r4, r4, SHFT 0
-IADD_RS r6, r1, SHFT 0
-IADD_RS r1, r1, SHFT 0
-IADD_RS r7, r1, SHFT 0
-IADD_RS r1, r4, SHFT 0
-IADD_RS r3, r6, SHFT 0
-IADD_RS r4, r6, SHFT 0
-IADD_RS r7, r6, SHFT 0
-IADD_RS r1, r3, SHFT 0
-IADD_RS r6, r6, SHFT 0
-IADD_RS r2, r3, SHFT 0
-IADD_RS r3, r3, SHFT 0
-IADD_RS r5, r3, 0, SHFT 0
-IADD_RS r0, r3, SHFT 3
-IADD_RS r3, r3, SHFT 0
-IADD_RS r0, r6, SHFT 0
-IADD_RS r5, r6, 0, SHFT 0
-IADD_RS r3, r7, SHFT 0
-IADD_RS r2, r4, SHFT 0
-IADD_RS r6, r0, SHFT 1
-IADD_RS r0, r0, SHFT 0
-IADD_RS r6, r1, SHFT 0
-IADD_RS r4, r7, SHFT 0
-IADD_RS r7, r4, SHFT 0
-IADD_RS r0, r0, SHFT 0
-IADD_RS r1, r1, SHFT 0
-IADD_RS r5, r6, 0, SHFT 0
-IADD_RS r5, r5, 28, SHFT 0
-IADD_RS r3, r3, SHFT 0
-IADD_RS r1, r4, SHFT 0
-IADD_RS r6, r5, SHFT 0
-IADD_RS r4, r1, SHFT 0
-IADD_RS r7, r2, SHFT 0
-IADD_RS r1, r1, SHFT 0
-IADD_RS r2, r5, SHFT 0
-IADD_RS r0, r0, SHFT 0
-IADD_RS r3, r5, SHFT 0
-IADD_RS r3, r2, SHFT 0
-IADD_RS r2, r2, SHFT 0
-IADD_RS r6, r1, SHFT 0
-IADD_RS r3, r5, SHFT 0
-IADD_RS r5, r0, 0, SHFT 0
-IADD_RS r4, r4, SHFT 0
-IADD_RS r2, r6, SHFT 0
-IADD_RS r3, r1, SHFT 0
-IADD_RS r0, r1, SHFT 3
-IADD_RS r7, r7, SHFT 0
-IADD_RS r6, r1, SHFT 0
-IADD_RS r1, r0, SHFT 0
-IADD_RS r6, r0, SHFT 0
-IADD_RS r6, r0, SHFT 3
-IADD_RS r1, r1, SHFT 0
-IADD_RS r7, r6, SHFT 3
-IADD_RS r5, r0, 0, SHFT 0
-IADD_RS r1, r2, SHFT 0
-IADD_RS r4, r6, SHFT 0
-IADD_RS r0, r0, SHFT 0
-IADD_RS r6, r7, SHFT 0
-IADD_RS r2, r2, SHFT 0
-IADD_RS r7, r0, SHFT 0
-IADD_RS r0, r7, SHFT 0
-IADD_RS r2, r2, SHFT 0
-IADD_RS r5, r5, 1612707140, SHFT 0
-IADD_RS r3, r3, SHFT 0
-IADD_RS r6, r1, SHFT 0
-IADD_RS r1, r1, SHFT 0
-IADD_RS r3, r7, SHFT 0
-IADD_RS r7, r3, SHFT 0
-IADD_RS r0, r0, SHFT 0
-IADD_RS r5, r2, 0, SHFT 0
-IADD_RS r2, r3, SHFT 0
-IADD_RS r6, r3, SHFT 1
-IADD_RS r1, r1, SHFT 0
-IADD_RS r4, r3, SHFT 0
-IADD_RS r3, r6, SHFT 0
-IADD_RS r6, r1, SHFT 0
-IADD_RS r1, r4, SHFT 3
-IADD_RS r3, r3, SHFT 0
-IADD_RS r7, r0, SHFT 3
-IADD_RS r1, r4, SHFT 0
-IADD_RS r7, r3, SHFT 0
-IADD_RS r6, r2, SHFT 0
-IADD_RS r0, r5, SHFT 3
-IADD_RS r3, r4, SHFT 0
-IADD_RS r3, r3, SHFT 0
-IADD_RS r4, r2, SHFT 0
-IADD_RS r5, r0, 0, SHFT 0
-IADD_RS r2, r2, SHFT 0
-IADD_RS r4, r4, SHFT 0
-IADD_RS r0, r5, SHFT 0
-IADD_RS r3, r2, SHFT 0
-IADD_RS r5, r7, 0, SHFT 0
-IADD_RS r4, r1, SHFT 0
-IADD_RS r7, r2, SHFT 0
-IADD_RS r0, r0, SHFT 0
-IADD_RS r7, r2, SHFT 0
-IADD_RS r1, r6, SHFT 0
-IADD_RS r1, r0, SHFT 0
-IADD_RS r2, r7, SHFT 0
-IADD_RS r7, r7, SHFT 0
-IADD_RS r6, r2, SHFT 0
-IADD_RS r0, r6, SHFT 0
-IADD_RS r5, r5, 878756540, SHFT 0
-IADD_RS r7, r6, SHFT 0
-IADD_RS r2, r3, SHFT 0
-IADD_RS r1, r1, SHFT 0
-IADD_RS r6, r6, SHFT 0
-IADD_RS r1, r1, SHFT 0
-IADD_RS r3, r5, SHFT 0
-IADD_RS r6, r6, SHFT 0
-IADD_RS r4, r4, SHFT 0
-IADD_RS r4, r4, SHFT 0
-IADD_RS r1, r1, SHFT 0
-IADD_RS r1, r0, SHFT 0
-IADD_RS r7, r1, SHFT 0
-IADD_RS r5, r5, 0, SHFT 0
-IADD_RS r2, r2, SHFT 0
-IADD_RS r7, r0, SHFT 0
-IADD_RS r3, r6, SHFT 0
-IADD_RS r1, r4, SHFT 1
-IADD_RS r0, r4, SHFT 3
-IADD_RS r4, r4, SHFT 0
-IADD_RS r1, r1, SHFT 0
-IADD_RS r6, r4, SHFT 3
-IADD_RS r0, r0, SHFT 0
-IADD_RS r6, r1, SHFT 0
-IADD_RS r1, r2, SHFT 0
-IADD_RS r6, r2, SHFT 0
-IADD_RS r4, r3, SHFT 0
-IADD_RS r0, r2, SHFT 0
-IADD_RS r2, r2, SHFT 0
-IADD_RS r5, r0, 0, SHFT 0
-IADD_RS r2, r0, SHFT 0
-IADD_RS r0, r3, SHFT 0
-IADD_RS r7, r7, SHFT 0
-IADD_RS r2, r2, SHFT 0
-IADD_RS r2, r1, SHFT 2
-IADD_RS r3, r3, SHFT 0
-IADD_RS r2, r5, SHFT 0
-IADD_RS r2, r4, SHFT 0
-IADD_RS r5, r5, 0, SHFT 0
-IADD_RS r2, r2, SHFT 0
-IADD_RS r0, r3, SHFT 0
-IADD_RS r3, r4, SHFT 0
-IADD_RS r1, r4, SHFT 3
-IADD_RS r7, r7, SHFT 0
-IADD_RS r6, r6, SHFT 0
-IADD_RS r7, r1, SHFT 2
-IADD_RS r6, r4, SHFT 0
-IADD_RS r4, r4, SHFT 0
-IADD_RS r3, r6, SHFT 0
-IADD_RS r1, r6, SHFT 0
-IADD_RS r3, r3, SHFT 0
-IADD_RS r5, r7, 0, SHFT 0
-IADD_RS r7, r6, SHFT 0
-IADD_RS r4, r4, SHFT 0
-IADD_RS r2, r4, SHFT 0
-IADD_RS r4, r4, SHFT 0
-IADD_RS r0, r6, SHFT 0
-IADD_RS r4, r2, SHFT 0
-IADD_RS r2, r0, SHFT 0
-IADD_RS r6, r6, SHFT 0
-IADD_RS r0, r6, SHFT 0
-IADD_RS r4, r3, SHFT 0
-IADD_RS r6, r6, SHFT 0
-IADD_RS r2, r3, SHFT 0
-IADD_RS r1, r0, SHFT 0
-IADD_RS r0, r0, SHFT 0
-IADD_RS r5, r5, 49, SHFT 0
-IADD_RS r7, r7, SHFT 0
-IADD_RS r3, r7, SHFT 0
-IADD_RS r0, r5, SHFT 0
-IADD_RS r5, r5, 917412870, SHFT 0
-IADD_RS r3, r0, SHFT 0
-IADD_RS r7, r6, SHFT 0
-IADD_RS r3, r3, SHFT 0
-IADD_RS r0, r4, SHFT 0
-IADD_RS r5, r1, 0, SHFT 0
-IADD_RS r6, r4, SHFT 0
-IADD_RS r6, r6, SHFT 0
-IADD_RS r2, r4, SHFT 0
-IADD_RS r6, r2, SHFT 0
-IADD_RS r1, r4, SHFT 0
-IADD_RS r6, r6, SHFT 0
-IADD_RS r1, r1, SHFT 0
-IADD_RS r1, r6, SHFT 0
-IADD_RS r7, r4, SHFT 0
-IADD_RS r6, r4, SHFT 0
-IADD_RS r1, r2, SHFT 0
-IADD_RS r4, r3, SHFT 1
-IADD_RS r0, r0, SHFT 0
-IADD_RS r3, r3, SHFT 0
-IADD_RS r2, r0, SHFT 0
-IADD_RS r4, r4, SHFT 0
-IADD_RS r3, r3, SHFT 0
-IADD_RS r5, r5, 55, SHFT 0
-IADD_RS r6, r7, SHFT 0
-IADD_RS r0, r0, SHFT 0
-IADD_RS r7, r1, SHFT 0
-IADD_RS r3, r1, SHFT 0
-IADD_RS r5, r0, 0, SHFT 0
-IADD_RS r3, r6, SHFT 0
-IADD_RS r6, r4, SHFT 0
-IADD_RS r7, r7, SHFT 0
-IADD_RS r1, r1, SHFT 0
-IADD_RS r2, r2, SHFT 0
-IADD_RS r1, r4, SHFT 2
-IADD_RS r7, r1, SHFT 0
-IADD_RS r0, r0, SHFT 0
-IADD_RS r5, r2, 0, SHFT 0
-IADD_RS r4, r2, SHFT 0
-IADD_RS r5, r5, -502592121, SHFT 0
-IADD_RS r0, r1, SHFT 0
-IADD_RS r1, r2, SHFT 0
-IADD_RS r7, r7, SHFT 0
-IADD_RS r6, r2, SHFT 0
-IADD_RS r6, r6, SHFT 0
-IADD_RS r7, r2, SHFT 0
-IADD_RS r3, r4, SHFT 0
-IADD_RS r0, r0, SHFT 0
-IADD_RS r7, r7, SHFT 0
-IADD_RS r2, r4, SHFT 0
-IADD_RS r4, r4, SHFT 0
-IADD_RS r5, r5, -50779412, SHFT 0
-IADD_RS r7, r6, SHFT 2
-IADD_RS r5, r7, 0, SHFT 0
-IADD_RS r1, r1, SHFT 0
-IADD_RS r5, r6, 0, SHFT 0
-IADD_RS r3, r1, SHFT 0
-IADD_RS r7, r6, SHFT 0
-IADD_RS r5, r3, 0, SHFT 0
-IADD_RS r3, r2, SHFT 0
-IADD_RS r1, r1, SHFT 0
-IADD_RS r6, r0, SHFT 0
-IADD_RS r1, r1, SHFT 0
-IADD_RS r4, r2, SHFT 0
-IADD_RS r0, r6, SHFT 0
-IADD_RS r7, r0, SHFT 2
-IADD_RS r0, r0, SHFT 0
-IADD_RS r7, r7, SHFT 0
-IADD_RS r2, r1, SHFT 0
-IADD_RS r1, r5, SHFT 0
-IADD_RS r7, r6, SHFT 0
-IADD_RS r4, r4, SHFT 0
-IADD_RS r0, r6, SHFT 1
-IADD_RS r3, r3, SHFT 0
-IADD_RS r6, r4, SHFT 0
-IADD_RS r5, r5, 1805329716, SHFT 0
-IADD_RS r3, r3, SHFT 0
-IADD_RS r2, r1, SHFT 1
-IADD_RS r4, r7, SHFT 0
-IADD_RS r2, r2, SHFT 0
-IADD_RS r1, r0, SHFT 0
-IADD_RS r0, r7, SHFT 0
-IADD_RS r1, r1, SHFT 0
-IADD_RS r2, r7, SHFT 0
-IADD_RS r4, r5, SHFT 0
-IADD_RS r7, r3, SHFT 1
-IADD_RS r6, r6, SHFT 0
-IADD_RS r6, r3, SHFT 0
-IADD_RS r5, r3, 0, SHFT 0
-IADD_RS r3, r1, SHFT 0
-IADD_RS r2, r2, SHFT 0
-IADD_RS r7, r7, SHFT 0
-IADD_RS r6, r6, SHFT 0
-IADD_RS r5, r5, -893676238, SHFT 0
-IADD_RS r6, r1, SHFT 0
-IADD_RS r1, r5, SHFT 0
-IADD_RS r0, r4, SHFT 0
-IADD_RS r5, r5, 233018490, SHFT 0
-IADD_RS r7, r4, SHFT 0
-IADD_RS r6, r7, SHFT 0
-IADD_RS r1, r4, SHFT 2
-IADD_RS r1, r4, SHFT 0
-IADD_RS r3, r3, SHFT 0
-IADD_RS r4, r7, SHFT 0
-IADD_RS r2, r4, SHFT 0
-IADD_RS r3, r3, SHFT 0
-IADD_RS r1, r1, SHFT 0
-IADD_RS r0, r0, SHFT 0
-IADD_RS r5, r7, 0, SHFT 0
-IADD_RS r7, r7, SHFT 0
-IADD_RS r6, r0, SHFT 0
-IADD_RS r4, r7, SHFT 0
-IADD_RS r2, r2, SHFT 0
-IADD_RS r3, r6, SHFT 0
-IADD_RS r1, r7, SHFT 0
-IADD_RS r0, r6, SHFT 3
-IADD_RS r5, r0, 0, SHFT 0
-IADD_RS r7, r7, SHFT 0
-IADD_RS r0, r5, SHFT 0
-IADD_RS r6, r7, SHFT 0
-IADD_RS r6, r6, SHFT 0
-IADD_RS r0, r0, SHFT 0
-IADD_RS r2, r0, SHFT 0
-IADD_RS r7, r6, SHFT 0
-IADD_RS r2, r5, SHFT 0
-IADD_RS r4, r0, SHFT 0
-IADD_RS r6, r0, SHFT 3
-IADD_RS r5, r5, -349722477, SHFT 0
-IADD_RS r6, r3, SHFT 0
-IADD_RS r1, r0, SHFT 0
-IADD_RS r0, r1, SHFT 0
-IADD_RS r2, r2, SHFT 0
-IADD_RS r7, r7, SHFT 0
-IADD_RS r3, r3, SHFT 0
-IADD_RS r1, r1, SHFT 0
-IADD_RS r1, r1, SHFT 0
-IADD_RS r6, r4, SHFT 3
-IADD_RS r5, r7, 0, SHFT 0
-IADD_RS r7, r6, SHFT 0
-IADD_RS r2, r1, SHFT 0
-IADD_RS r6, r6, SHFT 0
-IADD_RS r1, r1, SHFT 0
-IADD_RS r6, r6, SHFT 0
-IADD_RS r0, r4, SHFT 0
-IADD_RS r4, r6, SHFT 1
-IADD_RS r3, r3, SHFT 0
-IADD_RS r1, r1, SHFT 0
-IADD_RS r3, r3, SHFT 0
-IADD_RS r0, r5, SHFT 0"#;
+const EXPECTED_SUPERSCALAR_PROG_1 : &str = r#"op: IMUL_R, src: 0, dst: 3
+op: IMUL_R, src: 1, dst: 4
+op: IMUL_R, src: 7, dst: 6
+op: IROR_C, src: -1, dst: 7
+op: IADD_RS, src: 1, dst: 2
+op: IXOR_C9, src: -1, dst: 0
+op: ISMULH_R, src: 5, dst: 1
+op: IMUL_RCP, src: -1, dst: 0
+op: IADD_C8, src: -1, dst: 5
+op: IROR_C, src: -1, dst: 4
+op: IROR_C, src: -1, dst: 3
+op: IADD_C9, src: -1, dst: 3
+op: ISMULH_R, src: 3, dst: 7
+op: IMUL_RCP, src: -1, dst: 1
+op: IMUL_R, src: 2, dst: 3
+op: IMUL_R, src: 4, dst: 0
+op: IROR_C, src: -1, dst: 2
+op: IADD_C7, src: -1, dst: 6
+op: IXOR_R, src: 2, dst: 4
+op: ISUB_R, src: 4, dst: 5
+op: IXOR_R, src: 2, dst: 6
+op: IADD_C7, src: -1, dst: 5
+op: IXOR_R, src: 2, dst: 7
+op: IXOR_R, src: 6, dst: 2
+op: ISMULH_R, src: 4, dst: 4
+op: IMUL_RCP, src: -1, dst: 6
+op: IMUL_R, src: 5, dst: 2
+op: IMUL_R, src: 0, dst: 5
+op: IADD_RS, src: 7, dst: 1
+op: IXOR_C7, src: -1, dst: 0
+op: ISUB_R, src: 3, dst: 1
+op: ISUB_R, src: 3, dst: 2
+op: IXOR_R, src: 3, dst: 7
+op: ISUB_R, src: 3, dst: 0
+op: IXOR_C7, src: -1, dst: 2
+op: ISUB_R, src: 1, dst: 3
+op: IXOR_R, src: 2, dst: 4
+op: IMUL_R, src: 2, dst: 1
+op: IMUL_R, src: 0, dst: 3
+op: IMUL_R, src: 6, dst: 4
+op: IROR_C, src: -1, dst: 0
+op: IXOR_R, src: 7, dst: 0
+op: IXOR_C7, src: -1, dst: 5
+op: IXOR_R, src: 6, dst: 2
+op: IXOR_R, src: 7, dst: 6
+op: IADD_RS, src: 2, dst: 6
+op: IXOR_C9, src: -1, dst: 0
+op: ISUB_R, src: 5, dst: 2
+op: IMUL_R, src: 2, dst: 0
+op: IMUL_R, src: 2, dst: 6
+op: IMUL_R, src: 4, dst: 2
+op: IROR_C, src: -1, dst: 3
+op: IROR_C, src: -1, dst: 1
+op: IADD_C9, src: -1, dst: 5
+op: IMULH_R, src: 3, dst: 7
+op: IMUL_RCP, src: -1, dst: 1
+op: IXOR_C9, src: -1, dst: 3
+op: IMULH_R, src: 4, dst: 4
+op: IMUL_RCP, src: -1, dst: 2
+op: IXOR_C8, src: -1, dst: 5
+op: IADD_RS, src: 3, dst: 0
+op: IROR_C, src: -1, dst: 5
+op: IXOR_C9, src: -1, dst: 5
+op: ISMULH_R, src: 0, dst: 3
+op: IMUL_RCP, src: -1, dst: 0
+op: IMUL_R, src: 5, dst: 4
+op: IMUL_R, src: 7, dst: 1
+op: IADD_RS, src: 5, dst: 6
+op: IROR_C, src: -1, dst: 5
+op: IXOR_C8, src: -1, dst: 6
+op: IROR_C, src: -1, dst: 7
+op: IROR_C, src: -1, dst: 6
+op: IADD_C9, src: -1, dst: 5
+op: ISUB_R, src: 7, dst: 2
+op: IMUL_R, src: 7, dst: 0
+op: IMUL_R, src: 2, dst: 5
+op: IMUL_R, src: 1, dst: 2
+op: IROR_C, src: -1, dst: 3
+op: IADD_RS, src: 7, dst: 6
+op: IADD_C8, src: -1, dst: 6
+op: IROR_C, src: -1, dst: 4
+op: IADD_RS, src: 7, dst: 6
+op: IXOR_C8, src: -1, dst: 4
+op: IROR_C, src: -1, dst: 6
+op: IMUL_R, src: 7, dst: 4
+op: IMUL_R, src: 0, dst: 3
+op: IMUL_R, src: 1, dst: 7
+op: IADD_RS, src: 0, dst: 6
+op: IADD_RS, src: 6, dst: 0
+op: IADD_C9, src: -1, dst: 1
+op: IMULH_R, src: 1, dst: 1
+op: IMUL_RCP, src: -1, dst: 6
+op: IADD_C8, src: -1, dst: 0
+op: IADD_RS, src: 5, dst: 2
+op: IROR_C, src: -1, dst: 4
+op: IXOR_C9, src: -1, dst: 0
+op: ISUB_R, src: 4, dst: 2
+op: IMUL_R, src: 4, dst: 0
+op: IMUL_R, src: 5, dst: 4
+op: IMUL_R, src: 7, dst: 2
+op: IROR_C, src: -1, dst: 5
+op: IXOR_C7, src: -1, dst: 7
+op: IXOR_R, src: 5, dst: 7
+op: ISUB_R, src: 5, dst: 3
+op: IMULH_R, src: 3, dst: 5
+op: IMUL_RCP, src: -1, dst: 4
+op: IADD_C9, src: -1, dst: 6
+op: ISMULH_R, src: 6, dst: 7
+op: IMUL_RCP, src: -1, dst: 0
+op: IXOR_C9, src: -1, dst: 1
+op: ISMULH_R, src: 2, dst: 3
+op: IMUL_RCP, src: -1, dst: 5
+op: IADD_C9, src: -1, dst: 2
+op: ISUB_R, src: 1, dst: 2
+op: IXOR_R, src: 1, dst: 6
+op: IXOR_C7, src: -1, dst: 6
+op: ISUB_R, src: 1, dst: 6
+op: IMULH_R, src: 2, dst: 1
+op: IMUL_RCP, src: -1, dst: 2
+op: IMUL_R, src: 7, dst: 6
+op: IMUL_R, src: 5, dst: 4
+op: IROR_C, src: -1, dst: 7
+op: IROR_C, src: -1, dst: 0
+op: IADD_C9, src: -1, dst: 7
+op: ISMULH_R, src: 0, dst: 7
+op: IMUL_RCP, src: -1, dst: 0
+op: IXOR_C8, src: -1, dst: 3
+op: IADD_RS, src: 5, dst: 3
+op: IROR_C, src: -1, dst: 5
+op: IXOR_C9, src: -1, dst: 5
+op: IMULH_R, src: 6, dst: 1
+op: IMUL_RCP, src: -1, dst: 5
+op: IMUL_R, src: 0, dst: 7
+op: IMUL_R, src: 6, dst: 0
+op: IADD_RS, src: 6, dst: 3
+op: IADD_C7, src: -1, dst: 6
+op: IXOR_R, src: 6, dst: 3
+op: IXOR_R, src: 6, dst: 4
+op: ISUB_R, src: 4, dst: 3
+op: IXOR_C7, src: -1, dst: 4
+op: IXOR_R, src: 4, dst: 2
+op: IXOR_R, src: 3, dst: 6
+op: ISMULH_R, src: 4, dst: 4
+op: IMUL_RCP, src: -1, dst: 6
+op: IMUL_R, src: 3, dst: 5
+op: IMUL_R, src: 0, dst: 1
+op: IADD_RS, src: 7, dst: 2
+op: IROR_C, src: -1, dst: 7
+op: IADD_C9, src: -1, dst: 2
+op: IMULH_R, src: 3, dst: 3
+op: IMUL_RCP, src: -1, dst: 2
+op: IXOR_C9, src: -1, dst: 7
+op: IMULH_R, src: 4, dst: 0
+op: IMUL_RCP, src: -1, dst: 7
+op: IXOR_C9, src: -1, dst: 4
+op: IMULH_R, src: 3, dst: 6
+op: IMUL_RCP, src: -1, dst: 3
+op: IADD_C8, src: -1, dst: 5
+op: IROR_C, src: -1, dst: 4
+op: IADD_RS, src: 4, dst: 1
+op: IXOR_C8, src: -1, dst: 5
+op: IADD_RS, src: 5, dst: 2
+op: IMUL_R, src: 4, dst: 2
+op: IMUL_R, src: 5, dst: 1
+op: IMUL_R, src: 5, dst: 6
+op: IADD_RS, src: 5, dst: 4
+op: IADD_RS, src: 7, dst: 4
+op: IADD_C9, src: -1, dst: 5
+op: IMULH_R, src: 0, dst: 5
+op: IMUL_RCP, src: -1, dst: 2
+op: IXOR_C8, src: -1, dst: 4
+op: IADD_RS, src: 0, dst: 7
+op: IADD_RS, src: 3, dst: 7
+op: IADD_C8, src: -1, dst: 4
+op: IADD_RS, src: 0, dst: 3
+op: IMUL_R, src: 4, dst: 7
+op: IMUL_R, src: 1, dst: 0
+op: IMUL_R, src: 1, dst: 3
+op: IROR_C, src: -1, dst: 4
+op: IXOR_R, src: 1, dst: 6
+op: IXOR_C7, src: -1, dst: 1
+op: ISUB_R, src: 1, dst: 4
+op: IMULH_R, src: 2, dst: 1
+op: IMUL_RCP, src: -1, dst: 6
+op: IXOR_C8, src: -1, dst: 4
+op: IADD_RS, src: 2, dst: 4
+op: IROR_C, src: -1, dst: 2
+op: IADD_C8, src: -1, dst: 2
+op: IROR_C, src: -1, dst: 7
+op: IMUL_R, src: 4, dst: 2
+op: IMUL_R, src: 0, dst: 7
+op: IMUL_R, src: 0, dst: 5
+op: IROR_C, src: -1, dst: 4
+op: IADD_RS, src: 4, dst: 0
+op: IADD_C9, src: -1, dst: 4
+op: IXOR_R, src: 0, dst: 4
+op: IADD_RS, src: 0, dst: 3
+op: IADD_C9, src: -1, dst: 0
+op: ISUB_R, src: 6, dst: 4
+op: IMUL_R, src: 2, dst: 3
+op: IMUL_R, src: 4, dst: 1
+op: IMUL_R, src: 4, dst: 6
+op: IADD_RS, src: 2, dst: 0
+op: ISUB_R, src: 4, dst: 2
+op: IADD_C7, src: -1, dst: 4
+op: IXOR_R, src: 2, dst: 7
+op: ISUB_R, src: 0, dst: 7
+op: ISUB_R, src: 0, dst: 5
+op: IXOR_C7, src: -1, dst: 2
+op: IXOR_R, src: 3, dst: 5
+op: IXOR_R, src: 3, dst: 7
+op: IMUL_R, src: 2, dst: 7
+op: IMUL_R, src: 3, dst: 2
+op: IMUL_R, src: 0, dst: 4
+op: IROR_C, src: -1, dst: 1
+op: IADD_C7, src: -1, dst: 3
+op: IXOR_R, src: 1, dst: 6
+op: IXOR_R, src: 3, dst: 1
+op: IMULH_R, src: 5, dst: 0
+op: IMUL_RCP, src: -1, dst: 3
+op: IXOR_C9, src: -1, dst: 1
+op: ISUB_R, src: 7, dst: 5
+op: IADD_RS, src: 5, dst: 1
+op: IADD_C9, src: -1, dst: 5
+op: ISUB_R, src: 5, dst: 4
+op: IMUL_R, src: 1, dst: 5
+op: IMUL_R, src: 4, dst: 6
+op: IMUL_R, src: 2, dst: 1
+op: IROR_C, src: -1, dst: 2
+op: IXOR_R, src: 2, dst: 4
+op: IADD_C7, src: -1, dst: 2
+op: ISUB_R, src: 0, dst: 3
+op: IXOR_R, src: 4, dst: 7
+op: ISUB_R, src: 0, dst: 2
+op: IXOR_C7, src: -1, dst: 5
+op: ISUB_R, src: 4, dst: 7
+op: ISUB_R, src: 0, dst: 7
+op: IMUL_R, src: 3, dst: 2
+op: IMUL_R, src: 1, dst: 3
+op: IMUL_R, src: 0, dst: 7
+op: IADD_RS, src: 6, dst: 0
+op: IXOR_R, src: 1, dst: 4
+op: IXOR_C7, src: -1, dst: 0
+op: ISUB_R, src: 5, dst: 6
+op: ISUB_R, src: 4, dst: 0
+op: IXOR_R, src: 1, dst: 2
+op: IXOR_C7, src: -1, dst: 6
+op: ISUB_R, src: 5, dst: 1
+op: ISMULH_R, src: 1, dst: 5
+op: IMUL_RCP, src: -1, dst: 4
+op: IMUL_R, src: 3, dst: 2
+op: IMUL_R, src: 1, dst: 6
+op: IROR_C, src: -1, dst: 7
+op: IADD_RS, src: 0, dst: 3
+op: IADD_C9, src: -1, dst: 7
+op: IMULH_R, src: 5, dst: 1
+op: IMUL_RCP, src: -1, dst: 0
+op: IADD_C9, src: -1, dst: 3
+op: IXOR_R, src: 7, dst: 3
+op: IXOR_C7, src: -1, dst: 7
+op: ISUB_R, src: 4, dst: 2
+op: IXOR_R, src: 4, dst: 5
+op: ISUB_R, src: 3, dst: 2
+op: IMUL_R, src: 6, dst: 3
+op: IMUL_R, src: 2, dst: 4
+op: IMUL_R, src: 1, dst: 5
+op: IADD_RS, src: 7, dst: 6
+op: IADD_C7, src: -1, dst: 6
+op: IXOR_R, src: 7, dst: 2
+op: ISUB_R, src: 0, dst: 7
+op: ISUB_R, src: 0, dst: 1
+op: IADD_C7, src: -1, dst: 0
+op: IXOR_R, src: 6, dst: 1
+op: ISUB_R, src: 6, dst: 2
+op: IXOR_R, src: 0, dst: 1
+op: IMUL_R, src: 2, dst: 0
+op: IMUL_R, src: 5, dst: 7
+op: IMUL_R, src: 6, dst: 2
+op: IROR_C, src: -1, dst: 6
+op: IADD_C7, src: -1, dst: 1
+op: IXOR_R, src: 4, dst: 6
+op: IXOR_R, src: 3, dst: 5
+op: ISMULH_R, src: 1, dst: 3
+op: IMUL_RCP, src: -1, dst: 5
+op: IADD_C9, src: -1, dst: 6
+op: IMULH_R, src: 0, dst: 4
+op: IMUL_RCP, src: -1, dst: 1
+op: IADD_C8, src: -1, dst: 7
+op: IROR_C, src: -1, dst: 6
+op: IXOR_R, src: 6, dst: 0
+op: IADD_C7, src: -1, dst: 2
+op: ISUB_R, src: 5, dst: 0
+op: ISMULH_R, src: 7, dst: 7
+op: IMUL_RCP, src: -1, dst: 3
+op: IMUL_R, src: 5, dst: 6
+op: IMUL_R, src: 4, dst: 0
+op: IROR_C, src: -1, dst: 5
+op: IADD_C7, src: -1, dst: 5
+op: ISUB_R, src: 4, dst: 2
+op: ISUB_R, src: 1, dst: 6
+op: IMULH_R, src: 1, dst: 1
+op: IMUL_RCP, src: -1, dst: 7
+op: IXOR_C9, src: -1, dst: 5
+op: IXOR_R, src: 2, dst: 6
+op: IADD_RS, src: 2, dst: 4
+op: IXOR_C9, src: -1, dst: 2
+op: ISUB_R, src: 5, dst: 6
+op: IMUL_R, src: 5, dst: 3
+op: IMUL_R, src: 2, dst: 6
+op: IMUL_R, src: 5, dst: 1
+op: IADD_RS, src: 5, dst: 0
+op: IADD_RS, src: 0, dst: 7
+op: IXOR_C8, src: -1, dst: 4
+op: IADD_RS, src: 4, dst: 0
+op: IADD_C7, src: -1, dst: 5
+op: ISUB_R, src: 7, dst: 2
+op: IXOR_R, src: 3, dst: 5
+op: IMULH_R, src: 5, dst: 4
+op: IMUL_RCP, src: -1, dst: 0
+op: IMUL_R, src: 3, dst: 7
+op: IMUL_R, src: 6, dst: 2
+op: IROR_C, src: -1, dst: 6
+op: IADD_C7, src: -1, dst: 5
+op: IXOR_R, src: 5, dst: 3
+op: IXOR_R, src: 1, dst: 5
+op: ISUB_R, src: 1, dst: 3
+op: ISUB_R, src: 5, dst: 6
+op: IADD_C7, src: -1, dst: 5
+op: ISUB_R, src: 0, dst: 1
+op: ISUB_R, src: 3, dst: 0
+op: IMUL_R, src: 0, dst: 3
+op: IMUL_R, src: 2, dst: 5
+op: IMUL_R, src: 4, dst: 0
+op: IROR_C, src: -1, dst: 7
+op: IADD_RS, src: 6, dst: 4
+op: IXOR_C8, src: -1, dst: 4
+op: IADD_RS, src: 1, dst: 6
+op: IADD_RS, src: 6, dst: 2
+op: IXOR_C9, src: -1, dst: 7
+op: ISUB_R, src: 3, dst: 1
+op: IMUL_R, src: 6, dst: 2
+op: IMUL_R, src: 6, dst: 7
+op: IMUL_R, src: 0, dst: 6
+op: IROR_C, src: -1, dst: 3
+op: IXOR_R, src: 3, dst: 5
+op: IADD_C7, src: -1, dst: 4
+op: IXOR_R, src: 4, dst: 1
+op: IXOR_R, src: 0, dst: 5
+op: ISUB_R, src: 5, dst: 2
+op: IXOR_C7, src: -1, dst: 1
+op: ISUB_R, src: 0, dst: 5
+op: IXOR_R, src: 7, dst: 5
+op: IMUL_R, src: 7, dst: 1
+op: IMUL_R, src: 4, dst: 2
+op: IMUL_R, src: 3, dst: 5
+op: IADD_RS, src: 3, dst: 4
+op: IADD_RS, src: 7, dst: 6
+op: IXOR_C8, src: -1, dst: 4
+op: IROR_C, src: -1, dst: 7
+op: IXOR_R, src: 4, dst: 0
+op: IXOR_C7, src: -1, dst: 1
+op: IXOR_R, src: 7, dst: 4
+op: IXOR_R, src: 6, dst: 0
+op: IMUL_R, src: 0, dst: 7
+op: IMUL_R, src: 2, dst: 4
+op: IMUL_R, src: 5, dst: 3
+op: IROR_C, src: -1, dst: 2
+op: IADD_RS, src: 6, dst: 1
+op: IADD_C8, src: -1, dst: 2
+op: IROR_C, src: -1, dst: 5
+op: IADD_RS, src: 0, dst: 1
+op: IXOR_C8, src: -1, dst: 2
+op: IADD_RS, src: 5, dst: 7
+op: IMUL_R, src: 1, dst: 5
+op: IMUL_R, src: 0, dst: 2
+op: IMUL_R, src: 1, dst: 7
+op: IROR_C, src: -1, dst: 0
+op: IROR_C, src: -1, dst: 6
+op: IADD_C9, src: -1, dst: 1
+op: IXOR_R, src: 3, dst: 1
+op: IADD_C7, src: -1, dst: 0
+op: IXOR_R, src: 4, dst: 6
+op: ISUB_R, src: 3, dst: 4
+op: IXOR_R, src: 0, dst: 1
+op: IMUL_R, src: 2, dst: 4
+op: IMUL_R, src: 0, dst: 6
+op: IMUL_R, src: 2, dst: 0
+op: IROR_C, src: -1, dst: 5
+op: IADD_RS, src: 2, dst: 3
+op: IADD_C8, src: -1, dst: 1
+op: IADD_RS, src: 2, dst: 7
+op: IROR_C, src: -1, dst: 2
+op: IADD_C9, src: -1, dst: 3
+op: ISUB_R, src: 2, dst: 3
+op: IMUL_R, src: 7, dst: 1
+op: IMUL_R, src: 3, dst: 2
+op: IMUL_R, src: 3, dst: 7
+op: IADD_RS, src: 5, dst: 4
+op: IROR_C, src: -1, dst: 6
+op: IXOR_C9, src: -1, dst: 5
+op: ISUB_R, src: 4, dst: 6
+op: ISUB_R, src: 5, dst: 3
+op: IADD_C7, src: -1, dst: 1
+op: ISUB_R, src: 4, dst: 5
+op: IXOR_R, src: 4, dst: 3
+op: IMUL_R, src: 3, dst: 5
+op: IMUL_R, src: 0, dst: 6
+op: IMUL_R, src: 3, dst: 1
+op: IADD_RS, src: 2, dst: 3
+op: IADD_RS, src: 7, dst: 2
+op: IADD_C8, src: -1, dst: 0
+op: IROR_C, src: -1, dst: 7
+op: IADD_RS, src: 0, dst: 4
+op: IADD_C8, src: -1, dst: 7
+op: IADD_RS, src: 2, dst: 0
+op: IMUL_R, src: 3, dst: 2
+op: IMUL_R, src: 6, dst: 3
+op: IMUL_R, src: 6, dst: 4
+op: IROR_C, src: -1, dst: 7
+op: IADD_RS, src: 5, dst: 7
+op: IXOR_C9, src: -1, dst: 0
+op: IMULH_R, src: 2, dst: 5
+op: IMUL_RCP, src: -1, dst: 6
+op: IXOR_C8, src: -1, dst: 7
+op: IROR_C, src: -1, dst: 1
+op: IADD_C7, src: -1, dst: 3
+op: ISUB_R, src: 7, dst: 2
+op: ISUB_R, src: 1, dst: 7
+op: ISUB_R, src: 2, dst: 1
+op: IMUL_R, src: 3, dst: 0
+op: IMUL_R, src: 4, dst: 2
+op: IMUL_R, src: 1, dst: 5
+op: IADD_RS, src: 3, dst: 7
+op: ISUB_R, src: 4, dst: 3
+op: IADD_C7, src: -1, dst: 3
+op: ISUB_R, src: 4, dst: 7
+op: ISUB_R, src: 1, dst: 0
+op: IADD_RS, src: 3, dst: 6
+op: IADD_C9, src: -1, dst: 7
+op: IMULH_R, src: 7, dst: 1
+op: IMUL_RCP, src: -1, dst: 3
+op: IMUL_R, src: 5, dst: 6
+op: IMUL_R, src: 5, dst: 0
+op: IADD_RS, src: 7, dst: 2
+op: IROR_C, src: -1, dst: 7
+op: IXOR_C9, src: -1, dst: 7
+op: ISMULH_R, src: 2, dst: 4"#;
