@@ -7,7 +7,7 @@ use std::fmt;
 
 use super::program::{REG_NEEDS_DISPLACEMENT_IX};
 
-const RANDOMX_SUPERSCALAR_LATENCY : usize = 17;
+const RANDOMX_SUPERSCALAR_LATENCY : usize = 170;
 const CYCLE_MAP_SIZE : usize = RANDOMX_SUPERSCALAR_LATENCY + 4;
 const SUPERSCALAR_MAX_SIZE : usize = 3 * RANDOMX_SUPERSCALAR_LATENCY + 2;
 const LOOK_FORWARD_CYCLES : usize = 4;
@@ -84,7 +84,16 @@ impl ScInstr<'_> {
 		
 		let mut available_registers = Vec::with_capacity(8);
 		for i in 0..8 {
-			if registers[i].latency <= cycle && (self.can_reuse || i as i32 != self.src) && (allow_chain_mul || self.op_group != ScOpcode::IMUL_R || registers[i].last_op_group != ScOpcode::IMUL_R || registers[i].last_op_par != self.op_group_par) && (self.info.op != ScOpcode::IADD_RS || i != REG_NEEDS_DISPLACEMENT_IX) {
+
+			//println!("registers[{}].latency({}) <= {}", i, registers[i].latency, cycle);
+			//println!("(self.can_reuse({}) || i as i32({}) != self.src({}))", self.can_reuse, i as i32, self.src);
+			//println!("(allow_chain_mul({}) || self.op_group({}) != ScOpcode::IMUL_R || registers[i].last_op_group({}) != ScOpcode::IMUL_R || registers[i].last_op_par({}) != self.op_group_par({}))\n", allow_chain_mul, self.op_group, registers[i].last_op_group, registers[i].last_op_par, self.op_group_par);
+
+			if registers[i].latency <= cycle 
+			   && (self.can_reuse || i as i32 != self.src) 
+			   && (allow_chain_mul || self.op_group != ScOpcode::IMUL_R || registers[i].last_op_group != ScOpcode::IMUL_R)
+			   && (registers[i].last_op_group != self.op_group || registers[i].last_op_par != self.op_group_par) 
+			   && (self.info.op != ScOpcode::IADD_RS || i != REG_NEEDS_DISPLACEMENT_IX) {
 				available_registers.push(i);
 			}
 		}
@@ -126,7 +135,7 @@ impl ScInstr<'_> {
 			0
 		};
 
-		println!("### reg = {}\n", available_registers[index]);
+		println!("### reg={}, ix={},len={}\n", available_registers[index], index, available_registers.len());
 
 		if reg_src {
 			self.src = available_registers[index] as i32;
@@ -480,7 +489,7 @@ impl ScProgram<'_> {
 				let top_cycle = cycle;
 				if macro_op_index >= current_instr.info.size() {
 					if ports_saturated || program_size >= SUPERSCALAR_MAX_SIZE {
-						println!("### macro_op_index term");
+						println!("### macro_op_index term, ports_saturated = {}, programSize = {}", ports_saturated, program_size);
 						break;
 					}
 
@@ -568,7 +577,9 @@ impl ScProgram<'_> {
 				macro_op_index += 1;
 				macro_op_count += 1;
 
+				println!("### schedule_cycle({}) >= RANDOMX_SUPERSCALAR_LATENCY({})", schedule_cycle, RANDOMX_SUPERSCALAR_LATENCY);
 				if schedule_cycle >= RANDOMX_SUPERSCALAR_LATENCY {
+					println!("ports_saturated: schedule_cycle >= RANDOMX_SUPERSCALAR_LATENCY");
 					ports_saturated = true;
 				}
 				cycle = top_cycle;
