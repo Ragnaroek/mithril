@@ -79,16 +79,8 @@ impl ScInstr<'_> {
 	}
 
 	fn select_destination(&mut self, cycle: usize, allow_chain_mul: bool, registers: &[RegisterInfo; 8], gen: &mut Blake2Generator) -> bool {
-		
-		println!("### selectDestination, cycle = {}, allowChainMul = {}\n", cycle, allow_chain_mul);
-		
 		let mut available_registers = Vec::with_capacity(8);
 		for i in 0..8 {
-
-			//println!("registers[{}].latency({}) <= {}", i, registers[i].latency, cycle);
-			//println!("(self.can_reuse({}) || i as i32({}) != self.src({}))", self.can_reuse, i as i32, self.src);
-			//println!("(allow_chain_mul({}) || self.op_group({}) != ScOpcode::IMUL_R || registers[i].last_op_group({}) != ScOpcode::IMUL_R || registers[i].last_op_par({}) != self.op_group_par({}))\n", allow_chain_mul, self.op_group, registers[i].last_op_group, registers[i].last_op_par, self.op_group_par);
-
 			if registers[i].latency <= cycle 
 			   && (self.can_reuse || i as i32 != self.src) 
 			   && (allow_chain_mul || self.op_group != ScOpcode::IMUL_R || registers[i].last_op_group != ScOpcode::IMUL_R)
@@ -135,8 +127,6 @@ impl ScInstr<'_> {
 			0
 		};
 
-		println!("### reg={}, ix={},len={}\n", available_registers[index], index, available_registers.len());
-
 		if reg_src {
 			self.src = available_registers[index] as i32;
 		} else {
@@ -159,7 +149,6 @@ fn is_zero_or_power_of_2(v: u32) -> bool {
 
 impl ScInstr<'_> {
 	pub fn create_for_slot<'a>(gen: &mut Blake2Generator, slot_size: u32, fetch_type: u32, is_last: bool) -> ScInstr<'a> {
-		println!("### create_for_slot: {}, is_last = {}", slot_size, is_last);
         match slot_size {
 			3 => {
 				if is_last {
@@ -201,7 +190,6 @@ impl ScInstr<'_> {
 				let mut imm32;
 				while {
 					imm32 = gen.get_byte() & 63;
-					println!("###imm32: {}", imm32);
 					imm32 == 0
 				}{};
 				ScInstr{info, dst: -1, src: -1, mod_v: 0, imm32: imm32 as u32, op_group: ScOpcode::IROR_C, can_reuse: false, group_par_is_source: true, op_group_par: 0 }
@@ -361,7 +349,6 @@ impl Blake2Generator {
 		self.check_data(1);
 		let v = self.data[self.index];
 		self.index += 1;
-		println!("###Gen: getByte(): {}", v);
 		v
 	}
 
@@ -369,7 +356,6 @@ impl Blake2Generator {
 		self.check_data(4);
 		let v = u32::from_le_bytes(self.data[self.index..(self.index+4)].try_into().unwrap());
 		self.index += 4;
-		println!("###Gen: getUInt32(): {}", v);
 		v
 	}
 	
@@ -426,7 +412,6 @@ impl DecoderBuffer {
 		}
 		
 		let ix = gen.get_byte();
-		println!("### buffer index = {}\n", ix & 3);
 		return DECODE_BUFFERS[(ix & 3) as usize];
 	}
 }
@@ -477,38 +462,28 @@ impl ScProgram<'_> {
 		let mut decode_buffer = &DecoderBuffer::initial();
 		let mut current_instr = ScInstr::null(); 
 		while decode_cycle < RANDOMX_SUPERSCALAR_LATENCY && !ports_saturated && program_size < SUPERSCALAR_MAX_SIZE {
-			println!("\n\n### decode_cycle: {}", decode_cycle);
-			println!("###cycle = {}, dep_cycle = {}", cycle, dep_cycle);
-			println!("##current_instr.op = {}, decode_cyle = {}, mul_count = {}", current_instr.info.op, decode_cycle, mul_count);
 			decode_buffer = decode_buffer.fetch_next(&current_instr, decode_cycle, mul_count, gen);
 			
 			let mut buffer_index = 0;
-			println!("### decode_buffer.size() = {}", decode_buffer.size());
 			while buffer_index < decode_buffer.size() {
-				println!("\n### buffer index: {}", buffer_index);
 				let top_cycle = cycle;
 				if macro_op_index >= current_instr.info.size() {
 					if ports_saturated || program_size >= SUPERSCALAR_MAX_SIZE {
-						println!("### macro_op_index term, ports_saturated = {}, programSize = {}", ports_saturated, program_size);
 						break;
 					}
 
 					current_instr = ScInstr::create_for_slot(gen, decode_buffer.counts[buffer_index], decode_buffer.index, decode_buffer.size() == buffer_index + 1);
-					println!("### END create_for_slot");
 					macro_op_index = 0
 				}
 
 				let mop = current_instr.info.macro_op(macro_op_index);
 				let schedule_cycle_mop = schedule_mop(false, mop, &mut port_busy, cycle, dep_cycle);
 				
-				println!("schedule_mop_false={:?}", schedule_cycle_mop);
 				if schedule_cycle_mop.is_none() {
-					println!("### schedule_mop false term");
 					ports_saturated = true;
 					break;
 				}
 
-				println!("### macro_op_index = {}, scr_op = {}, cycle = {}", macro_op_index,current_instr.info.src_op, cycle);
 				let mut schedule_cycle = schedule_cycle_mop.unwrap();
 				if macro_op_index as i32 == current_instr.info.src_op {
 					let mut forward = 0;
@@ -529,8 +504,6 @@ impl ScProgram<'_> {
 					}
 				}
 				
-				println!("### current_instr = {:?}", current_instr);
-				println!("### macro_op_index = {}, dst_op = {}, cycle = {}", macro_op_index, current_instr.info.dst_op, cycle);
 				if macro_op_index as i32 == current_instr.info.dst_op {
 					let mut forward = 0;
 					while forward < LOOK_FORWARD_CYCLES && !current_instr.select_destination(schedule_cycle, throw_away_count > 0, &registers, gen) {
@@ -538,7 +511,6 @@ impl ScProgram<'_> {
 						cycle += 1;
 						forward += 1;
 					}
-					println!("### dst cycle = {}", cycle);
 					if forward == LOOK_FORWARD_CYCLES {
 						if throw_away_count < MAX_THROWAWAY_COUNT {
 							throw_away_count += 1;
@@ -551,11 +523,8 @@ impl ScProgram<'_> {
 				}
 				throw_away_count = 0;
 
-				println!("cycle (after loop): {}", cycle);
 				let schedule_cycle_mop = schedule_mop(true, mop, &mut port_busy, schedule_cycle, schedule_cycle);
-				println!("schedule_mop_true={:?}", schedule_cycle_mop);	
 				if schedule_cycle_mop.is_none() {
-					println!("### schedule_mop true term");
 					ports_saturated = true;
 					break;
 				}
@@ -563,9 +532,7 @@ impl ScProgram<'_> {
 			
 				dep_cycle = schedule_cycle + mop.latency;
 
-				println!("## current_instr = {:?}", current_instr);
 				if macro_op_index == current_instr.info.result_op {
-					println!("### current_instr.dst = {}", current_instr.dst);
 					let mut ri = &mut registers[current_instr.dst as usize];
 					retire_cycle = dep_cycle;
 					ri.latency = retire_cycle;
@@ -577,9 +544,7 @@ impl ScProgram<'_> {
 				macro_op_index += 1;
 				macro_op_count += 1;
 
-				println!("### schedule_cycle({}) >= RANDOMX_SUPERSCALAR_LATENCY({})", schedule_cycle, RANDOMX_SUPERSCALAR_LATENCY);
 				if schedule_cycle >= RANDOMX_SUPERSCALAR_LATENCY {
-					println!("ports_saturated: schedule_cycle >= RANDOMX_SUPERSCALAR_LATENCY");
 					ports_saturated = true;
 				}
 				cycle = top_cycle;
@@ -588,7 +553,6 @@ impl ScProgram<'_> {
 					if current_instr.info.op.is_multiplication() {
 						mul_count += 1;
 					} 
-					println!("op: {}, src: {}, dst: {}", current_instr.info.op, current_instr.src, current_instr.dst);
 					prog.push(current_instr);
 					program_size += 1;
 				}
@@ -633,7 +597,6 @@ impl ScProgram<'_> {
 
 fn schedule_mop(commit: bool, mop: &ScMacroOp, port_busy: &mut [[ExecutionPort; 3]; CYCLE_MAP_SIZE], cycle_in: usize, dep_cycle: usize) -> Option<usize> {
 	
-	println!("schedule_mop: mop={}, cycle={}, depCycle={}", mop.name, cycle_in, dep_cycle);
 	let mut cycle = if mop.dependent {
 		usize::max(cycle_in, dep_cycle)
 	} else {
