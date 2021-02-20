@@ -5,8 +5,9 @@ use self::blake2b_simd::{blake2b};
 use mithril::randomx::hash::{gen_program_aes_4rx4};
 use mithril::randomx::m128::{m128d};
 use mithril::randomx::program::{Program, Instr, Opcode, Store, e_reg, f_reg, a_reg, r_reg, Mode, REG_NEEDS_DISPLACEMENT_IX, REG_NEEDS_DISPLACEMENT};
-use mithril::randomx::vm::{new_vm, Vm, randomx_reciprocal, hash_to_m128i_array};
+use mithril::randomx::vm::{new_vm, Vm, hash_to_m128i_array};
 use mithril::randomx::memory::{VmMemory};
+use mithril::randomx::common::{randomx_reciprocal};
 use mithril::byte_string::{u8_array_to_string};
 
 #[allow(overflowing_literals)]
@@ -31,7 +32,7 @@ fn test_init_scratchpad() {
     let hash = blake2b("This is a test".as_bytes());
     
     vm.init_scratchpad(&hash_to_m128i_array(&hash));
-
+    
     //sample test scratchpad layout
     assert_eq!(vm.scratchpad[0], 0x45a1b4e3e7fea6c);
     assert_eq!(vm.scratchpad[1], 0xe287d43cd65fd299);

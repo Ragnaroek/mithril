@@ -5,6 +5,7 @@ use super::hash::{fill_aes_1rx4_u64, gen_program_aes_4rx4};
 use super::m128::{m128d, m128i};
 use super::program::{Instr, Mode, Program, Store, MAX_FLOAT_REG, MAX_REG};
 use super::memory::{VmMemory};
+use super::common::{u64_imm, mulh, smulh, randomx_reciprocal};
 use std::arch::x86_64::{_mm_getcsr, _mm_setcsr};
 use std::convert::TryInto;
 
@@ -23,7 +24,6 @@ const RANDOMX_PROGRAM_ITERATIONS: usize = 2048;
 const RANDOMX_DATASET_BASE_SIZE: usize = 2147483648;
 const RANDOMX_DATASET_ITEM_SIZE: usize = 64;
 
-const P_2EXP63: u64 = 1 << 63;
 const MANTISSA_SIZE: u64 = 52;
 const MANTISSA_MASK: u64 = (1 << MANTISSA_SIZE) - 1;
 const EXPONENT_SIZE: u64 = 11;
@@ -323,27 +323,27 @@ impl Vm {
     }
 
     pub fn exec_imulh_r(&mut self, instr: &Instr) {
-        let v_src = self.read_r(&instr.src) as u128;
-        let v_dst = self.read_r(&instr.dst) as u128;
-        self.write_r(&instr.dst, (v_src.wrapping_mul(v_dst) >> 64) as u64);
+        let v_src = self.read_r(&instr.src);
+        let v_dst = self.read_r(&instr.dst);
+        self.write_r(&instr.dst, mulh(v_src, v_dst));
     }
 
     pub fn exec_imulh_m(&mut self, instr: &Instr) {
-        let v_dst = self.read_r(&instr.dst) as u128;
-        let v_src = self.scratchpad[self.scratchpad_src_ix(instr)] as u128;
-        self.write_r(&instr.dst, (v_src.wrapping_mul(v_dst) >> 64) as u64);
+        let v_dst = self.read_r(&instr.dst);
+        let v_src = self.scratchpad[self.scratchpad_src_ix(instr)];
+        self.write_r(&instr.dst, mulh(v_src, v_dst));
     }
 
     pub fn exec_ismulh_r(&mut self, instr: &Instr) {
-        let v_src = (self.read_r(&instr.src) as i64) as i128; //we have to go through i64 to get the proper complement version in i128 if the u64 is negative in i64
-        let v_dst = (self.read_r(&instr.dst) as i64) as i128;
-        self.write_r(&instr.dst, (v_src.wrapping_mul(v_dst) >> 64) as u64);
+        let v_src = self.read_r(&instr.src);
+        let v_dst = self.read_r(&instr.dst);
+        self.write_r(&instr.dst, smulh(v_src, v_dst));
     }
 
     pub fn exec_ismulh_m(&mut self, instr: &Instr) {
-        let v_src = (self.scratchpad[self.scratchpad_src_ix(instr)] as i64) as i128;
-        let v_dst = (self.read_r(&instr.dst) as i64) as i128;
-        self.write_r(&instr.dst, (v_src.wrapping_mul(v_dst) >> 64) as u64);
+        let v_src = self.scratchpad[self.scratchpad_src_ix(instr)];
+        let v_dst = self.read_r(&instr.dst);
+        self.write_r(&instr.dst, smulh(v_src, v_dst));
     }
 
     pub fn exec_ineg_r(&mut self, instr: &Instr) {
@@ -520,10 +520,6 @@ pub fn hash_to_m128i_array(hash: &Hash) -> [m128i; 4] {
     [i1, i2, i3, i4]
 }
 
-fn u64_imm(imm: i32) -> u64 {
-    (imm as u64) | 0xffffffff00000000
-}
-
 fn shift_mode(instr: &Instr) -> u8 {
     match instr.mode {
         Mode::Shft(x) => x,
@@ -540,50 +536,6 @@ fn cond_mode(instr: &Instr) -> u8 {
 
 pub fn is_zero_or_power_of_2(imm: u64) -> bool {
     imm & imm.wrapping_sub(1) == 0
-}
-
-/*
-    Directly taken from: https://github.com/tevador/RandomX
-    Calculates rcp = 2**x / divisor for highest integer x such that rcp < 2**64.
-    divisor must not be 0 or a power of 2
-
-    Equivalent x86 assembly (divisor in rcx):
-
-    mov edx, 1
-    mov r8, rcx
-    xor eax, eax
-    bsr rcx, rcx
-    shl rdx, cl
-    div r8
-    ret
-*/
-pub fn randomx_reciprocal(divisor: u64) -> u64 {
-    assert_ne!(divisor, 0);
-
-    let mut quotient = P_2EXP63 / divisor;
-    let mut remainder = P_2EXP63 % divisor;
-    let mut bsr = 0;
-
-    let mut bit = divisor;
-
-    loop {
-        if bit == 0 {
-            break;
-        }
-        bsr += 1;
-        bit >>= 1;
-    }
-
-    for _ in 0..bsr {
-        if remainder >= divisor.wrapping_sub(remainder) {
-            quotient = quotient.wrapping_mul(2).wrapping_add(1);
-            remainder = remainder.wrapping_mul(2).wrapping_sub(divisor);
-        } else {
-            quotient = quotient.wrapping_mul(2);
-            remainder = remainder.wrapping_mul(2);
-        }
-    }
-    quotient
 }
 
 fn small_positive_float_bit(entropy: u64) -> u64 {

@@ -7,10 +7,7 @@ use mithril::randomx::superscalar::{ScProgram, Blake2Generator};
 #[test]
 fn test_generate_1() {
 	let key_str = b"test key 000";
-	let mut key : [u8; 60] = [0; 60];
-	key[..key_str.len()].copy_from_slice(key_str);
-	
-	let mut gen = Blake2Generator::new(key, 0);
+	let mut gen = Blake2Generator::new(key_str, 0);
 	let prog = ScProgram::generate(&mut gen);
 	
 	assert_diff!(EXPECTED_SUPERSCALAR_PROG_1, &prog.to_string(), "\n", 0);
@@ -19,10 +16,7 @@ fn test_generate_1() {
 #[test]
 fn test_generate_666() {
 	let key_str = b"666";
-	let mut key : [u8; 60] = [0; 60];
-	key[..key_str.len()].copy_from_slice(key_str);
-	
-	let mut gen = Blake2Generator::new(key, 0);
+	let mut gen = Blake2Generator::new(key_str, 0);
 	let prog = ScProgram::generate(&mut gen);
 
 	assert_diff!(EXPECTED_SUPERSCALAR_PROG_666, &prog.to_string(), "\n", 0);
@@ -31,10 +25,7 @@ fn test_generate_666() {
 #[test]
 fn test_generate_rage() {
 	let key_str = b"RageAgainstTheMachine";
-	let mut key : [u8; 60] = [0; 60];
-	key[..key_str.len()].copy_from_slice(key_str);
-	
-	let mut gen = Blake2Generator::new(key, 0);
+	let mut gen = Blake2Generator::new(key_str, 0);
 	let prog = ScProgram::generate(&mut gen);
 	
 	assert_diff!(EXPECTED_SUPERSCALAR_PROG_RAGE, &prog.to_string(), "\n", 0);

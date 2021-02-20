@@ -29,3 +29,4 @@ rust-argon2 = { git = "https://github.com/Ragnaroek/rust-argon2" }
 
 [dev-dependencies]
 difference = "2.0.0"
+lazy_static = "1.4.0"

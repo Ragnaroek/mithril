@@ -6,6 +6,7 @@ use std::convert::TryInto;
 use std::fmt;
 
 use super::program::{REG_NEEDS_DISPLACEMENT_IX};
+use super::common::{mulh, smulh, randomx_reciprocal, u64_from_u32_imm};
 
 const RANDOMX_SUPERSCALAR_LATENCY : usize = 170;
 const CYCLE_MAP_SIZE : usize = RANDOMX_SUPERSCALAR_LATENCY + 4;
@@ -76,6 +77,10 @@ impl ScInstr<'_> {
 
 	fn null() -> ScInstr<'static> {
 		ScInstr{info: &NOP, dst: -1, src: -1, mod_v: 0, imm32: 0, op_group: ScOpcode::INVALID, can_reuse: false, group_par_is_source: false, op_group_par: -1 }
+	}
+
+	pub fn mod_shift(&self) -> u64 {
+		((self.mod_v >> 2) % 4) as u64
 	}
 
 	fn select_destination(&mut self, cycle: usize, allow_chain_mul: bool, registers: &[RegisterInfo; 8], gen: &mut Blake2Generator) -> bool {
@@ -204,7 +209,7 @@ impl ScInstr<'_> {
 					imm32 = gen.get_u32();
 					is_zero_or_power_of_2(imm32)
 				}{};
-				ScInstr{info, dst: -1, src: -1, mod_v: 0, imm32: 0, op_group: ScOpcode::IMUL_RCP, can_reuse: false, group_par_is_source: true, op_group_par: -1 }
+				ScInstr{info, dst: -1, src: -1, mod_v: 0, imm32, op_group: ScOpcode::IMUL_RCP, can_reuse: false, group_par_is_source: true, op_group_par: -1 }
 			},
 			ScOpcode::INVALID | ScOpcode::COUNT => panic!("invalid opcode {} here", info.op)
 		}
@@ -330,12 +335,16 @@ pub struct Blake2Generator {
 }
 
 impl Blake2Generator {
-	pub fn new(seed: [u8; BLAKE_GEN_DATA_LEN-4], nonce: u32) -> Blake2Generator {
+	pub fn new(seed: &[u8], nonce: u32) -> Blake2Generator {
+		debug_assert!(seed.len() <= BLAKE_GEN_DATA_LEN-4);
 		let mut params = Params::new();
 		params.hash_length(BLAKE_GEN_DATA_LEN);
 
+		let mut key : [u8; 60] = [0; 60];
+		key[..seed.len()].copy_from_slice(seed);
+
 		let mut data : [u8; BLAKE_GEN_DATA_LEN] = [0; BLAKE_GEN_DATA_LEN];
-		data[..BLAKE_GEN_DATA_LEN-4].copy_from_slice(&seed);
+		data[..BLAKE_GEN_DATA_LEN-4].copy_from_slice(&key);
 		data[BLAKE_GEN_DATA_LEN-4..BLAKE_GEN_DATA_LEN].copy_from_slice(&nonce.to_le_bytes());
 
 		return Blake2Generator{
@@ -591,6 +600,43 @@ impl ScProgram<'_> {
 			code_size: code_size,
 			macro_ops: macro_op_count,
 			decode_cycles: decode_cycle,
+		}
+	}
+
+	pub fn execute(&self, ds: &mut [u64; 8]) {
+		for instr in &self.prog {
+			let dst = instr.dst as usize;
+			let src = instr.src as usize;
+			let src_dbg = if instr.src == -1 {
+				dst
+			} else {
+				src
+			};
+			print!("{}: dst={}, src={}", instr.info.op, dst, src_dbg);
+			match instr.info.op {
+				ScOpcode::ISUB_R => ds[dst] = ds[dst].wrapping_sub(ds[src]),
+				ScOpcode::IXOR_R => ds[dst] ^= ds[src],
+				ScOpcode::IADD_RS => ds[dst] = ds[dst].wrapping_add(ds[src] << instr.mod_shift()),
+				ScOpcode::IMUL_R => {
+					print!(", ds[dst]={:x}, ds[src]={:x}", ds[dst], ds[src]);
+					ds[dst] = ds[dst].wrapping_mul(ds[src]);
+				},
+				ScOpcode::IROR_C => ds[dst] = ds[dst].rotate_right(instr.imm32),
+				ScOpcode::IADD_C7|ScOpcode::IADD_C8|ScOpcode::IADD_C9 => {
+					print!(", imm32={:x}, signExtend2sCompl={:x}", instr.imm32, u64_from_u32_imm(instr.imm32));
+					ds[dst] = ds[dst].wrapping_add(u64_from_u32_imm(instr.imm32));
+				},
+				ScOpcode::IXOR_C7|ScOpcode::IXOR_C8|ScOpcode::IXOR_C9 => {
+					print!(", instr.imm32={:x}, signExtends2sCompl={:x}", instr.imm32, u64_from_u32_imm(instr.imm32));
+					ds[dst] ^= u64_from_u32_imm(instr.imm32);
+				},
+				ScOpcode::IMULH_R => ds[dst] = mulh(ds[dst], ds[src]),
+				ScOpcode::ISMULH_R => ds[dst] = smulh(ds[dst], ds[src]),
+				ScOpcode::IMUL_RCP => ds[dst] = ds[dst].wrapping_mul(randomx_reciprocal(instr.imm32 as u64)),
+				ScOpcode::COUNT => panic!("COUNT execution tried"),
+				ScOpcode::INVALID => panic!("INVALLID execution tried"),
+			}
+			println!(", ds[dst]={:x}", ds[dst]);
 		}
 	}
 }

@@ -363,6 +363,7 @@ dependencies = [
  "env_logger",
  "groestl",
  "jh-ffi",
+ "lazy_static",
  "log",
  "num_cpus",
  "rust-argon2 0.8.3 (git+https://github.com/Ragnaroek/rust-argon2)",
