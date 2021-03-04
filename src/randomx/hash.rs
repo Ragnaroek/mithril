@@ -8,6 +8,46 @@ fn keys_1rx4() ->  (m128i, m128i, m128i, m128i) {
      m128i::from_i32(0x49169154, 0x16314c88, 0xb1ba317c, 0x6aef8135))
 }
 
+#[allow(overflowing_literals)]
+pub fn hash_aes_1rx4(input: &[u64]) -> [m128i;4] {
+    debug_assert!(input.len() % 64 == 0);
+
+    let mut state0 = m128i::from_i32(0xd7983aad, 0xcc82db47, 0x9fa856de, 0x92b52c0d);
+    let mut state1 = m128i::from_i32(0xace78057, 0xf59e125a, 0x15c7b798, 0x338d996e);
+    let mut state2 = m128i::from_i32(0xe8a07ce4, 0x5079506b, 0xae62c7d0, 0x6a770017);
+    let mut state3 = m128i::from_i32(0x7e994948, 0x79a10005, 0x07ad828d, 0x630a240c);
+
+    let mut i = 0;
+    while i < input.len() {
+        let in0 = m128i::from_u64(input[i+1], input[i]);
+        let in1 = m128i::from_u64(input[i+3], input[i+2]);
+        let in2 = m128i::from_u64(input[i+5], input[i+4]);
+        let in3 = m128i::from_u64(input[i+7], input[i+6]);
+
+        state0 = state0.aesenc(in0);
+        state1 = state1.aesdec(in1);
+        state2 = state2.aesenc(in2);
+        state3 = state3.aesdec(in3);
+
+        i += 8;
+    }
+
+    let x_key_0 = m128i::from_i32(0x06890201, 0x90dc56bf, 0x8b24949f, 0xf6fa8389);
+    let x_key_1 = m128i::from_i32(0xed18f99b, 0xee1043c6, 0x51f4e03c, 0x61b263d1);
+
+    state0 = state0.aesenc(x_key_0);
+    state1 = state1.aesdec(x_key_0);
+    state2 = state2.aesenc(x_key_0);
+    state3 = state3.aesdec(x_key_0);
+
+    state0 = state0.aesenc(x_key_1);
+    state1 = state1.aesdec(x_key_1);
+    state2 = state2.aesenc(x_key_1);
+    state3 = state3.aesdec(x_key_1);
+
+    return [state0, state1, state2, state3];
+}
+
 pub fn fill_aes_1rx4_u64(input: &[m128i;4], into: &mut Vec<u64>) -> [m128i;4] {
     let (key0, key1, key2, key3) = keys_1rx4();
     

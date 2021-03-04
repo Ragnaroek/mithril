@@ -330,7 +330,7 @@ pub fn decode_instruction(bytes: i64, i: i32, register_usage: &mut [i32; MAX_REG
         return new_instr(Opcode::FMUL_R, e_reg(dst), a_reg(src), imm, Mode::None, Vm::exec_fmul_r);
     }
     if op < Opcode::FDIV_M as i64 {
-        return new_lcache_instr(Opcode::FDIV_M, e_reg(dst), src, imm, modi, nop);
+        return new_lcache_instr(Opcode::FDIV_M, e_reg(dst), src, imm, modi, Vm::exec_fdiv_m);
     }
     if op < Opcode::FSQRT_R as i64 {
         return new_instr(Opcode::FSQRT_R, e_reg(dst), Store::NONE, imm, Mode::None, Vm::exec_fsqrt_r);

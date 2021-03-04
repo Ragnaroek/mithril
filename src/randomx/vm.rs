@@ -1,11 +1,11 @@
 extern crate blake2b_simd;
 
-use self::blake2b_simd::{blake2b, Hash};
-use super::hash::{fill_aes_1rx4_u64, gen_program_aes_4rx4};
+use self::blake2b_simd::{blake2b, Hash, Params};
+use super::hash::{fill_aes_1rx4_u64, gen_program_aes_4rx4, hash_aes_1rx4};
 use super::m128::{m128d, m128i};
 use super::program::{Instr, Mode, Program, Store, MAX_FLOAT_REG, MAX_REG};
-use super::memory::{VmMemory};
-use super::common::{u64_imm, mulh, smulh, randomx_reciprocal};
+use super::memory::{VmMemory, CACHE_LINE_SIZE};
+use super::common::{u64_from_i32_imm, mulh, smulh, randomx_reciprocal};
 use std::arch::x86_64::{_mm_getcsr, _mm_setcsr};
 use std::convert::TryInto;
 
@@ -20,9 +20,14 @@ const CONDITION_OFFSET: u64 = 8;
 const CONDITION_MASK: u64 = (1 << CONDITION_OFFSET) - 1;
 
 const RANDOMX_PROGRAM_COUNT: usize = 8;
+const RANDOMX_PROGRAM_SIZE: i32 = 256;
 const RANDOMX_PROGRAM_ITERATIONS: usize = 2048;
 const RANDOMX_DATASET_BASE_SIZE: usize = 2147483648;
 const RANDOMX_DATASET_ITEM_SIZE: usize = 64;
+const RANDOMX_DATASET_EXTRA_SIZE: usize = 33554368;
+const RANDOMX_HASH_SIZE: usize = 32;
+
+const DATASET_EXTRA_ITEMS: usize = RANDOMX_DATASET_EXTRA_SIZE / RANDOMX_DATASET_ITEM_SIZE;
 
 const MANTISSA_SIZE: u64 = 52;
 const MANTISSA_MASK: u64 = (1 << MANTISSA_SIZE) - 1;
@@ -57,6 +62,50 @@ pub fn new_register() -> Register {
     }
 }
 
+impl Register {
+    pub fn to_bytes(&self) -> [u8; 256] {
+        let mut bytes = [0; 256];
+        let mut offset = 0;
+        for i in 0..MAX_REG {
+            Register::copy_into_le(&mut bytes, offset, self.r[i]);
+            offset += 1;
+        }
+
+        for i in 0..MAX_FLOAT_REG {
+            let (h, l) = self.f[i].to_u64();
+            Register::copy_into_le(&mut bytes, offset, l);
+            offset += 1;
+            Register::copy_into_le(&mut bytes, offset, h);
+            offset += 1;
+        }
+
+        for i in 0..MAX_FLOAT_REG {
+            let (h, l) = self.e[i].to_u64();
+            Register::copy_into_le(&mut bytes, offset, l);
+            offset += 1;
+            Register::copy_into_le(&mut bytes, offset, h);
+            offset += 1;
+        }
+
+        for i in 0..MAX_FLOAT_REG {
+            let (h, l) = self.a[i].to_u64();
+            Register::copy_into_le(&mut bytes, offset, l);
+            offset += 1;
+            Register::copy_into_le(&mut bytes, offset, h);
+            offset += 1;
+        }
+
+        return bytes;
+    }
+
+    fn copy_into_le(bytes: &mut [u8;256], offset: usize, u: u64) {
+        let reg_bytes = u.to_le_bytes();
+        for k in 0..8 {
+            bytes[offset*8+k] = reg_bytes[k];
+        }
+    }
+}
+
 pub struct VmConfig {
     pub e_mask: [u64; 2],
     pub read_reg: [usize; 4],
@@ -66,9 +115,10 @@ pub struct Vm {
     pub mem_reg: MemoryRegister,
     pub reg: Register,
     pub scratchpad: Vec<u64>,
-    pub pc: usize,
+    pub pc: i32,
     pub config: VmConfig,
     pub mem: VmMemory,
+    pub dataset_offset : u64,
 }
 
 impl Vm {
@@ -102,37 +152,44 @@ impl Vm {
         address_reg >>= 1;
         self.config.read_reg[3] = 6 + (address_reg & 1);
 
+        self.dataset_offset = (prog.entropy[13] % (DATASET_EXTRA_ITEMS as u64 + 1)) * CACHE_LINE_SIZE;
+
         self.config.e_mask[0] = float_mask(prog.entropy[14]);
         self.config.e_mask[1] = float_mask(prog.entropy[15]);
+
+        for i in 0..MAX_REG {
+            self.reg.r[i] = 0;
+        }
     }
 
     pub fn init_scratchpad(&mut self, seed: &[m128i; 4]) -> [m128i; 4] {
         fill_aes_1rx4_u64(seed, &mut self.scratchpad)
     }
 
-    pub fn calculate_hash(&mut self, input: &str) -> Hash {
-        let hash = blake2b(input.as_bytes());
+    pub fn calculate_hash(&mut self, input: &[u8]) -> Hash {
+        let hash = blake2b(input);
         let seed = hash_to_m128i_array(&hash);
-        let seed = self.init_scratchpad(&seed);
+        let mut tmp_hash = self.init_scratchpad(&seed);
         self.reset_rounding_mode();
 
-        for i in 0..RANDOMX_PROGRAM_COUNT {
-            println!("## chain {}", i);
-            self.run(&seed);
-            //TODO generate hash from register state!
+        for _ in 0..(RANDOMX_PROGRAM_COUNT-1) {
+            self.run(&tmp_hash);
+            let blake_result = blake2b(&self.reg.to_bytes());
+            tmp_hash = hash_to_m128i_array(&blake_result);
         }
-        /* TODO
-        for (int chain = 0; chain < RANDOMX_PROGRAM_COUNT - 1; ++chain) {
-            machine->run(&tempHash);
-            blakeResult = blake2b(tempHash, sizeof(tempHash), machine->getRegisterFile(), sizeof(randomx::RegisterFile), nullptr, 0);
-            assert(blakeResult == 0);
-        }
-        machine->run(&tempHash);
-        machine->getFinalResult(output, RANDOMX_HASH_SIZE);
-        fesetenv(&fpstate);
-        */
-        hash
+
+        self.run(&tmp_hash);
+        let final_hash = hash_aes_1rx4(&self.scratchpad);
+        self.reg.a[0] = final_hash[0].to_m128d();
+        self.reg.a[1] = final_hash[1].to_m128d();
+        self.reg.a[2] = final_hash[2].to_m128d();
+        self.reg.a[3] = final_hash[3].to_m128d();
+
+        let mut params = Params::new();
+        params.hash_length(RANDOMX_HASH_SIZE);        
+        return params.hash(&self.reg.to_bytes());
     }
+
     /// Runs one round
     pub fn run(&mut self, seed: &[m128i; 4]) {
         let prog = Program::from_bytes(gen_program_aes_4rx4(seed, 136));
@@ -141,9 +198,10 @@ impl Vm {
         let mut sp_addr_0 : u32 = self.mem_reg.mx as u32;
         let mut sp_addr_1 : u32 = self.mem_reg.ma as u32;
 
-        for k in 0..RANDOMX_PROGRAM_ITERATIONS {
+        for _ in 0..RANDOMX_PROGRAM_ITERATIONS {
             //init registers
             let sp_mix = self.reg.r[self.config.read_reg[0]] ^ self.reg.r[self.config.read_reg[1]];
+
             sp_addr_0 ^= sp_mix as u32;
             sp_addr_0 &= SCRATCHPAD_L3_MASK_U32;
             sp_addr_0 /= 8;
@@ -151,55 +209,46 @@ impl Vm {
             sp_addr_1 &= SCRATCHPAD_L3_MASK_U32;
             sp_addr_1 /= 8;
 
-            if k < 2 {
-                println!("\n### sp_addr_0 = {:x}", sp_addr_0);
-                println!("### sp_addr_1 = {:x}", sp_addr_1);
-            }
-
             for i in 0..MAX_REG {
                 self.reg.r[i] ^= self.scratchpad[sp_addr_0 as usize + i];
-                if k < 2 {
-                    println!("### reg.r[{}]={:x}", i, self.reg.r[i]);
-                } 
-                
             }
             for i in 0..MAX_FLOAT_REG {
-                self.reg.f[i] = m128i::from_u64(0, self.scratchpad[sp_addr_1 as usize + i]).to_m128d();
-                if k < 2 {
-                    println!("### reg.f[{}]={:x}", i, self.reg.f[i]);
-                }
+                self.reg.f[i] = m128i::from_u64(0, self.scratchpad[sp_addr_1 as usize + i]).lower_to_m128d();
             }
             for i in 0..MAX_FLOAT_REG {
-                self.reg.e[i] = self.mask_register_exponent_mantissa(m128i::from_u64(0, self.scratchpad[sp_addr_1 as usize + i + MAX_FLOAT_REG]).to_m128d());
-                if k < 2 {
-                    println!("### reg.e[{}]={:x}", i, self.reg.e[i]);
-                }
+                self.reg.e[i] = self.mask_register_exponent_mantissa(m128i::from_u64(0, self.scratchpad[sp_addr_1 as usize + i + MAX_FLOAT_REG]).lower_to_m128d());
             }
 
-            for instr in &prog.program {
+            self.pc = 0;
+            while self.pc < RANDOMX_PROGRAM_SIZE {
+                let instr = &prog.program[self.pc as usize];
                 instr.execute(self);
+                self.pc += 1;
             }
 
-            self.mem_reg.mx ^= (self.reg.r[self.config.read_reg[2] ^ self.config.read_reg[3]]) as usize;
+            self.mem_reg.mx ^= (self.reg.r[self.config.read_reg[2]] ^ self.reg.r[self.config.read_reg[3]]) as usize;
             self.mem_reg.mx &= CACHE_LINE_ALIGN_MASK as usize;
+            self.mem.dataset_read(self.dataset_offset + self.mem_reg.ma as u64, &mut self.reg.r);
+            
+            std::mem::swap(&mut self.mem_reg.mx, &mut self.mem_reg.ma);
 
-            /* TODO
-			datasetPrefetch(datasetOffset + mem.mx);
-			datasetRead(datasetOffset + mem.ma, nreg.r);
-			std::swap(mem.mx, mem.ma);
+            for i in 0..MAX_REG {
+                self.scratchpad[sp_addr_1 as usize + i] = self.reg.r[i];
+            }
+   
+            for i in 0..MAX_FLOAT_REG {
+                self.reg.f[i] = self.reg.f[i] ^ self.reg.e[i];
+            }
 
-			for (unsigned i = 0; i < RegistersCount; ++i)
-				store64(scratchpad + spAddr1 + 8 * i, nreg.r[i]);
+            for i in 0..MAX_FLOAT_REG {
+                let (u1, u0) = self.reg.f[i].to_u64();
+                let ix = sp_addr_0 as usize + 2 * i; 
+                self.scratchpad[ix] = u0;
+                self.scratchpad[ix+1] = u1;
+            }
 
-			for (unsigned i = 0; i < RegisterCountFlt; ++i)
-				nreg.f[i] = rx_xor_vec_f128(nreg.f[i], nreg.e[i]);
-
-			for (unsigned i = 0; i < RegisterCountFlt; ++i)
-				rx_store_vec_f128((double*)(scratchpad + spAddr0 + 16 * i), nreg.f[i]);
-
-            */
             sp_addr_0 = 0;
-            sp_addr_1 = 1;
+            sp_addr_1 = 0;
         }
     }
 
@@ -216,6 +265,7 @@ impl Vm {
     pub fn get_rounding_mode(&self) -> u32 {
         unsafe { (_mm_getcsr() >> 13) & 3 }
     }
+
     //f...
 
     pub fn exec_fswap_r(&mut self, instr: &Instr) {
@@ -231,7 +281,7 @@ impl Vm {
 
     pub fn exec_fadd_m(&mut self, instr: &Instr) {
         let v = self.scratchpad[self.scratchpad_src_ix(instr)];
-        let v_src = m128i::from_u64(0, v).to_m128d();
+        let v_src = m128i::from_u64(0, v).lower_to_m128d();
         let v_dst = self.read_f(&instr.dst);
         self.write_f(&instr.dst, v_dst + v_src);
     }
@@ -244,7 +294,7 @@ impl Vm {
 
     pub fn exec_fsub_m(&mut self, instr: &Instr) {
         let v = self.scratchpad[self.scratchpad_src_ix(instr)];
-        let v_src = m128i::from_u64(0, v).to_m128d();
+        let v_src = m128i::from_u64(0, v).lower_to_m128d();
         let v_dst = self.read_f(&instr.dst);
         self.write_f(&instr.dst, v_dst - v_src);
     }
@@ -268,7 +318,7 @@ impl Vm {
 
     pub fn exec_fdiv_m(&mut self, instr: &Instr) {
         let v = self.scratchpad[self.scratchpad_src_ix(instr)];
-        let v_src = self.mask_register_exponent_mantissa(m128i::from_u64(0, v).to_m128d());
+        let v_src = self.mask_register_exponent_mantissa(m128i::from_u64(0, v).lower_to_m128d());
         let v_dst = self.read_e(&instr.dst);
         self.write_e(&instr.dst, v_dst / v_src);
     }
@@ -301,7 +351,7 @@ impl Vm {
     pub fn exec_iadd_rs(&mut self, instr: &Instr) {
         let mut v = self.read_r(&instr.src) << shift_mode(instr);
         if let Some(imm) = instr.imm {
-            v = v.wrapping_add(u64_imm(imm));
+            v = v.wrapping_add(u64_from_i32_imm(imm));
         }
         self.write_r(&instr.dst, self.read_r(&instr.dst).wrapping_add(v));
     }
@@ -396,13 +446,14 @@ impl Vm {
 
     pub fn exec_cbranch(&mut self, instr: &Instr) {
         let shift = cond_mode(instr) as u64 + CONDITION_OFFSET;
-        let mut imm = u64_imm(instr.imm.unwrap()) | 1 << shift;
-        imm &= !(1 << (shift - 1));
+        let mut imm = u64_from_i32_imm(instr.imm.unwrap()) | 1 << shift;
+        if CONDITION_OFFSET > 0 || shift > 0 {
+            imm &= !(1 << (shift - 1));
+        }
         let v_dst = self.read_r(&instr.dst).wrapping_add(imm);
-
         self.write_r(&instr.dst, v_dst);
         if v_dst & (CONDITION_MASK << shift) == 0 {
-            self.pc = instr.target.unwrap() as usize;
+            self.pc = instr.target.unwrap();
         }
     }
 
@@ -479,7 +530,7 @@ impl Vm {
         }
     }
     fn scratchpad_src_ix(&self, instr: &Instr) -> usize {
-        let imm = u64_imm(instr.imm.unwrap());
+        let imm = u64_from_i32_imm(instr.imm.unwrap());
         let addr: usize = match &instr.src {
             Store::L1(d) => (self.read_r(d).wrapping_add(imm)) & SCRATCHPAD_L1_MASK,
             Store::L2(d) => (self.read_r(d).wrapping_add(imm)) & SCRATCHPAD_L2_MASK,
@@ -492,7 +543,7 @@ impl Vm {
     }
 
     fn scratchpad_dst_ix(&self, instr: &Instr) -> usize {
-        let imm = u64_imm(instr.imm.unwrap());
+        let imm = u64_from_i32_imm(instr.imm.unwrap());
         let addr: usize = match &instr.dst {
             Store::L1(d) => (self.read_r(d).wrapping_add(imm)) & SCRATCHPAD_L1_MASK,
             Store::L2(d) => (self.read_r(d).wrapping_add(imm)) & SCRATCHPAD_L2_MASK,
@@ -569,5 +620,6 @@ pub fn new_vm(mem: VmMemory) -> Vm {
             read_reg: [0; 4],
         },
         mem,
+        dataset_offset: 0,
     }
 }

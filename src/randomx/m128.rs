@@ -63,10 +63,16 @@ impl m128i {
         }
     }
 
-    pub fn to_m128d(&self) -> m128d {
+    //_mm_cvtepi32_pd
+    pub fn lower_to_m128d(&self) -> m128d {
         unsafe {
             m128d(_mm_cvtepi32_pd(self.0))
         }
+    }
+
+    pub fn to_m128d(&self) -> m128d {
+        let (i1, i0) = self.to_i64();
+        return m128d::from_u64(i1 as u64, i0 as u64);
     }
 }
 

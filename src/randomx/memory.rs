@@ -12,7 +12,7 @@ const RANDOMX_CACHE_ACCESSES : usize = 8;
 const ARGON2_SYNC_POINTS : u32 = 4;
 const ARGON_BLOCK_SIZE : u32 = 1024;
 
-const CACHE_LINE_SIZE : u64 = 64;
+pub const CACHE_LINE_SIZE : u64 = 64;
 
 const SUPERSCALAR_MUL_0 : u64 = 6364136223846793005;
 const SUPERSCALAR_ADD_1 : u64 = 9298411001130361340;
@@ -138,7 +138,12 @@ impl VmMemory {
         VmMemory{seed_memory: SeedMemory::new_initialised(key), dataset_memory: Some(DatasetMemory::new())}
     }
 
-    fn dataset_read(&self) {
-
+    pub fn dataset_read(&self, offset: u64, reg: &mut [u64; 8]) {
+        //TODO implement full memory read here
+        let item_num = offset / CACHE_LINE_SIZE;
+        let rl = init_dataset_item(&self.seed_memory, item_num);
+        for i in 0..8 {
+            reg[i] ^= rl[i];
+        }
     }
 }

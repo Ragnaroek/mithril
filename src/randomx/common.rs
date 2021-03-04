@@ -2,8 +2,13 @@
 const P_2EXP63: u64 = 1 << 63;
 const INT32_MAX: u32 = i32::MAX as u32;
 
-pub fn u64_imm(imm: i32) -> u64 {
-    (imm as u64) | 0xffffffff00000000
+pub fn u64_from_i32_imm(imm: i32) -> u64 {
+    let x = imm as u32;
+    if x > INT32_MAX {
+        x as u64 | 0xffffffff00000000
+    } else {
+        x as u64
+    }
 }
 
 pub fn u64_from_u32_imm(imm: u32) -> u64 {

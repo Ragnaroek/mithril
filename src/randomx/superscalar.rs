@@ -607,27 +607,18 @@ impl ScProgram<'_> {
 		for instr in &self.prog {
 			let dst = instr.dst as usize;
 			let src = instr.src as usize;
-			let src_dbg = if instr.src == -1 {
-				dst
-			} else {
-				src
-			};
-			print!("{}: dst={}, src={}", instr.info.op, dst, src_dbg);
 			match instr.info.op {
 				ScOpcode::ISUB_R => ds[dst] = ds[dst].wrapping_sub(ds[src]),
 				ScOpcode::IXOR_R => ds[dst] ^= ds[src],
 				ScOpcode::IADD_RS => ds[dst] = ds[dst].wrapping_add(ds[src] << instr.mod_shift()),
 				ScOpcode::IMUL_R => {
-					print!(", ds[dst]={:x}, ds[src]={:x}", ds[dst], ds[src]);
 					ds[dst] = ds[dst].wrapping_mul(ds[src]);
 				},
 				ScOpcode::IROR_C => ds[dst] = ds[dst].rotate_right(instr.imm32),
 				ScOpcode::IADD_C7|ScOpcode::IADD_C8|ScOpcode::IADD_C9 => {
-					print!(", imm32={:x}, signExtend2sCompl={:x}", instr.imm32, u64_from_u32_imm(instr.imm32));
 					ds[dst] = ds[dst].wrapping_add(u64_from_u32_imm(instr.imm32));
 				},
 				ScOpcode::IXOR_C7|ScOpcode::IXOR_C8|ScOpcode::IXOR_C9 => {
-					print!(", instr.imm32={:x}, signExtends2sCompl={:x}", instr.imm32, u64_from_u32_imm(instr.imm32));
 					ds[dst] ^= u64_from_u32_imm(instr.imm32);
 				},
 				ScOpcode::IMULH_R => ds[dst] = mulh(ds[dst], ds[src]),
@@ -636,7 +627,6 @@ impl ScProgram<'_> {
 				ScOpcode::COUNT => panic!("COUNT execution tried"),
 				ScOpcode::INVALID => panic!("INVALLID execution tried"),
 			}
-			println!(", ds[dst]={:x}", ds[dst]);
 		}
 	}
 }
