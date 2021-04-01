@@ -246,7 +246,7 @@ impl Vm {
                 self.scratchpad[ix] = u0;
                 self.scratchpad[ix+1] = u1;
             }
-
+             
             sp_addr_0 = 0;
             sp_addr_1 = 0;
         }
