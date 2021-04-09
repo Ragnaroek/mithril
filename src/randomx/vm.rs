@@ -7,6 +7,7 @@ use super::program::{Instr, Mode, Program, Store, MAX_FLOAT_REG, MAX_REG};
 use super::memory::{VmMemory, CACHE_LINE_SIZE};
 use super::common::{u64_from_i32_imm, mulh, smulh, randomx_reciprocal};
 use std::arch::x86_64::{_mm_getcsr, _mm_setcsr};
+use std::sync::Arc;
 use std::convert::TryInto;
 
 pub const SCRATCHPAD_L1_MASK: u64 = 0x3ff8;
@@ -117,7 +118,7 @@ pub struct Vm {
     pub scratchpad: Vec<u64>,
     pub pc: i32,
     pub config: VmConfig,
-    pub mem: VmMemory,
+    pub mem: Arc<VmMemory>,
     pub dataset_offset : u64,
 }
 
@@ -170,6 +171,7 @@ impl Vm {
         let hash = blake2b(input);
         let seed = hash_to_m128i_array(&hash);
         let mut tmp_hash = self.init_scratchpad(&seed);
+        
         self.reset_rounding_mode();
 
         for _ in 0..(RANDOMX_PROGRAM_COUNT-1) {
@@ -436,6 +438,7 @@ impl Vm {
         let ix = self.scratchpad_dst_ix(instr);
         self.scratchpad[ix] = self.read_r(&instr.src);
     }
+
     //c..
 
     pub fn exec_cfround(&mut self, instr: &Instr) {
@@ -609,7 +612,7 @@ fn static_exponent(entropy: u64) -> u64 {
     exponent << MANTISSA_SIZE
 }
 
-pub fn new_vm(mem: VmMemory) -> Vm {
+pub fn new_vm(mem: Arc<VmMemory>) -> Vm {
     Vm {
         mem_reg: MemoryRegister { mx: 0, ma: 0 },
         reg: new_register(),

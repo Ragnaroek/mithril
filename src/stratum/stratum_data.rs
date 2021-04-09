@@ -20,6 +20,7 @@ pub struct ErrorResult {
 
 #[derive(Deserialize)]
 pub struct Job {
+    pub seed_hash: String,
     pub blob: String,
     pub job_id: String,
     pub target: String,

@@ -88,7 +88,8 @@ fn test_parse_line_dispatch_result_initial_job() {
             "job":{
                 "blob":"0606fdb09bcf056875870cb2750c2db9d179d1e8cf22a2c89e4e43bc4aaaabda227e2fd1ad14f2000000007e6fe370e8ec9594b111fe7fa47d9a0f2efc52454d24fc610f59acbb399d098806",
                 "job_id":"738478949642740",
-                "target":"169f0200"
+                "target":"169f0200",
+                "seed_hash":"ae2b3c3b6e013f9c3512a94a4e9f2cf0552f28a3dd0383ba7bac3f54ec06b56f"
             },
             "status":"OK"
         }}"#;
@@ -104,8 +105,9 @@ fn test_parse_line_dispatch_result_initial_job() {
     assert_eq!(miner_id_guard.clone().unwrap(), "930717205908149");
 
     match result {
-        stratum::StratumAction::Job{miner_id, blob, job_id, target} => {
+        stratum::StratumAction::Job{miner_id, seed_hash, blob, job_id, target} => {
             assert_eq!(miner_id, "930717205908149");
+            assert_eq!(seed_hash, "ae2b3c3b6e013f9c3512a94a4e9f2cf0552f28a3dd0383ba7bac3f54ec06b56f");
             assert_eq!(blob, "0606fdb09bcf056875870cb2750c2db9d179d1e8cf22a2c89e4e43bc4aaaabda227e2fd1ad14f2000000007e6fe370e8ec9594b111fe7fa47d9a0f2efc52454d24fc610f59acbb399d098806");
             assert_eq!(job_id, "738478949642740");
             assert_eq!(target, "169f0200");
@@ -183,7 +185,8 @@ fn test_parse_line_dispatch_job_method() {
         "params":{
             "blob":"0606fcb29bcf051b9c7bfc60c98885de404ef48f721f09b8f51d37faf280470880bd120d4e9e0500000000577192c076fed53a24372bc43a3bed1d448a061ad06a262ac5e7f6803a28ccc705",
             "job_id":"878440772206522",
-            "target":"169f0200"
+            "target":"169f0200",
+            "seed_hash":"ae2b3c3b6e013f9c3512a94a4e9f2cf0552f28a3dd0383ba7bac3f54ec06b56f"
         }}"#;
 
     thread::spawn(move || {
@@ -192,11 +195,12 @@ fn test_parse_line_dispatch_job_method() {
 
     let result = rx.recv().unwrap();
     match result {
-        stratum::StratumAction::Job{miner_id, blob, job_id, target} => {
+        stratum::StratumAction::Job{miner_id, seed_hash, blob, job_id, target} => {
             assert_eq!(miner_id, "test_miner_id");
             assert_eq!(blob, "0606fcb29bcf051b9c7bfc60c98885de404ef48f721f09b8f51d37faf280470880bd120d4e9e0500000000577192c076fed53a24372bc43a3bed1d448a061ad06a262ac5e7f6803a28ccc705");
             assert_eq!(job_id, "878440772206522");
             assert_eq!(target, "169f0200");
+            assert_eq!(seed_hash, "ae2b3c3b6e013f9c3512a94a4e9f2cf0552f28a3dd0383ba7bac3f54ec06b56f")
         },
         _ => assert!(false, "Wrong result returned: {:?}", result)
     }
@@ -214,7 +218,8 @@ fn test_parse_line_dispatch_job_method_missing_miner_id() {
         "params":{
             "blob":"0606fcb29bcf051b9c7bfc60c98885de404ef48f721f09b8f51d37faf280470880bd120d4e9e0500000000577192c076fed53a24372bc43a3bed1d448a061ad06a262ac5e7f6803a28ccc705",
             "job_id":"878440772206522",
-            "target":"169f0200"
+            "target":"169f0200",
+            "seed_hash":"ae2b3c3b6e013f9c3512a94a4e9f2cf0552f28a3dd0383ba7bac3f54ec06b56f"
         }}"#;
 
     thread::spawn(move || {

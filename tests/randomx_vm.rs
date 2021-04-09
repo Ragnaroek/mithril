@@ -1,6 +1,7 @@
 extern crate mithril;
 extern crate blake2b_simd;
 
+use std::sync::Arc;
 use self::blake2b_simd::{blake2b};
 use mithril::randomx::hash::{gen_program_aes_4rx4};
 use mithril::randomx::m128::{m128d};
@@ -20,7 +21,7 @@ const ROUND_TO_ZERO : u32 = 3;
 
 #[test]
 fn test_calculate_hash_1() {
-    let mut vm = new_vm(VmMemory::light(b"test key 000"));
+    let mut vm = new_vm(Arc::new(VmMemory::light(b"test key 000")));
  
     let result = vm.calculate_hash(b"This is a test");
     assert_eq!("639183aae1bf4c9a35884cb46b09cad9175f04efd7684e7262a0ac1c2f0b4e3f", u8_array_to_string(result.as_bytes()));
@@ -34,7 +35,7 @@ fn test_calculate_hash_1() {
 
 #[test]
 fn test_calculate_hash_2() {
-    let mut vm = new_vm(VmMemory::light(b"test key 001"));
+    let mut vm = new_vm(Arc::new(VmMemory::light(b"test key 001")));
 
     let result = vm.calculate_hash(b"sed do eiusmod tempor incididunt ut labore et dolore magna aliqua");
     assert_eq!("e9ff4503201c0c2cca26d285c93ae883f9b1d30c9eb240b820756f2d5a7905fc", u8_array_to_string(result.as_bytes()));
@@ -1271,5 +1272,5 @@ fn test_randomx_reciprocal() {
 //helper
 
 fn new_test_vm() -> Vm {
-    new_vm(VmMemory::no_memory())
+    new_vm(Arc::new(VmMemory::no_memory()))
 }

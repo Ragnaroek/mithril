@@ -30,6 +30,7 @@ pub enum StratumCmd {
 pub enum StratumAction {
     Job {
         miner_id: String,
+        seed_hash: String,
         blob: String,
         job_id: String,
         target: String
@@ -289,7 +290,6 @@ fn is_known_ok(result: Result<stratum_data::OkResponse, serde_json::Error>) -> O
 
 //TODO Refactor this method (it is very ugly) - its probably better to use generic value parsing and not using struct for every case
 pub fn parse_line_dispatch_result(line: &str, rcv: &Sender<StratumAction>, miner_id_mutx: &Arc<Mutex<Option<String>>>) {
-
     let action;
 
     let error : Result<stratum_data::ErrorResult, serde_json::Error> = serde_json::from_str(line);
@@ -319,10 +319,10 @@ pub fn parse_line_dispatch_result(line: &str, rcv: &Sender<StratumAction>, miner
                 //try parsing intial job
                 let initial : Result<stratum_data::LoginResponse, serde_json::Error> = serde_json::from_str(line);
                 match initial {
-                    Ok(stratum_data::LoginResponse{result: stratum_data::LoginResult{status, job: stratum_data::Job{blob, job_id, target}, id: miner_id}, .. })
+                    Ok(stratum_data::LoginResponse{result: stratum_data::LoginResult{status, job: stratum_data::Job{seed_hash, blob, job_id, target}, id: miner_id}, .. })
                         => {
                               if status == "OK" {
-                                  action = StratumAction::Job{miner_id: miner_id.clone(), blob, job_id, target};
+                                  action = StratumAction::Job{miner_id: miner_id.clone(), seed_hash, blob, job_id, target};
                                   let mut miner_id_guard = miner_id_mutx.lock().expect("miner_id lock");
                                   *miner_id_guard = Option::Some(miner_id.clone());
                               } else {
@@ -351,8 +351,8 @@ fn parse_job(line: &str, miner_id_mutx: &Arc<Mutex<Option<String>>>) -> StratumA
     let miner_id = miner_id_guard.clone().expect("miner_id clone");
 
     match result {
-        Ok(stratum_data::JobResponse{params: stratum_data::Job{blob, job_id, target}}) => {
-            StratumAction::Job{miner_id, blob, job_id, target}
+        Ok(stratum_data::JobResponse{params: stratum_data::Job{seed_hash, blob, job_id, target}}) => {
+            StratumAction::Job{miner_id, seed_hash, blob, job_id, target}
         },
         _ => StratumAction::Error{err: "Error parsing job response".to_string()}
     }

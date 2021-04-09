@@ -88,10 +88,9 @@ fn main() {
         let metric = metric::start(config.metric_conf.clone(), metric_rcvr);
 
         //worker pool start
-        let pool = worker_pool::start(num_threads, config.hw_conf.clone().aes_support,
+        let mut pool = worker_pool::start(num_threads, config.hw_conf.clone().aes_support,
             &share_sndr, config.metric_conf.resolution, &metric_sndr.clone());
-
-        let term_result = start_main_event_loop(&pool, &client_err_rcvr, &stratum_rcvr, &timer_rcvr);
+        let term_result = start_main_event_loop(&mut pool, &client_err_rcvr, &stratum_rcvr, &timer_rcvr);
 
         pool.stop();
         client.stop();
@@ -141,7 +140,7 @@ fn save_bandit_state(bandit: &mut bandit::softmax::AnnealingSoftmax<bandit_tools
 }
 
 /// This function terminates if a non-recoverable error was detected (i.e. connection lost)
-fn start_main_event_loop(pool: &WorkerPool,
+fn start_main_event_loop(pool: &mut WorkerPool,
     client_err_rcvr: &Receiver<Error>,
     stratum_rcvr: &Receiver<StratumAction>,
     timer_rcvr: &Receiver<timer::TickAction>) -> io::Result<MainLoopExit> {
@@ -153,8 +152,8 @@ fn start_main_event_loop(pool: &WorkerPool,
                     return Err(io::Error::new(io::ErrorKind::ConnectionAborted, "received error"));
                 }
                 match stratum_msg.unwrap() {
-                    StratumAction::Job{miner_id, blob, job_id, target} => {
-                        pool.job_change(&miner_id, &blob, &job_id, &target);
+                    StratumAction::Job{miner_id, seed_hash, blob, job_id, target} => {
+                        pool.job_change(&miner_id, &seed_hash, &blob, &job_id, &target);
                     },
                     StratumAction::Error{err} => {
                         error!("Received stratum error: {}", err);
