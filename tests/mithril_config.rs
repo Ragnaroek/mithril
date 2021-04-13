@@ -1,7 +1,6 @@
 extern crate mithril;
 
 use mithril::mithril_config;
-use mithril::cryptonight::aes::AESSupport;
 
 use std::time::{Duration, Instant};
 use std::path::Path;
@@ -24,8 +23,6 @@ fn test_read_default_config() {
     assert_eq!(config.metric_conf.resolution, std::u32::MAX as u64);
     assert_eq!(config.metric_conf.sample_interval_seconds, std::u32::MAX as u64);
     assert_eq!(config.metric_conf.report_file, "/dev/null");
-
-    assert_eq!(config.hw_conf.aes_support, AESSupport::HW);
 
     assert_eq!(config.donation_conf.percentage, 2.5);
 }

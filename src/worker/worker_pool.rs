@@ -2,17 +2,12 @@ extern crate crossbeam_channel;
 
 use std::thread;
 use std::sync::Arc;
-use super::super::cryptonight::hash;
-use super::super::cryptonight::hash::{MEM_SIZE};
-use super::super::cryptonight::aes;
-use super::super::cryptonight::aes::{AES, AESSupport};
 
 use super::super::randomx::memory::{VmMemory};
 use super::super::randomx::vm::{new_vm};
 use super::super::stratum;
 use super::super::stratum::stratum_data;
 use super::super::byte_string;
-use super::super::u64x2::{u64x2};
 use self::crossbeam_channel::{unbounded, Sender, Receiver};
 
 pub struct WorkerPool {
@@ -58,7 +53,6 @@ enum WorkerExit {
 }
 
 pub fn start(num_threads: u64,
-             aes_support: AESSupport,
              share_sndr: &Sender<stratum::StratumCmd>,
              metric_resolution: u64,
              metric_sndr: &Sender<u64>) -> WorkerPool {
@@ -68,10 +62,9 @@ pub fn start(num_threads: u64,
         let (sndr, rcvr) = unbounded();
         let share_sndr_thread = share_sndr.clone();
         let metric_sndr_thread = metric_sndr.clone();
-        let aes_support_thread = aes_support;
 
         let hnd = thread::Builder::new().name(format!("worker thread {}", i)).spawn(move || {
-            work(&rcvr, &share_sndr_thread, aes_support_thread, metric_resolution, &metric_sndr_thread)
+            work(&rcvr, &share_sndr_thread, metric_resolution, &metric_sndr_thread)
         }).expect("worker thread handle");
         thread_chan.push(sndr);
         thread_hnd.push(hnd);
@@ -133,12 +126,8 @@ pub fn num_bits(num_threads: u64) -> u8 {
 
 fn work(rcv: &Receiver<WorkerCmd>,
         share_tx: &Sender<stratum::StratumCmd>,
-        aes_support: AESSupport,
         metric_resolution: u64,
         metric_tx: &Sender<u64>) {
-
-    let aes = aes::new(aes_support);
-    let mut scratchpad : Box<[u64x2; MEM_SIZE]> = box [u64x2(0,0); MEM_SIZE];
 
     let first_job = rcv.recv();
     if first_job.is_err() {
@@ -154,7 +143,7 @@ fn work(rcv: &Receiver<WorkerCmd>,
     };
 
     loop {
-        let exit_reason = work_job(&mut scratchpad, &job, rcv, share_tx, &aes, metric_resolution, metric_tx);
+        let exit_reason = work_job(&job, rcv, share_tx, metric_resolution, metric_tx);
         //if work_job returns the nonce space was exhausted or a new job was received.
         //In case the nonce space was exhausted, we have to wait blocking for a new job and "idle".
         match exit_reason {
@@ -186,11 +175,9 @@ pub fn with_nonce(blob: &str, nonce: &str) -> String {
     return format!("{}{}{}", a, nonce, b);
 }
 
-fn work_job<'a>(scratchpad : &mut [u64x2; MEM_SIZE],
-    job: &'a JobData,
+fn work_job<'a>(job: &'a JobData,
     rcv: &'a Receiver<WorkerCmd>,
     share_tx: &Sender<stratum::StratumCmd>,
-    aes: &AES,
     metric_resolution: u64,
     metric_tx: &Sender<u64>) -> WorkerExit {
 

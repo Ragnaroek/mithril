@@ -1,5 +1,3 @@
-use u64x2::u64x2;
-
 //TODO Rename to hex2_u8_array
 pub fn string_to_u8_array(hex: &str) -> Vec<u8> {
     let mut bytes = Vec::new();
@@ -40,12 +38,6 @@ pub fn hex2_u64_le(hex: &str) -> u64 {
     result
 }
 
-pub fn hex2_u64x2_be(hex: &str) -> u64x2 {
-    let u1 = hex2_u64_be(&hex[0..16]);
-    let u2 = hex2_u64_be(&hex[16..32]);
-    u64x2(u2, u1)
-}
-
 pub fn hex2_u64_be(hex: &str) -> u64 {
     u64::from_str_radix(hex, 16).unwrap()
 }
@@ -62,6 +54,3 @@ pub fn u128_to_string(u: u128) -> String {
     return format!("{:016x}", u);
 }
 
-pub fn u64x2_to_string(u: u64x2) -> String {
-    return format!("{:016x}{:016x}", u.1, u.0);
-}

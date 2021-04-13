@@ -3,7 +3,7 @@
 
 extern crate mithril;
 
-use mithril::byte_string::{hex2_u32_le, hex2_u64_be, string_to_u8_array, u8_array_to_string, hex2_u64x2_be, u64x2_to_string};
+use mithril::byte_string::{hex2_u32_le, hex2_u64_be, string_to_u8_array, u8_array_to_string} ;
 
 #[test]
 fn test_hex2_u32_le() {
@@ -25,10 +25,4 @@ fn test_conv_back_and_forth() {
     let a = string_to_u8_array(str_in);
     let str_out = u8_array_to_string(&a);
     assert_eq!(str_in, str_out);
-}
-
-#[test]
-fn test_hex2_u64x2_be() {
-    let u = hex2_u64x2_be("ef49b24c5ec09109bc268b0a0e0fca62");
-    assert_eq!("ef49b24c5ec09109bc268b0a0e0fca62", u64x2_to_string(u));
 }

@@ -4,7 +4,6 @@ extern crate config;
 use metric::{MetricConfig};
 use stratum::stratum_data::{PoolConfig};
 use worker::worker_pool::{WorkerConfig};
-use cryptonight::aes::{AESSupport};
 
 use std;
 use std::path::{Path};
@@ -18,7 +17,6 @@ pub struct MithrilConfig {
     pub pool_conf: PoolConfig,
     pub worker_conf: WorkerConfig,
     pub metric_conf: MetricConfig,
-    pub hw_conf: HardwareConfig,
     pub donation_conf: DonationConfig,
 }
 
@@ -27,21 +25,15 @@ pub struct DonationConfig {
     pub percentage: f64
 }
 
-#[derive(Clone)]
-pub struct HardwareConfig {
-    pub aes_support: AESSupport
-}
-
 pub fn read_config(conf_file: &Path, filename: &str) -> Result<MithrilConfig, config::ConfigError> {
     let config = parse_conf(conf_file, filename)?;
 
     let pool_conf = pool_config(&config)?;
     let worker_conf = worker_config(&config)?;
     let metric_conf = metric_config(&config)?;
-    let hw_conf = hardware_config(&config)?;
     let donation_conf = donation_config(&config)?;
 
-    Ok(MithrilConfig{pool_conf, worker_conf, metric_conf, hw_conf, donation_conf})
+    Ok(MithrilConfig{pool_conf, worker_conf, metric_conf, donation_conf})
 }
 
 fn donation_config(conf: &Config) -> Result<DonationConfig, ConfigError> {
@@ -88,17 +80,6 @@ fn metric_config(conf: &Config) -> Result<MetricConfig, ConfigError> {
         Ok(MetricConfig{enabled: false, resolution: std::u32::MAX as u64,
                         sample_interval_seconds: std::u32::MAX as u64, report_file: "/dev/null".to_string()})
     }
-}
-
-fn hardware_config(conf: &Config) -> Result<HardwareConfig, ConfigError> {
-    let has_aes = conf.get_bool("hardware.has_aes")?;
-    let aes_support = if has_aes {
-        AESSupport::HW
-    } else {
-        warn!("software AES enabled: hashing performance will be low");
-        AESSupport::SW
-    };
-    Ok(HardwareConfig{aes_support})
 }
 
 fn get_u64_no_zero(conf: &Config, field: &str) -> Result<u64, ConfigError> {

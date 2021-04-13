@@ -19,9 +19,6 @@ resolution = 100 #determines how often a hash result is reported
 sample_interval_seconds = 60
 report_file = "/path/to/hash/report/file.csv"
 
-[hardware]
-has_aes = true # disable, if your cpu has no aes-ni support
-
 [donation]
 percentage = 2.5 # set to 0 to disable, percentage mining to address that
                  # supports the project
