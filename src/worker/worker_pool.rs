@@ -226,8 +226,8 @@ fn work_job<'a>(job: &'a JobData,
                     }
 
                     let cmd = check_command_available(rcv);
-                    if cmd.is_some() {
-                        match cmd.unwrap() {
+                    if let Some(cmd_value) = cmd {
+                        match cmd_value {
                             WorkerCmd::NewJob{job_data} => {
                                 let send_result = metric_tx.send(hash_count);
                                 if send_result.is_err() { //flush hash_count

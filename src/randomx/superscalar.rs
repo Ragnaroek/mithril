@@ -106,13 +106,12 @@ impl ScInstr<'_> {
 			}
 		}
 
-		if available_registers.len() == 2 && self.info.op == ScOpcode::IADD_RS {
-			if available_registers[0] == REG_NEEDS_DISPLACEMENT_IX || available_registers[1] == REG_NEEDS_DISPLACEMENT_IX {
-				self.op_group_par = REG_NEEDS_DISPLACEMENT_IX as i32;
-				self.src = REG_NEEDS_DISPLACEMENT_IX as i32;
-				return true;
-			}	
+		if available_registers.len() == 2 && self.info.op == ScOpcode::IADD_RS && (available_registers[0] == REG_NEEDS_DISPLACEMENT_IX || available_registers[1] == REG_NEEDS_DISPLACEMENT_IX) {
+			self.op_group_par = REG_NEEDS_DISPLACEMENT_IX as i32;
+			self.src = REG_NEEDS_DISPLACEMENT_IX as i32;
+			return true;
 		}
+
 		if self.select_register(&available_registers, gen, true) {
 			if self.group_par_is_source {
 				self.op_group_par = self.src;
@@ -442,7 +441,7 @@ pub struct ScProgram<'a> {
 impl fmt::Display for ScProgram<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for instr in &self.prog {
-			write!(f, "op: {}, src: {}, dst: {}\n", instr.info.op, instr.src, instr.dst).unwrap();
+			writeln!(f, "op: {}, src: {}, dst: {}", instr.info.op, instr.src, instr.dst).unwrap();
         }
         Ok(())
     }
@@ -597,7 +596,7 @@ impl ScProgram<'_> {
 		ScProgram{prog, asic_latencies, cpu_latencies, address_reg, ipc, mul_count,
 			cpu_latency: retire_cycle,
 			asic_latency: asic_latency_max,
-			code_size: code_size,
+			code_size,
 			macro_ops: macro_op_count,
 			decode_cycles: decode_cycle,
 		}

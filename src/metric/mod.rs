@@ -73,14 +73,13 @@ pub fn start(conf: MetricConfig, hash_cnt_rcvr: Receiver<u64>) -> Metric {
                 return;
             }
             let timestamp = timestamp_result.unwrap();
-            let millis = timestamp.as_secs() * 1_000 + u64::from(timestamp.subsec_nanos() / 1_000_000);
+            let millis = timestamp.as_secs() * 1_000 + u64::from(timestamp.subsec_millis());
 
             let file_result = OpenOptions::new()
                              .create(true)
                              .append(true)
                              .open(conf.report_file.clone());
-            if file_result.is_ok() {
-                let mut file = file_result.unwrap();
+            if let Ok(mut file) = file_result {
                 let write_result = writeln!(file, "{};{}", millis, sample_cnt);
                 if write_result.is_err() {
                     error!("could not write metric file");

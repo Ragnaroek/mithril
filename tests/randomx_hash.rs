@@ -25,10 +25,10 @@ fn test_gen_program_aes_1rx4() {
     assert_eq!(result[99],  m128i::from_i32(0xdda1adbf, 0xec39dc8a, 0x89884695, 0xc61ff1dd));
     assert_eq!(result[135], m128i::from_i32(0x778d555d, 0x82dfe800, 0xedbe8cae, 0x2fe08b9f));
 
-    assert_eq!(new_seed[0].to_i64(), (0xbc020491ce094c80, 0x3eb2be0994e80b6a));
-    assert_eq!(new_seed[1].to_i64(), (0xb5ef741cae93a328, 0x2b0e778ebd40eb43));
-    assert_eq!(new_seed[2].to_i64(), (0xd375785cc9d9bb9a, 0x75725136c964ad02));
-    assert_eq!(new_seed[3].to_i64(), (0x778d555d82dfe800, 0xedbe8cae2fe08b9f));
+    assert_eq!(new_seed[0].as_i64(), (0xbc020491ce094c80, 0x3eb2be0994e80b6a));
+    assert_eq!(new_seed[1].as_i64(), (0xb5ef741cae93a328, 0x2b0e778ebd40eb43));
+    assert_eq!(new_seed[2].as_i64(), (0xd375785cc9d9bb9a, 0x75725136c964ad02));
+    assert_eq!(new_seed[3].as_i64(), (0x778d555d82dfe800, 0xedbe8cae2fe08b9f));
 }
 
 #[test]

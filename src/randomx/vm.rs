@@ -73,7 +73,7 @@ impl Register {
         }
 
         for i in 0..MAX_FLOAT_REG {
-            let (h, l) = self.f[i].to_u64();
+            let (h, l) = self.f[i].as_u64();
             Register::copy_into_le(&mut bytes, offset, l);
             offset += 1;
             Register::copy_into_le(&mut bytes, offset, h);
@@ -81,7 +81,7 @@ impl Register {
         }
 
         for i in 0..MAX_FLOAT_REG {
-            let (h, l) = self.e[i].to_u64();
+            let (h, l) = self.e[i].as_u64();
             Register::copy_into_le(&mut bytes, offset, l);
             offset += 1;
             Register::copy_into_le(&mut bytes, offset, h);
@@ -89,14 +89,14 @@ impl Register {
         }
 
         for i in 0..MAX_FLOAT_REG {
-            let (h, l) = self.a[i].to_u64();
+            let (h, l) = self.a[i].as_u64();
             Register::copy_into_le(&mut bytes, offset, l);
             offset += 1;
             Register::copy_into_le(&mut bytes, offset, h);
             offset += 1;
         }
 
-        return bytes;
+        bytes
     }
 
     fn copy_into_le(bytes: &mut [u8;256], offset: usize, u: u64) {
@@ -145,7 +145,7 @@ impl Vm {
         self.mem_reg.mx = (prog.entropy[10] as u32) as usize;
 
         let mut address_reg = prog.entropy[12] as usize;
-        self.config.read_reg[0] = 0 + (address_reg & 1);
+        self.config.read_reg[0] = address_reg & 1;
         address_reg >>= 1;
         self.config.read_reg[1] = 2 + (address_reg & 1);
         address_reg >>= 1;
@@ -182,14 +182,14 @@ impl Vm {
 
         self.run(&tmp_hash);
         let final_hash = hash_aes_1rx4(&self.scratchpad);
-        self.reg.a[0] = final_hash[0].to_m128d();
-        self.reg.a[1] = final_hash[1].to_m128d();
-        self.reg.a[2] = final_hash[2].to_m128d();
-        self.reg.a[3] = final_hash[3].to_m128d();
+        self.reg.a[0] = final_hash[0].as_m128d();
+        self.reg.a[1] = final_hash[1].as_m128d();
+        self.reg.a[2] = final_hash[2].as_m128d();
+        self.reg.a[3] = final_hash[3].as_m128d();
 
         let mut params = Params::new();
         params.hash_length(RANDOMX_HASH_SIZE);        
-        return params.hash(&self.reg.to_bytes());
+        params.hash(&self.reg.to_bytes())
     }
 
     /// Runs one round
@@ -243,7 +243,7 @@ impl Vm {
             }
 
             for i in 0..MAX_FLOAT_REG {
-                let (u1, u0) = self.reg.f[i].to_u64();
+                let (u1, u0) = self.reg.f[i].as_u64();
                 let ix = sp_addr_0 as usize + 2 * i; 
                 self.scratchpad[ix] = u0;
                 self.scratchpad[ix+1] = u1;

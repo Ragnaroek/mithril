@@ -45,7 +45,7 @@ pub fn hash_aes_1rx4(input: &[u64]) -> [m128i;4] {
     state2 = state2.aesenc(x_key_1);
     state3 = state3.aesdec(x_key_1);
 
-    return [state0, state1, state2, state3];
+    [state0, state1, state2, state3]
 }
 
 pub fn fill_aes_1rx4_u64(input: &[m128i;4], into: &mut Vec<u64>) -> [m128i;4] {
@@ -63,10 +63,10 @@ pub fn fill_aes_1rx4_u64(input: &[m128i;4], into: &mut Vec<u64>) -> [m128i;4] {
         state2 = state2.aesdec(key2);
         state3 = state3.aesenc(key3);
         
-        let (s0_1, s0_0) = state0.to_i64();
-        let (s1_1, s1_0) = state1.to_i64();
-        let (s2_1, s2_0) = state2.to_i64();
-        let (s3_1, s3_0) = state3.to_i64();
+        let (s0_1, s0_0) = state0.as_i64();
+        let (s1_1, s1_0) = state1.as_i64();
+        let (s2_1, s2_0) = state2.as_i64();
+        let (s3_1, s3_0) = state3.as_i64();
         into[out_ix] = s0_0 as u64;
         into[out_ix + 1] = s0_1 as u64;
         into[out_ix + 2] = s1_0 as u64;
@@ -76,7 +76,7 @@ pub fn fill_aes_1rx4_u64(input: &[m128i;4], into: &mut Vec<u64>) -> [m128i;4] {
         into[out_ix + 6] = s3_0 as u64;
         into[out_ix + 7] = s3_1 as u64;
 
-		out_ix = out_ix + 8;
+		out_ix += 8;
     }
     [state0, state1, state2, state3]
 }
@@ -102,7 +102,7 @@ fn fill_aes_1rx4_m128i(input: &[m128i;4], into: &mut Vec<m128i>) -> [m128i;4] {
         into[out_ix + 2] = state2;
         into[out_ix + 3] = state3;
 
-		out_ix = out_ix + 4;
+		out_ix += 4;
     }
     [state0, state1, state2, state3]
 }
@@ -162,7 +162,7 @@ pub fn gen_program_aes_4rx4(input: &[m128i;4], output_size: usize) -> Vec<m128i>
         result.push(state2);
         result.push(state3);
 
-		out_ix = out_ix + 4;
+		out_ix += 4;
 	}
-    return result;
+    result
 }

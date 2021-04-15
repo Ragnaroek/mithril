@@ -31,7 +31,7 @@ fn test_m128i_eq() {
 #[allow(overflowing_literals)]
 fn test_m128i_to_i64() {
     let m = m128i::from_i32(0x31903876, 0xbb7a2914, 0xb370f616, 0xd6f7e4f3);
-    let (p1, p2) = m.to_i64();
+    let (p1, p2) = m.as_i64();
     
     assert_eq!(p1, 0x31903876bb7a2914);
     assert_eq!(p2, 0xb370f616d6f7e4f3);
@@ -55,7 +55,7 @@ fn test_m128d_eq() {
 #[allow(overflowing_literals)]
 fn test_to_m128d() {
     let md = m128d::from_f64(666.666, 5243.87876);
-    let (f1, f2) = md.to_f64();
+    let (f1, f2) = md.as_f64();
     
     assert_eq!(f1, 666.666);
     assert_eq!(f2, 5243.87876);

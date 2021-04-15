@@ -39,13 +39,13 @@ pub fn setup_bandit(log_file: String) -> AnnealingSoftmax<ThreadArm> {
 
     if state_file.exists() {
         let loaded_state = AnnealingSoftmax::load_bandit(arms.clone(), bandit_config.clone(), &state_file);
-        if loaded_state.is_err() {
+        if let Ok(result) = loaded_state {
+            info!("continuing with loaded bandit state");
+            result 
+        } else {
             error!("loading bandit state failed, using new bandit. error {:?}", loaded_state);
             AnnealingSoftmax::new(arms, bandit_config, softmax_config)
-        } else {
-            info!("continuing with loaded bandit state");
-            loaded_state.unwrap()
-        }
+        } 
     } else {
         info!("no bandit state file found, using new bandit");
         AnnealingSoftmax::new(arms, bandit_config, softmax_config)

@@ -81,10 +81,10 @@ fn test_init_vm() {
     
     vm.init_vm(&prog);
 
-    assert_eq!(vm.reg.a[0].to_u64(), (0x4019c856c26708a9, 0x418e4a297ebfc304));
-    assert_eq!(vm.reg.a[1].to_u64(), (0x41e807a5dc7740b5, 0x40cd8725df13238a));
-    assert_eq!(vm.reg.a[2].to_u64(), (0x417112c274f91d68, 0x4176971a789beed7));
-    assert_eq!(vm.reg.a[3].to_u64(), (0x40bd229eeedd8e98, 0x414e441747df76c6));
+    assert_eq!(vm.reg.a[0].as_u64(), (0x4019c856c26708a9, 0x418e4a297ebfc304));
+    assert_eq!(vm.reg.a[1].as_u64(), (0x41e807a5dc7740b5, 0x40cd8725df13238a));
+    assert_eq!(vm.reg.a[2].as_u64(), (0x417112c274f91d68, 0x4176971a789beed7));
+    assert_eq!(vm.reg.a[3].as_u64(), (0x40bd229eeedd8e98, 0x414e441747df76c6));
 
     assert_eq!(vm.config.e_mask[0], 0x3c000000001e145f);
     assert_eq!(vm.config.e_mask[1], 0x3a0000000011d432);

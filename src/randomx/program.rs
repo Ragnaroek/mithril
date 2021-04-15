@@ -105,7 +105,7 @@ pub fn new_lcache_instr(op: Opcode, dst_reg: Store, src: usize, imm: i32, modi: 
         return Instr{op, dst: dst_reg, src: Store::L3(Box::new(Store::Imm)), imm: Some(imm & (SCRATCHPAD_L3_MASK as i32)), unsigned_imm: false, mode: Mode::None, target: None, effect};
     }
     let lx = l12_cache(src, modi);
-    return Instr{op, dst: dst_reg, src: lx, imm: Some(imm), unsigned_imm: false, mode: Mode::None, target: None, effect}
+    Instr{op, dst: dst_reg, src: lx, imm: Some(imm), unsigned_imm: false, mode: Mode::None, target: None, effect}
 
 }
 
@@ -188,14 +188,14 @@ impl Program {
         let mut program = Vec::with_capacity((bytes.len() - 8) * 2);
         let mut register_usage = [-1; MAX_REG];
 
-        for i in 0..8 {
-            let (e1, e0) = bytes[i].to_i64();
+        for byte in bytes.iter().take(8) {
+            let (e1, e0) = byte.as_i64();
             entropy.push(e0 as u64);
             entropy.push(e1 as u64);
         }
 
-        for i in 8..bytes.len() {
-            let (op2, op1) = bytes[i].to_i64();
+        for (i, byte) in bytes.iter().enumerate().skip(8) {
+            let (op2, op1) = byte.as_i64();
             let instr1 = decode_instruction(op1, ((i-8)*2) as i32, &mut register_usage);
             let instr2 = decode_instruction(op2, (((i-8)*2)+1) as i32, &mut register_usage);
             program.push(instr1);
@@ -209,7 +209,7 @@ impl Program {
 impl fmt::Display for Program {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for instr in &self.program {
-            write!(f, "{}\n", instr)?;
+            writeln!(f, "{}", instr)?;
         }
         Ok(())
     }
@@ -337,8 +337,8 @@ pub fn decode_instruction(bytes: i64, i: i32, register_usage: &mut [i32; MAX_REG
     }
     if op < Opcode::CBRANCH as i64 {
         let target = register_usage[dst%MAX_REG];
-        for r_i in 0..MAX_REG {
-            register_usage[r_i] = i;
+        for usage in register_usage.iter_mut().take(MAX_REG) {
+            *usage = i;
         }
         return Instr{op: Opcode::CBRANCH, dst: r_reg(dst), src: Store::NONE, imm: Some(imm), unsigned_imm: false, mode: mod_cond(modi), target: Some(target), effect: Vm::exec_cbranch}
     }
@@ -348,7 +348,7 @@ pub fn decode_instruction(bytes: i64, i: i32, register_usage: &mut [i32; MAX_REG
     if op < Opcode::ISTORE as i64 {
         return Instr{op: Opcode::ISTORE, dst: l_cache(dst, modi), src: r_reg(src), imm: Some(imm), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_istore};
     }
-    return new_instr(Opcode::NOP, Store::NONE, Store::NONE, imm, Mode::None, nop);
+    new_instr(Opcode::NOP, Store::NONE, Store::NONE, imm, Mode::None, nop)
 }
 
 pub fn r_reg(dst: usize) -> Store {
@@ -412,7 +412,7 @@ fn l_cache(dst: usize, modi: u8) -> Store {
         }
         return Store::L1(Box::new(reg));
     } 
-    return Store::L3(Box::new(reg));
+    Store::L3(Box::new(reg))
 }
 
 fn l12_cache(src: usize, modi: u8) -> Store {
@@ -420,16 +420,11 @@ fn l12_cache(src: usize, modi: u8) -> Store {
     if mod_mem_u8(modi) == 0 {
         return Store::L2(Box::new(reg));
     }
-    return Store::L1(Box::new(reg));
+    Store::L1(Box::new(reg))
 }
 
 fn is_l_cache(store: &Store) -> bool {
-    match store {
-        Store::L1(_) => true,
-        Store::L2(_) => true,
-        Store::L3(_) => true,
-        _ => false,
-    }
+    matches!(store, Store::L1(_) | Store::L2(_) | Store::L3(_))
 }
 
 fn mod_mem_u8(modi: u8) -> u8 {

@@ -67,7 +67,7 @@ impl StratumClient {
 
         let send_thread = StratumClient::start_send_thread(writer, command_receiver, pool_conf, err_receiver.clone())?;
         let rcv_thread = StratumClient::start_receive_thread(reader, action_rcv, miner_id.clone(), err_receiver)?;
-        let (keep_alive_thread, tick_tx) = StratumClient::start_keep_alive_thread(command_sender.clone(), miner_id.clone())?;
+        let (keep_alive_thread, tick_tx) = StratumClient::start_keep_alive_thread(command_sender.clone(), miner_id)?;
 
         command_sender.send(StratumCmd::Login{}).expect("login command send");
 
@@ -93,23 +93,23 @@ impl StratumClient {
     }
 
     fn start_send_thread(writer: BufWriter<TcpStream>, command_rcv: Receiver<StratumCmd>, pool_conf: stratum_data::PoolConfig, err_receiver: Sender<Error>) -> io::Result<thread::JoinHandle<()>> {
-        Ok(thread::Builder::new().name("Stratum send thread".to_string()).spawn(move || {
+        thread::Builder::new().name("Stratum send thread".to_string()).spawn(move || {
             let result = handle_stratum_send(&command_rcv, writer, &pool_conf);
             if result.is_err() {
                 err_receiver.send(result.err().expect("result error send thread")).expect("sending error in send thread");
             }
             info!("stratum send thread ended");
-        })?)
+        })
     }
 
     fn start_receive_thread(reader: BufReader<TcpStream>, action_rcv: Sender<StratumAction>, miner_id: Arc<Mutex<Option<String>>>, err_receiver: Sender<Error>) -> io::Result<thread::JoinHandle<()>> {
-        Ok(thread::Builder::new().name("Stratum receive thread".to_string()).spawn(move || {
+        thread::Builder::new().name("Stratum receive thread".to_string()).spawn(move || {
             let result = handle_stratum_receive(reader, &action_rcv, &miner_id);
             if result.is_err() {
                 err_receiver.send(result.err().expect("result error recv thread")).expect("sending error in recv thread");
             }
             info!("stratum receive thread ended");
-        })?)
+        })
     }
 
     fn start_keep_alive_thread(cmd_alive: Sender<StratumCmd>, alive_miner_id: Arc<Mutex<Option<String>>>) -> io::Result<(thread::JoinHandle<()>, Sender<()>)> {
@@ -134,12 +134,12 @@ impl StratumClient {
     }
 
     /// Returns a new channel for sending commands to the stratum client
-    pub fn new_cmd_channel(self: &Self) -> Sender<StratumCmd> {
+    pub fn new_cmd_channel(&self) -> Sender<StratumCmd> {
         self.command_sender.clone()
     }
 
     /// Stops the StratumClient, ending all communication with the server end.
-    pub fn stop(self: Self) {
+    pub fn stop(self) {
         info!("stopping stratum client");
 
         //stop send thread
@@ -293,12 +293,10 @@ pub fn parse_line_dispatch_result(line: &str, rcv: &Sender<StratumAction>, miner
     let action;
 
     let error : Result<stratum_data::ErrorResult, serde_json::Error> = serde_json::from_str(line);
+    
     if error.is_ok() {
-        match error.expect("error unwrap") {
-            stratum_data::ErrorResult{error: err_details} => {
-                action = StratumAction::Error{err: format!("error received: {} (code {}, raw json {})", err_details.message, err_details.code, line)}
-            }
-        }
+        let stratum_data::ErrorResult{error: err_details} = error.expect("error unwrap");
+        action = StratumAction::Error{err: format!("error received: {} (code {}, raw json {})", err_details.message, err_details.code, line)};
     } else {
         let ok_result : Result<stratum_data::OkResponse, serde_json::Error> = serde_json::from_str(line);
         let known_ok = is_known_ok(ok_result);
@@ -307,14 +305,11 @@ pub fn parse_line_dispatch_result(line: &str, rcv: &Sender<StratumAction>, miner
         } else {
             let result : Result<stratum_data::Method, serde_json::Error> = serde_json::from_str(line);
             if result.is_ok() {
-                match result.expect("result unwrap") {
-                    stratum_data::Method{method} => {
-                        match method.as_ref() {
-                            "job" => action = parse_job(line, miner_id_mutx),
-                            _ => action = StratumAction::Error{err: format!("unknown method received: {}", method)}
-                        }
-                    }
-                }
+                let stratum_data::Method{method} = result.expect("result unwrap");
+                match method.as_ref() {
+                    "job" => action = parse_job(line, miner_id_mutx),
+                    _ => action = StratumAction::Error{err: format!("unknown method received: {}", method)}
+                };
             } else {
                 //try parsing intial job
                 let initial : Result<stratum_data::LoginResponse, serde_json::Error> = serde_json::from_str(line);
@@ -324,7 +319,7 @@ pub fn parse_line_dispatch_result(line: &str, rcv: &Sender<StratumAction>, miner
                               if status == "OK" {
                                   action = StratumAction::Job{miner_id: miner_id.clone(), seed_hash, blob, job_id, target};
                                   let mut miner_id_guard = miner_id_mutx.lock().expect("miner_id lock");
-                                  *miner_id_guard = Option::Some(miner_id.clone());
+                                  *miner_id_guard = Option::Some(miner_id);
                               } else {
                                   action = StratumAction::Error{err: format!("Not OK initial job received, status was {}", status)}
                               }
@@ -335,7 +330,7 @@ pub fn parse_line_dispatch_result(line: &str, rcv: &Sender<StratumAction>, miner
         }
     }
 
-    let send_result = rcv.send(action.clone());
+    let send_result = rcv.send(action);
     if send_result.is_err() {
         info!("sending action to receiver failed (receiver probably already terminated), trying next receiver");
     }
