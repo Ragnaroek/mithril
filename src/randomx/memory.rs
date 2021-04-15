@@ -82,7 +82,13 @@ pub struct DatasetMemory {
 
 impl DatasetMemory {
     pub fn new() -> DatasetMemory {
-        return DatasetMemory{}
+        DatasetMemory{}
+    }
+}
+
+impl Default for DatasetMemory {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -110,14 +116,13 @@ pub fn init_dataset_item(seed_mem: &SeedMemory, item_num: u64) -> [u64; 8] {
     for prog in &seed_mem.programs {
         prog.execute(&mut ds);
 
-        for r in 0..8 {
+        for (r, v) in ds.iter_mut().enumerate() {
             let mix_value = mix_block_value(seed_mem, reg_value, r);
-            ds[r] ^= mix_value;
+            *v ^= mix_value;
         }
         reg_value = ds[prog.address_reg];
     }
-
-    return ds;
+    ds
 }
 
 pub struct VmMemory {

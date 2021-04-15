@@ -85,11 +85,11 @@ impl ScInstr<'_> {
 
 	fn select_destination(&mut self, cycle: usize, allow_chain_mul: bool, registers: &[RegisterInfo; 8], gen: &mut Blake2Generator) -> bool {
 		let mut available_registers = Vec::with_capacity(8);
-		for i in 0..8 {
-			if registers[i].latency <= cycle 
+		for (i, v) in registers.iter().enumerate() {
+			if v.latency <= cycle 
 			   && (self.can_reuse || i as i32 != self.src) 
-			   && (allow_chain_mul || self.op_group != ScOpcode::IMUL_R || registers[i].last_op_group != ScOpcode::IMUL_R)
-			   && (registers[i].last_op_group != self.op_group || registers[i].last_op_par != self.op_group_par) 
+			   && (allow_chain_mul || self.op_group != ScOpcode::IMUL_R || v.last_op_group != ScOpcode::IMUL_R)
+			   && (v.last_op_group != self.op_group || v.last_op_par != self.op_group_par) 
 			   && (self.info.op != ScOpcode::IADD_RS || i != REG_NEEDS_DISPLACEMENT_IX) {
 				available_registers.push(i);
 			}
@@ -100,8 +100,8 @@ impl ScInstr<'_> {
 	fn select_source(&mut self, cycle: usize, registers: &[RegisterInfo; 8], gen: &mut Blake2Generator) -> bool {		
 		let mut available_registers = Vec::with_capacity(8);
 
-		for i in 0..8 {
-			if registers[i].latency <= cycle {
+		for (i, v) in registers.iter().enumerate() {
+			if v.latency <= cycle {
 				available_registers.push(i);
 			}
 		}
@@ -121,7 +121,7 @@ impl ScInstr<'_> {
 		false
 	}
 
-	fn select_register(&mut self, available_registers: &Vec<usize>, gen: &mut Blake2Generator, reg_src: bool) -> bool {
+	fn select_register(&mut self, available_registers: &[usize], gen: &mut Blake2Generator, reg_src: bool) -> bool {
 		if available_registers.is_empty() {
 			return false;
 		} 
@@ -303,7 +303,7 @@ impl ScInstrInfo {
 	}
 
 	pub fn macro_op(&self, i: usize) -> &'static ScMacroOp {
-		return self.macro_ops[i];
+		self.macro_ops[i]
 	}
 }
 
@@ -346,11 +346,11 @@ impl Blake2Generator {
 		data[..BLAKE_GEN_DATA_LEN-4].copy_from_slice(&key);
 		data[BLAKE_GEN_DATA_LEN-4..BLAKE_GEN_DATA_LEN].copy_from_slice(&nonce.to_le_bytes());
 
-		return Blake2Generator{
+		Blake2Generator{
 			index: BLAKE_GEN_DATA_LEN,
 			data,
 			gen_params: params,
-		};
+		}
 	}
 
 	pub fn get_byte(&mut self) -> u8 {
@@ -420,7 +420,7 @@ impl DecoderBuffer {
 		}
 		
 		let ix = gen.get_byte();
-		return DECODE_BUFFERS[(ix & 3) as usize];
+		DECODE_BUFFERS[(ix & 3) as usize]
 	}
 }
 
@@ -571,8 +571,7 @@ impl ScProgram<'_> {
 
 		let ipc = macro_op_count as f64 / retire_cycle as f64;
 		let mut asic_latencies = vec![0; 8];
-		for i in 0..program_size {
-			let instr = &prog[i];
+		for &instr in prog.iter().take(program_size) {
 			let lat_dst = asic_latencies[instr.dst as usize] + 1 ;
 			let lat_src = if instr.src < 0 || instr.src == instr.dst {
 				0
@@ -630,6 +629,7 @@ impl ScProgram<'_> {
 	}
 }
 
+#[allow(clippy::unnecessary_unwrap)]
 fn schedule_mop(commit: bool, mop: &ScMacroOp, port_busy: &mut [[ExecutionPort; 3]; CYCLE_MAP_SIZE], cycle_in: usize, dep_cycle: usize) -> Option<usize> {
 	
 	let mut cycle = if mop.dependent {

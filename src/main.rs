@@ -28,6 +28,7 @@ enum MainLoopExit {
     DonationHashing
 }
 
+#[allow(clippy::unnecessary_unwrap)]
 fn main() {
 
     env_logger::init();
@@ -102,6 +103,7 @@ fn main() {
                 metric.stop();
                 let hashes = metric.hash_count();
                 metric.join();
+
 
                 if arm.is_some() && bandit.is_some() && !donation_hashing {
                     //do not save reward for donation hashing, it probably only runs for a short period
