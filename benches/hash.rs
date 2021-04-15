@@ -5,39 +5,25 @@ extern crate test;
 extern crate mithril;
 
 use test::{Bencher};
+use std::sync::Arc;
+use mithril::randomx::memory::{VmMemory};
+use mithril::randomx::vm::{new_vm};
 use mithril::byte_string;
-use mithril::u64x2::{u64x2};
-use mithril::cryptonight::hash;
-use mithril::cryptonight::hash::{MEM_SIZE};
-use mithril::cryptonight::aes;
-use mithril::cryptonight::aes::{AESSupport};
 
 #[bench]
-fn bench_hash_with_hardware(b: &mut Bencher) {
-    let input1 = byte_string::string_to_u8_array("09099aebd3e1057aad462f2d998d8b9adcf16e03a5bf1820728240eefe433735904fcf663eeb1d00000000b0203ca955ed446e47ab9e884941bc67c75ecb06e444036aafc7ff442c60d2f907");
-    let input2 = byte_string::string_to_u8_array("09099aebd3e1057aad462f2d998d8b9adcf16e03a5bf1820728240eefe433735904fcf663eeb1d00000000b0203ca955ed446e47ab9e884941bc67c75ecb06e444036aafc7ff442c66d26666");
-    let input3 = byte_string::string_to_u8_array("66666666d3e1057aad462f2d998d8b9adcf16e03a5bf1820728240eefe433735904fcf663eeb1d00000000b0203ca955ed446e47ab9e884941bc67c75ecb06e444036aafc7ff442c66d26666");
-    let mut scratchpad : Box<[u64x2; MEM_SIZE]> = box [u64x2(0,0); MEM_SIZE];
+fn bench_hash_light_memory(b: &mut Bencher) {
 
-    let aes = aes::new(AESSupport::HW);
+    let input1 = byte_string::string_to_u8_array("0e0eb1e8de8306117d26f2afad8aa3a83cb0e210622dde0288ff29c45c3514d20f3a660b97307500000000c7980407e38b16dae2ed1b0264fec2b1d7fbbe11c1ffa0dd33f2bf84dee986ef05");
+    let input2 = byte_string::string_to_u8_array("0e0ec9e9de8306117d26f2afad8aa3a83cb0e210622dde0288ff29c45c3514d20f3a660b97307500000000868133fcd973a1c9469c889e67286d1518d04ca8e54ad5b2773229a839a28fdc1d");
+    let input3 = byte_string::string_to_u8_array("0e0ee0eade8306117d26f2afad8aa3a83cb0e210622dde0288ff29c45c3514d20f3a660b9730750000000065e5a134b8cbd566d434edc85cc124bb2139b77336728d0f01ba88dd0d5ad32c37");
+    
+    let seed_hash = "aef2d93d89bcfbe147cdf85ca3827d8a78ef687fd338b4da137ef3b403e7fef5";
+    let mem = Arc::new(VmMemory::light(&byte_string::string_to_u8_array(seed_hash)));
+    
     b.iter(|| {
-        hash::hash(&mut scratchpad, &input1, &aes);
-        hash::hash(&mut scratchpad, &input2, &aes);
-        hash::hash(&mut scratchpad, &input3, &aes);
-    });
-}
-
-#[bench]
-fn bench_hash_with_software(b: &mut Bencher) {
-    let input1 = byte_string::string_to_u8_array("09099aebd3e1057aad462f2d998d8b9adcf16e03a5bf1820728240eefe433735904fcf663eeb1d00000000b0203ca955ed446e47ab9e884941bc67c75ecb06e444036aafc7ff442c60d2f907");
-    let input2 = byte_string::string_to_u8_array("09099aebd3e1057aad462f2d998d8b9adcf16e03a5bf1820728240eefe433735904fcf663eeb1d00000000b0203ca955ed446e47ab9e884941bc67c75ecb06e444036aafc7ff442c66d26666");
-    let input3 = byte_string::string_to_u8_array("66666666d3e1057aad462f2d998d8b9adcf16e03a5bf1820728240eefe433735904fcf663eeb1d00000000b0203ca955ed446e47ab9e884941bc67c75ecb06e444036aafc7ff442c66d26666");
-    let mut scratchpad : Box<[u64x2; MEM_SIZE]> = box [u64x2(0,0); MEM_SIZE];
-
-    let aes = aes::new(AESSupport::SW);
-    b.iter(|| {
-        hash::hash(&mut scratchpad, &input1, &aes);
-        hash::hash(&mut scratchpad, &input2, &aes);
-        hash::hash(&mut scratchpad, &input3, &aes);
+        let mut vm = new_vm(mem.clone());
+        vm.calculate_hash(&input1);
+        vm.calculate_hash(&input2);
+        vm.calculate_hash(&input3);
     });
 }

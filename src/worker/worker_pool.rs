@@ -188,8 +188,6 @@ fn work_job<'a>(job: &'a JobData,
     let first_byte = job.nonce_partition << (8 - job.nonce_partition_num_bits);
 
     let mut hash_count : u64 = 0;
-    
-    //Just for testing.
     let mut vm = new_vm(job.memory.clone());
 
     for i in 0..2^(8 - job.nonce_partition_num_bits) {
