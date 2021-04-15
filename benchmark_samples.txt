@@ -1,3 +1,6 @@
+#### v0.2.0 randomx (first version) 
+test bench_hash_light_memory ... bench: 2,209,886,383 ns/iter (+/- 420,180,801)
+
 #### v0.10.0 cryptonight v8 (first version)
 test bench_hash_with_hardware ... bench:  74,421,409 ns/iter (+/- 3,061,183)
 test bench_hash_with_software ... bench: 135,611,764 ns/iter (+/- 2,769,874)
