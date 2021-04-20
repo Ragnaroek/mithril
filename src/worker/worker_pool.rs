@@ -79,7 +79,7 @@ impl WorkerPool {
 
         if seed_hash != self.vm_memory_seed {
             let mem_init_start = Instant::now();
-            self.vm_memory = Arc::new(VmMemory::light(&byte_string::string_to_u8_array(seed_hash)));
+            self.vm_memory = Arc::new(VmMemory::full(&byte_string::string_to_u8_array(seed_hash)));
             self.vm_memory_seed = seed_hash.to_string();
             info!("memory init took {}ms with seed_hash: {}", mem_init_start.elapsed().as_millis(), seed_hash);
         }

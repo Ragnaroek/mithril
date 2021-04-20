@@ -1,38 +1,42 @@
 extern crate argon2;
 
-use self::argon2::block::{Block};
-use super::superscalar::{ScProgram, Blake2Generator};
+use self::argon2::block::Block;
+use super::superscalar::{Blake2Generator, ScProgram};
+use std::sync::RwLock;
 
-const RANDOMX_ARGON_LANES : u32 = 1;
-const RANDOMX_ARGON_MEMORY : u32 = 262144;
-const RANDOMX_ARGON_SALT : &[u8;8] = b"RandomX\x03";
-const RANDOMX_ARGON_ITERATIONS : u32 = 3;
-const RANDOMX_CACHE_ACCESSES : usize = 8;
+const RANDOMX_ARGON_LANES: u32 = 1;
+const RANDOMX_ARGON_MEMORY: u32 = 262144;
+const RANDOMX_ARGON_SALT: &[u8; 8] = b"RandomX\x03";
+const RANDOMX_ARGON_ITERATIONS: u32 = 3;
+const RANDOMX_CACHE_ACCESSES: usize = 8;
 
-const ARGON2_SYNC_POINTS : u32 = 4;
-const ARGON_BLOCK_SIZE : u32 = 1024;
+const ARGON2_SYNC_POINTS: u32 = 4;
+const ARGON_BLOCK_SIZE: u32 = 1024;
 
-pub const CACHE_LINE_SIZE : u64 = 64;
+pub const CACHE_LINE_SIZE: u64 = 64;
+pub const DATASET_ITEM_COUNT: usize = (2147483648 + 33554368) / 64; //34.078.719
 
-const SUPERSCALAR_MUL_0 : u64 = 6364136223846793005;
-const SUPERSCALAR_ADD_1 : u64 = 9298411001130361340;
-const SUPERSCALAR_ADD_2 : u64 = 12065312585734608966;
-const SUPERSCALAR_ADD_3 : u64 = 9306329213124626780;
-const SUPERSCALAR_ADD_4 : u64 = 5281919268842080866;
-const SUPERSCALAR_ADD_5 : u64 = 10536153434571861004;
-const SUPERSCALAR_ADD_6 : u64 = 3398623926847679864;
-const SUPERSCALAR_ADD_7 : u64 = 9549104520008361294;
+const SUPERSCALAR_MUL_0: u64 = 6364136223846793005;
+const SUPERSCALAR_ADD_1: u64 = 9298411001130361340;
+const SUPERSCALAR_ADD_2: u64 = 12065312585734608966;
+const SUPERSCALAR_ADD_3: u64 = 9306329213124626780;
+const SUPERSCALAR_ADD_4: u64 = 5281919268842080866;
+const SUPERSCALAR_ADD_5: u64 = 10536153434571861004;
+const SUPERSCALAR_ADD_6: u64 = 3398623926847679864;
+const SUPERSCALAR_ADD_7: u64 = 9549104520008361294;
 
 //256MiB, always used, named randomx_cache in the reference implementation
 pub struct SeedMemory {
-    pub blocks : Box<[Block]>,
-    pub programs : Vec<ScProgram<'static>>,
+    pub blocks: Box<[Block]>,
+    pub programs: Vec<ScProgram<'static>>,
 }
 
 impl SeedMemory {
-
     pub fn no_memory() -> SeedMemory {
-        SeedMemory{blocks: Box::new([]), programs: Vec::with_capacity(0)}
+        SeedMemory {
+            blocks: Box::new([]),
+            programs: Vec::with_capacity(0),
+        }
     }
 
     /// Creates a new initialised seed memory.
@@ -48,7 +52,10 @@ impl SeedMemory {
             programs.push(ScProgram::generate(&mut gen));
         }
 
-        SeedMemory{blocks: mem.blocks, programs}
+        SeedMemory {
+            blocks: mem.blocks,
+            programs,
+        }
     }
 }
 
@@ -65,30 +72,13 @@ fn create_argon_context(key: &[u8]) -> argon2::context::Context {
         variant: argon2::Variant::Argon2d,
         version: argon2::Version::Version13,
     };
-    argon2::context::Context{
+    argon2::context::Context {
         config,
         memory_blocks: RANDOMX_ARGON_MEMORY,
         pwd: key,
         salt: RANDOMX_ARGON_SALT,
         lane_length: segment_length * ARGON2_SYNC_POINTS,
         segment_length,
-    }
-}
-
-//2GiB, only filled in mining mode. Caches DataSetItems.
-pub struct DatasetMemory {
-
-}
-
-impl DatasetMemory {
-    pub fn new() -> DatasetMemory {
-        DatasetMemory{}
-    }
-}
-
-impl Default for DatasetMemory {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
@@ -127,28 +117,64 @@ pub fn init_dataset_item(seed_mem: &SeedMemory, item_num: u64) -> [u64; 8] {
 
 pub struct VmMemory {
     pub seed_memory: SeedMemory,
-    pub dataset_memory: Option<DatasetMemory>,
+    pub dataset_memory: RwLock<Vec<Option<[u64; 8]>>>,
+    pub cache: bool,
 }
 
 impl VmMemory {
     //only useful for testing
     pub fn no_memory() -> VmMemory {
-        VmMemory{seed_memory: SeedMemory::no_memory(), dataset_memory: None}
+        VmMemory {
+            seed_memory: SeedMemory::no_memory(),
+            cache: false,
+            dataset_memory: RwLock::new(Vec::with_capacity(0)),
+        }
     }
 
     pub fn light(key: &[u8]) -> VmMemory {
-        VmMemory{seed_memory: SeedMemory::new_initialised(key), dataset_memory: None}
+        VmMemory {
+            seed_memory: SeedMemory::new_initialised(key),
+            cache: false,
+            dataset_memory: RwLock::new(Vec::with_capacity(0)),
+        }
     }
     pub fn full(key: &[u8]) -> VmMemory {
-        VmMemory{seed_memory: SeedMemory::new_initialised(key), dataset_memory: Some(DatasetMemory::new())}
+        let seed_mem = SeedMemory::new_initialised(key);
+        let mem = vec![None; DATASET_ITEM_COUNT];
+        VmMemory {
+            seed_memory: seed_mem,
+            cache: true,
+            dataset_memory: RwLock::new(mem),
+        }
     }
 
     pub fn dataset_read(&self, offset: u64, reg: &mut [u64; 8]) {
-        //TODO implement full memory read here
         let item_num = offset / CACHE_LINE_SIZE;
-        let rl = init_dataset_item(&self.seed_memory, item_num);
-        for i in 0..8 {
-            reg[i] ^= rl[i];
+
+        if self.cache {
+            {
+                let mem = self.dataset_memory.read().unwrap();
+                let rl_cached = &mem[item_num as usize];
+                if let Some(rl) = rl_cached {
+                    for i in 0..8 {
+                        reg[i] ^= rl[i];
+                    }
+                    return;
+                }
+            }
+            {
+                let rl = init_dataset_item(&self.seed_memory, item_num);
+                let mut mem_mut = self.dataset_memory.write().unwrap();
+                mem_mut[item_num as usize] = Some(rl);
+                for i in 0..8 {
+                    reg[i] ^= rl[i];
+                }
+            }
+        } else {
+            let rl = init_dataset_item(&self.seed_memory, item_num);
+            for i in 0..8 {
+                reg[i] ^= rl[i];
+            }
         }
     }
 }

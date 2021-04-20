@@ -20,7 +20,7 @@ const ROUND_UP : u32 = 2;
 const ROUND_TO_ZERO : u32 = 3;
 
 #[test]
-fn test_calculate_hash_1() {
+fn test_calculate_hash_1_with_light_memory() {
     let mut vm = new_vm(Arc::new(VmMemory::light(b"test key 000")));
  
     let result = vm.calculate_hash(b"This is a test");
@@ -34,8 +34,34 @@ fn test_calculate_hash_1() {
 }
 
 #[test]
-fn test_calculate_hash_2() {
+fn test_calculate_hash_1_with_full_memory() {
+    let mut vm = new_vm(Arc::new(VmMemory::full(b"test key 000")));
+ 
+    let result = vm.calculate_hash(b"This is a test");
+    assert_eq!("639183aae1bf4c9a35884cb46b09cad9175f04efd7684e7262a0ac1c2f0b4e3f", u8_array_to_string(result.as_bytes()));
+
+    let result = vm.calculate_hash(b"Lorem ipsum dolor sit amet");
+    assert_eq!("300a0adb47603dedb42228ccb2b211104f4da45af709cd7547cd049e9489c969", u8_array_to_string(result.as_bytes()));
+
+    let result = vm.calculate_hash(b"sed do eiusmod tempor incididunt ut labore et dolore magna aliqua");
+    assert_eq!("c36d4ed4191e617309867ed66a443be4075014e2b061bcdaf9ce7b721d2b77a8", u8_array_to_string(result.as_bytes()));
+}
+
+#[test]
+fn test_calculate_hash_2_with_light_memory() {
     let mut vm = new_vm(Arc::new(VmMemory::light(b"test key 001")));
+
+    let result = vm.calculate_hash(b"sed do eiusmod tempor incididunt ut labore et dolore magna aliqua");
+    assert_eq!("e9ff4503201c0c2cca26d285c93ae883f9b1d30c9eb240b820756f2d5a7905fc", u8_array_to_string(result.as_bytes()));
+
+    let seed = string_to_u8_array("0b0b98bea7e805e0010a2126d287a2a0cc833d312cb786385a7c2f9de69d25537f584a9bc9977b00000000666fd8753bf61a8631f12984e3fd44f4014eca629276817b56f32e9b68bd82f416");
+    let result = vm.calculate_hash(&seed);
+    assert_eq!("c56414121acda1713c2f2a819d8ae38aed7c80c35c2a769298d34f03833cd5f1", u8_array_to_string(result.as_bytes()));
+}
+
+#[test]
+fn test_calculate_hash_2_with_full_memory() {
+    let mut vm = new_vm(Arc::new(VmMemory::full(b"test key 001")));
 
     let result = vm.calculate_hash(b"sed do eiusmod tempor incididunt ut labore et dolore magna aliqua");
     assert_eq!("e9ff4503201c0c2cca26d285c93ae883f9b1d30c9eb240b820756f2d5a7905fc", u8_array_to_string(result.as_bytes()));
