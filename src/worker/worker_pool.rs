@@ -1,20 +1,20 @@
 extern crate crossbeam_channel;
 
-use std::thread;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU32, Ordering};
+use std::thread;
 use std::time::Instant;
 
-use super::super::randomx::memory::{VmMemory};
-use super::super::randomx::vm::{new_vm};
+use self::crossbeam_channel::{unbounded, Receiver, Sender};
+use super::super::byte_string;
+use super::super::randomx::memory::VmMemory;
+use super::super::randomx::vm::new_vm;
 use super::super::stratum;
 use super::super::stratum::stratum_data;
-use super::super::byte_string;
-use self::crossbeam_channel::{unbounded, Sender, Receiver};
 
 pub struct WorkerPool {
-    thread_chan : Vec<Sender<WorkerCmd>>,
-    thread_hnd : Vec<thread::JoinHandle<()>>,
-    num_threads: u64,
+    thread_chan: Vec<Sender<WorkerCmd>>,
+    thread_hnd: Vec<thread::JoinHandle<()>>,
     vm_memory_seed: String,
     vm_memory: Arc<VmMemory>,
 }
@@ -34,59 +34,81 @@ pub struct JobData {
     pub blob: String,
     pub job_id: String,
     pub target: String,
-    pub nonce_partition: u8,
-    pub nonce_partition_num_bits: u8
+    pub nonce: Arc<AtomicU32>,
 }
 
 pub enum WorkerCmd {
-    NewJob {
-        job_data: JobData
-    },
-    Stop
+    NewJob { job_data: JobData },
+    Stop,
 }
 
 enum WorkerExit {
     NonceSpaceExhausted,
-    NewJob {
-        job_data: JobData
-    },
-    Stopped
+    NewJob { job_data: JobData },
+    Stopped,
 }
 
-pub fn start(num_threads: u64,
-             share_sndr: &Sender<stratum::StratumCmd>,
-             metric_resolution: u64,
-             metric_sndr: &Sender<u64>) -> WorkerPool {
-    let mut thread_chan : Vec<Sender<WorkerCmd>> = Vec::with_capacity(num_threads as usize);
-    let mut thread_hnd : Vec<thread::JoinHandle<()>> = Vec::with_capacity(num_threads as usize);
+pub fn start(
+    num_threads: u64,
+    share_sndr: &Sender<stratum::StratumCmd>,
+    metric_resolution: u64,
+    metric_sndr: &Sender<u64>,
+) -> WorkerPool {
+    let mut thread_chan: Vec<Sender<WorkerCmd>> = Vec::with_capacity(num_threads as usize);
+    let mut thread_hnd: Vec<thread::JoinHandle<()>> = Vec::with_capacity(num_threads as usize);
     for i in 0..num_threads {
         let (sndr, rcvr) = unbounded();
         let share_sndr_thread = share_sndr.clone();
         let metric_sndr_thread = metric_sndr.clone();
 
-        let hnd = thread::Builder::new().name(format!("worker thread {}", i)).spawn(move || {
-            work(&rcvr, &share_sndr_thread, metric_resolution, &metric_sndr_thread)
-        }).expect("worker thread handle");
+        let hnd = thread::Builder::new()
+            .name(format!("worker thread {}", i))
+            .spawn(move || {
+                work(
+                    &rcvr,
+                    &share_sndr_thread,
+                    metric_resolution,
+                    &metric_sndr_thread,
+                )
+            })
+            .expect("worker thread handle");
         thread_chan.push(sndr);
         thread_hnd.push(hnd);
     }
-    WorkerPool{thread_chan, num_threads, thread_hnd, vm_memory_seed: "".to_string(), vm_memory: Arc::new(VmMemory::no_memory())}
+    WorkerPool {
+        thread_chan,
+        thread_hnd,
+        vm_memory_seed: "".to_string(),
+        vm_memory: Arc::new(VmMemory::no_memory()),
+    }
 }
 
 impl WorkerPool {
-    pub fn job_change(&mut self, miner_id: &str, seed_hash: &str, blob: &str, job_id: &str, target: &str) {
+    pub fn job_change(
+        &mut self,
+        miner_id: &str,
+        seed_hash: &str,
+        blob: &str,
+        job_id: &str,
+        target: &str,
+    ) {
         info!("job change, blob {}", blob);
 
         if seed_hash != self.vm_memory_seed {
             let mem_init_start = Instant::now();
             self.vm_memory = Arc::new(VmMemory::full(&byte_string::string_to_u8_array(seed_hash)));
             self.vm_memory_seed = seed_hash.to_string();
-            info!("memory init took {}ms with seed_hash: {}", mem_init_start.elapsed().as_millis(), seed_hash);
+            info!(
+                "memory init took {}ms with seed_hash: {}",
+                mem_init_start.elapsed().as_millis(),
+                seed_hash
+            );
         }
 
-        let num_bits = num_bits(self.num_threads);
-        for (partition_ix, tx) in self.thread_chan.iter().enumerate() {
-            tx.send(WorkerCmd::NewJob{
+        let nonce = Arc::new(AtomicU32::new(0));
+
+        for (_, tx) in self.thread_chan.iter().enumerate() {
+            tx.send(WorkerCmd::NewJob {
                 job_data: JobData {
                     miner_id: miner_id.to_string(),
                     seed_hash: seed_hash.to_string(),
@@ -94,9 +116,10 @@ impl WorkerPool {
                     blob: blob.to_string(),
                     job_id: job_id.to_string(),
                     target: target.to_string(),
-                    nonce_partition: partition_ix as u8,
-                    nonce_partition_num_bits: num_bits
-                }}).expect("sending new job command");
+                    nonce: nonce.clone(),
+                },
+            })
+            .expect("sending new job command");
         }
     }
 
@@ -119,29 +142,22 @@ impl WorkerPool {
     }
 }
 
-pub fn num_bits(num_threads: u64) -> u8 {
-    match num_threads {
-        0 => 0,
-        1 => 1,
-        x => (x as f64).log2().ceil() as u8
-    }
-}
-
-fn work(rcv: &Receiver<WorkerCmd>,
-        share_tx: &Sender<stratum::StratumCmd>,
-        metric_resolution: u64,
-        metric_tx: &Sender<u64>) {
-
+fn work(
+    rcv: &Receiver<WorkerCmd>,
+    share_tx: &Sender<stratum::StratumCmd>,
+    metric_resolution: u64,
+    metric_tx: &Sender<u64>,
+) {
     let first_job = rcv.recv();
     if first_job.is_err() {
         error!("job channel was dropped");
         return;
     }
     let mut job = match first_job.unwrap() {
-        WorkerCmd::NewJob{job_data} => job_data,
+        WorkerCmd::NewJob { job_data } => job_data,
         WorkerCmd::Stop => {
             info!("Worker immediately stopped");
-            return
+            return;
         }
     };
 
@@ -158,14 +174,14 @@ fn work(rcv: &Receiver<WorkerCmd>,
                     return;
                 }
                 job = match job_blocking.unwrap() {
-                    WorkerCmd::NewJob{job_data} => job_data,
-                    WorkerCmd::Stop => break //Terminate thread
+                    WorkerCmd::NewJob { job_data } => job_data,
+                    WorkerCmd::Stop => break, //Terminate thread
                 };
-            },
-            WorkerExit::NewJob{job_data} => {
+            }
+            WorkerExit::NewJob { job_data } => {
                 job = job_data;
-            },
-            WorkerExit::Stopped => break //Terminate thread
+            }
+            WorkerExit::Stopped => break, //Terminate thread
         }
     }
 
@@ -178,69 +194,66 @@ pub fn with_nonce(blob: &str, nonce: &str) -> String {
     return format!("{}{}{}", a, nonce, b);
 }
 
-fn work_job<'a>(job: &'a JobData,
+fn work_job<'a>(
+    job: &'a JobData,
     rcv: &'a Receiver<WorkerCmd>,
     share_tx: &Sender<stratum::StratumCmd>,
     metric_resolution: u64,
-    metric_tx: &Sender<u64>) -> WorkerExit {
-
+    metric_tx: &Sender<u64>,
+) -> WorkerExit {
     let num_target = job_target_value(&job.target);
-    let first_byte = job.nonce_partition << (8 - job.nonce_partition_num_bits);
+    let mut nonce = job.nonce.fetch_add(1, Ordering::SeqCst);
 
-    let mut hash_count : u64 = 0;
+    let mut hash_count: u64 = 0;
     let mut vm = new_vm(job.memory.clone());
 
-    for i in 0..2^(8 - job.nonce_partition_num_bits) {
-        for j in 0..u8::max_value() {
-            for k in 0..u8::max_value() {
-                for l in 0..u8::max_value() {
+    while nonce <= 65535 {
+        let nonce_hex = format!("{:x}", nonce);
+        let hash_in = with_nonce(&job.blob, &nonce_hex);
+        let bytes_in = byte_string::string_to_u8_array(&hash_in);
 
-                    let nonce = format!("{:02x}{:02x}{:02x}{:02x}", first_byte | i, j, k, l);
-                    let hash_in = with_nonce(&job.blob, &nonce);
-                    let bytes_in = byte_string::string_to_u8_array(&hash_in);
+        let hash_result = vm.calculate_hash(&bytes_in).to_hex();
+        let hash_val = hash_target_value(&hash_result);
 
-                    let hash_result = vm.calculate_hash(&bytes_in).to_hex();
-                    let hash_val = hash_target_value(&hash_result);
+        if hash_val < num_target {
+            let share = stratum_data::Share {
+                miner_id: job.miner_id.clone(),
+                job_id: job.job_id.clone(),
+                nonce: nonce_hex,
+                hash: hash_result.to_string(),
+            };
 
-                    if hash_val < num_target {
-                        let share = stratum_data::Share{
-                            miner_id: job.miner_id.clone(),
-                            job_id: job.job_id.clone(),
-                            nonce,
-                            hash: hash_result.to_string(),
-                        };
-
-                        let submit_result = stratum::submit_share(share_tx, share);
-                        if submit_result.is_err() {
-                            error!("submitting share failed: {:?}", submit_result);
-                        }
-                    }
-
-                    hash_count += 1;
-                    if hash_count % metric_resolution == 0 {
-                        let send_result = metric_tx.send(hash_count);
-                        if send_result.is_err() {
-                            error!("metric submit failed {:?}", send_result);
-                        }
-                        hash_count = 0;
-                    }
-
-                    let cmd = check_command_available(rcv);
-                    if let Some(cmd_value) = cmd {
-                        match cmd_value {
-                            WorkerCmd::NewJob{job_data} => {
-                                let send_result = metric_tx.send(hash_count);
-                                if send_result.is_err() { //flush hash_count
-                                    error!("metric submit failed {:?}", send_result);
-                                }
-                                return WorkerExit::NewJob{job_data};
-                            },
-                            WorkerCmd::Stop => return WorkerExit::Stopped
-                        }
-                    }
-                }
+            let submit_result = stratum::submit_share(share_tx, share);
+            if submit_result.is_err() {
+                error!("submitting share failed: {:?}", submit_result);
             }
         }
+
+        hash_count += 1;
+        if hash_count % metric_resolution == 0 {
+            let send_result = metric_tx.send(hash_count);
+            if send_result.is_err() {
+                error!("metric submit failed {:?}", send_result);
+            }
+            hash_count = 0;
+        }
+
+        let cmd = check_command_available(rcv);
+        if let Some(cmd_value) = cmd {
+            match cmd_value {
+                WorkerCmd::NewJob { job_data } => {
+                    let send_result = metric_tx.send(hash_count);
+                    if send_result.is_err() {
+                        //flush hash_count
+                        error!("metric submit failed {:?}", send_result);
+                    }
+                    return WorkerExit::NewJob { job_data };
+                }
+                WorkerCmd::Stop => return WorkerExit::Stopped,
+            }
+        }
+
+        nonce = job.nonce.fetch_add(1, Ordering::SeqCst);
     }
     WorkerExit::NonceSpaceExhausted
 }
@@ -249,7 +262,7 @@ fn check_command_available(rcv: &Receiver<WorkerCmd>) -> Option<WorkerCmd> {
     let try_result = rcv.try_recv();
     match try_result {
         Ok(cmd) => Some(cmd),
-        _ => None
+        _ => None,
     }
 }
 
