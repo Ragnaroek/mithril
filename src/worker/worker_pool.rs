@@ -1,7 +1,7 @@
 extern crate crossbeam_channel;
 
-use std::sync::Arc;
 use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::Arc;
 use std::thread;
 use std::time::Instant;
 
@@ -188,12 +188,6 @@ fn work(
     info!("Worker stopped")
 }
 
-pub fn with_nonce(blob: &str, nonce: &str) -> String {
-    let (a, _) = blob.split_at(78);
-    let (_, b) = blob.split_at(86);
-    return format!("{}{}{}", a, nonce, b);
-}
-
 fn work_job<'a>(
     job: &'a JobData,
     rcv: &'a Receiver<WorkerCmd>,
@@ -208,7 +202,7 @@ fn work_job<'a>(
     let mut vm = new_vm(job.memory.clone());
 
     while nonce <= 65535 {
-        let nonce_hex = format!("{:x}", nonce);
+        let nonce_hex = nonce_hex(nonce);
         let hash_in = with_nonce(&job.blob, &nonce_hex);
         let bytes_in = byte_string::string_to_u8_array(&hash_in);
 
@@ -256,6 +250,16 @@ fn work_job<'a>(
         nonce = job.nonce.fetch_add(1, Ordering::SeqCst);
     }
     WorkerExit::NonceSpaceExhausted
+}
+
+pub fn nonce_hex(nonce: u32) -> String {
+    format!("{:08x}", nonce)
+}
+
+pub fn with_nonce(blob: &str, nonce: &str) -> String {
+    let (a, _) = blob.split_at(78);
+    let (_, b) = blob.split_at(86);
+    return format!("{}{}{}", a, nonce, b);
 }
 
 fn check_command_available(rcv: &Receiver<WorkerCmd>) -> Option<WorkerCmd> {

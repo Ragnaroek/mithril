@@ -15,10 +15,20 @@ fn test_with_nonce() {
 
 #[test]
 fn test_hash_target_value() {
-    assert_eq!(worker_pool::hash_target_value("c5c49db95a9da3f0802a34c6f97c364e7455fca7e41f72254fd4624dd2f91578"), 0x7815f9d24d62d44f);
+    assert_eq!(
+        worker_pool::hash_target_value(
+            "c5c49db95a9da3f0802a34c6f97c364e7455fca7e41f72254fd4624dd2f91578"
+        ),
+        0x7815f9d24d62d44f
+    );
 }
 
 #[test]
 fn test_job_target_value() {
     assert_eq!(worker_pool::job_target_value("8b4f0100"), 368934881474191);
+}
+
+#[test]
+fn test_nonce_hex() {
+    assert_eq!(worker_pool::nonce_hex(666), "0000029a");
 }
