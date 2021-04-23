@@ -1,8 +1,11 @@
 extern crate argon2;
 
 use self::argon2::block::Block;
+use std::sync::{Arc, RwLock};
+use std::time::Instant;
+
+use super::super::byte_string;
 use super::superscalar::{Blake2Generator, ScProgram};
-use std::sync::RwLock;
 
 const RANDOMX_ARGON_LANES: u32 = 1;
 const RANDOMX_ARGON_MEMORY: u32 = 262144;
@@ -113,6 +116,34 @@ pub fn init_dataset_item(seed_mem: &SeedMemory, item_num: u64) -> [u64; 8] {
         reg_value = ds[prog.address_reg];
     }
     ds
+}
+
+#[derive(Clone)]
+pub struct VmMemoryAllocator {
+    pub vm_memory_seed: String,
+    pub vm_memory: Arc<VmMemory>,
+}
+
+impl VmMemoryAllocator {
+    pub fn initial() -> VmMemoryAllocator {
+        VmMemoryAllocator {
+            vm_memory_seed: "".to_string(),
+            vm_memory: Arc::new(VmMemory::no_memory()),
+        }
+    }
+
+    pub fn reallocate(&mut self, seed: String) {
+        if seed != self.vm_memory_seed {
+            let mem_init_start = Instant::now();
+            self.vm_memory = Arc::new(VmMemory::full(&byte_string::string_to_u8_array(&seed)));
+            self.vm_memory_seed = seed;
+            info!(
+                "memory init took {}ms with seed_hash: {}",
+                mem_init_start.elapsed().as_millis(),
+                self.vm_memory_seed,
+            );
+        }
+    }
 }
 
 pub struct VmMemory {

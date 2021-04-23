@@ -3,11 +3,10 @@ extern crate crossbeam_channel;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
 use std::thread;
-use std::time::Instant;
 
 use self::crossbeam_channel::{unbounded, Receiver, Sender};
 use super::super::byte_string;
-use super::super::randomx::memory::VmMemory;
+use super::super::randomx::memory::{VmMemory, VmMemoryAllocator};
 use super::super::randomx::vm::new_vm;
 use super::super::stratum;
 use super::super::stratum::stratum_data;
@@ -15,8 +14,7 @@ use super::super::stratum::stratum_data;
 pub struct WorkerPool {
     thread_chan: Vec<Sender<WorkerCmd>>,
     thread_hnd: Vec<thread::JoinHandle<()>>,
-    vm_memory_seed: String,
-    vm_memory: Arc<VmMemory>,
+    vm_memory_allocator: VmMemoryAllocator,
 }
 
 #[derive(Clone)]
@@ -53,6 +51,7 @@ pub fn start(
     share_sndr: &Sender<stratum::StratumCmd>,
     metric_resolution: u64,
     metric_sndr: &Sender<u64>,
+    vm_memory_allocator: VmMemoryAllocator,
 ) -> WorkerPool {
     let mut thread_chan: Vec<Sender<WorkerCmd>> = Vec::with_capacity(num_threads as usize);
     let mut thread_hnd: Vec<thread::JoinHandle<()>> = Vec::with_capacity(num_threads as usize);
@@ -78,8 +77,7 @@ pub fn start(
     WorkerPool {
         thread_chan,
         thread_hnd,
-        vm_memory_seed: "".to_string(),
-        vm_memory: Arc::new(VmMemory::no_memory()),
+        vm_memory_allocator,
     }
 }
 
@@ -93,18 +91,7 @@ impl WorkerPool {
         target: &str,
     ) {
         info!("job change, blob {}", blob);
-
-        if seed_hash != self.vm_memory_seed {
-            let mem_init_start = Instant::now();
-            self.vm_memory = Arc::new(VmMemory::full(&byte_string::string_to_u8_array(seed_hash)));
-            self.vm_memory_seed = seed_hash.to_string();
-            info!(
-                "memory init took {}ms with seed_hash: {}",
-                mem_init_start.elapsed().as_millis(),
-                seed_hash
-            );
-        }
-
+        self.vm_memory_allocator.reallocate(seed_hash.to_string());
         let nonce = Arc::new(AtomicU32::new(0));
 
         for (_, tx) in self.thread_chan.iter().enumerate() {
@@ -112,7 +99,7 @@ impl WorkerPool {
                 job_data: JobData {
                     miner_id: miner_id.to_string(),
                     seed_hash: seed_hash.to_string(),
-                    memory: self.vm_memory.clone(),
+                    memory: self.vm_memory_allocator.vm_memory.clone(),
                     blob: blob.to_string(),
                     job_id: job_id.to_string(),
                     target: target.to_string(),

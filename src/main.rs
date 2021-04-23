@@ -1,54 +1,58 @@
 #[macro_use]
 extern crate log;
 
-extern crate mithril;
-extern crate env_logger;
 extern crate bandit;
 extern crate crossbeam_channel;
+extern crate env_logger;
+extern crate mithril;
 
-use mithril::stratum::{StratumClient, StratumAction};
-use mithril::worker::worker_pool;
-use mithril::worker::worker_pool::{WorkerPool};
-use mithril::metric;
+use self::crossbeam_channel::{select, unbounded, Receiver};
 use mithril::bandit_tools;
+use mithril::metric;
 use mithril::mithril_config;
+use mithril::randomx::memory::VmMemoryAllocator;
+use mithril::stratum::{StratumAction, StratumClient};
 use mithril::timer;
-use std::path::Path;
+use mithril::worker::worker_pool;
+use mithril::worker::worker_pool::WorkerPool;
 use std::io;
-use std::io::{Error};
+use std::io::Error;
+use std::path::Path;
 use std::thread;
-use std::time::{Duration};
-use self::crossbeam_channel::{unbounded, Receiver, select};
+use std::time::Duration;
 
 use bandit::MultiArmedBandit;
 
 #[derive(Debug, PartialEq)]
 enum MainLoopExit {
     DrawNewBanditArm,
-    DonationHashing
+    DonationHashing,
 }
 
 #[allow(clippy::unnecessary_unwrap)]
 fn main() {
-
     env_logger::init();
 
     //Read config
     let cwd_path = &format!("{}{}", "./", mithril_config::CONFIG_FILE_NAME);
-    let config = mithril_config::read_config(Path::new(cwd_path), mithril_config::CONFIG_FILE_NAME).unwrap();
+    let config =
+        mithril_config::read_config(Path::new(cwd_path), mithril_config::CONFIG_FILE_NAME).unwrap();
 
     if config.donation_conf.percentage > 0.0 {
         print_donation_hint(config.donation_conf.percentage);
     }
 
     let mut bandit = if config.worker_conf.auto_tune {
-        Some(bandit_tools::setup_bandit(config.worker_conf.auto_tune_log.clone()))
+        Some(bandit_tools::setup_bandit(
+            config.worker_conf.auto_tune_log.clone(),
+        ))
     } else {
         None
     };
 
     let timer_rcvr = timer::setup(&config.worker_conf, &config.donation_conf);
     let mut donation_hashing = false;
+    let vm_memory_allocator = VmMemoryAllocator::initial();
 
     loop {
         //Stratum start
@@ -68,9 +72,7 @@ fn main() {
             continue;
         }
         let client = login_result.expect("stratum client");
-
         let share_sndr = client.new_cmd_channel();
-
         let (arm, num_threads) = if bandit.is_some() {
             let selected_arm = bandit.as_ref().unwrap().select_arm();
             info!("trying arm with {} #threads", selected_arm.num_threads);
@@ -83,19 +85,28 @@ fn main() {
         let metric = metric::start(config.metric_conf.clone(), metric_rcvr);
 
         //worker pool start
-        let mut pool = worker_pool::start(num_threads, &share_sndr, 
-            config.metric_conf.resolution, &metric_sndr.clone());
+        let mut pool = worker_pool::start(
+            num_threads,
+            &share_sndr,
+            config.metric_conf.resolution,
+            &metric_sndr.clone(),
+            vm_memory_allocator.clone(),
+        );
 
-        let term_result = start_main_event_loop(&mut pool, &client_err_rcvr, &stratum_rcvr, &timer_rcvr);
+        let term_result =
+            start_main_event_loop(&mut pool, &client_err_rcvr, &stratum_rcvr, &timer_rcvr);
 
         pool.stop();
         client.stop();
 
         match term_result {
             Err(err) => {
-                error!("error received, restarting connection after 60 seconds. err was {}", err);
+                error!(
+                    "error received, restarting connection after 60 seconds. err was {}",
+                    err
+                );
                 await_timeout();
-            },
+            }
             Ok(ex) => {
                 info!("main loop exit, next loop {:?}", ex);
                 pool.join();
@@ -104,11 +115,12 @@ fn main() {
                 let hashes = metric.hash_count();
                 metric.join();
 
-
                 if arm.is_some() && bandit.is_some() && !donation_hashing {
                     //do not save reward for donation hashing, it probably only runs for a short period
                     let bandit_ref = bandit.as_mut().unwrap();
-                    let reward = (hashes as f64 / (config.worker_conf.auto_tune_interval_minutes as f64 * 60.0)) / 1000.0; /*kH/s*/
+                    let reward = (hashes as f64
+                        / (config.worker_conf.auto_tune_interval_minutes as f64 * 60.0))
+                        / 1000.0; /*kH/s*/
                     info!("adding reward {:?} for arm {:?}", reward, arm);
                     bandit_ref.update(arm.unwrap(), reward);
                     save_bandit_state(bandit_ref);
@@ -137,13 +149,14 @@ fn save_bandit_state(bandit: &mut bandit::softmax::AnnealingSoftmax<bandit_tools
 }
 
 /// This function terminates if a non-recoverable error was detected (i.e. connection lost)
-fn start_main_event_loop(pool: &mut WorkerPool,
+fn start_main_event_loop(
+    pool: &mut WorkerPool,
     client_err_rcvr: &Receiver<Error>,
     stratum_rcvr: &Receiver<StratumAction>,
-    timer_rcvr: &Receiver<timer::TickAction>) -> io::Result<MainLoopExit> {
-
+    timer_rcvr: &Receiver<timer::TickAction>,
+) -> io::Result<MainLoopExit> {
     loop {
-        select!{
+        select! {
             recv(stratum_rcvr) -> stratum_msg => {
                 if stratum_msg.is_err() {
                     return Err(io::Error::new(io::ErrorKind::ConnectionAborted, "received error"));
