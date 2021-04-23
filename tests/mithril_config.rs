@@ -2,12 +2,11 @@ extern crate mithril;
 
 use mithril::mithril_config;
 
-use std::time::{Duration, Instant};
 use std::path::Path;
+use std::time::{Duration, Instant};
 
 #[test]
 fn test_read_default_config() {
-
     let config = read_default_config();
 
     assert_eq!(config.pool_conf.pool_address, "xmrpool.eu:3333");
@@ -16,12 +15,15 @@ fn test_read_default_config() {
 
     assert_eq!(config.worker_conf.num_threads, 8);
     assert_eq!(config.worker_conf.auto_tune, true);
-    assert_eq!(config.worker_conf.auto_tune_interval_minutes , 15);
+    assert_eq!(config.worker_conf.auto_tune_interval_minutes, 15);
     assert_eq!(config.worker_conf.auto_tune_log, "./bandit.log");
 
     assert_eq!(config.metric_conf.enabled, false);
     assert_eq!(config.metric_conf.resolution, std::u32::MAX as u64);
-    assert_eq!(config.metric_conf.sample_interval_seconds, std::u32::MAX as u64);
+    assert_eq!(
+        config.metric_conf.sample_interval_seconds,
+        std::u32::MAX as u64
+    );
     assert_eq!(config.metric_conf.report_file, "/dev/null");
 
     assert_eq!(config.donation_conf.percentage, 2.5);

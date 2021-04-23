@@ -3,7 +3,7 @@
 
 extern crate mithril;
 
-use mithril::byte_string::{hex2_u32_le, hex2_u64_be, string_to_u8_array, u8_array_to_string} ;
+use mithril::byte_string::{hex2_u32_le, hex2_u64_be, string_to_u8_array, u8_array_to_string};
 
 #[test]
 fn test_hex2_u32_le() {

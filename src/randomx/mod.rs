@@ -1,7 +1,7 @@
 pub mod common;
-pub mod m128;
 pub mod hash;
-pub mod program;
-pub mod vm;
+pub mod m128;
 pub mod memory;
+pub mod program;
 pub mod superscalar;
+pub mod vm;

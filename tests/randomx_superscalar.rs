@@ -2,14 +2,13 @@ extern crate mithril;
 #[macro_use(assert_diff)]
 extern crate difference;
 
-use mithril::randomx::superscalar::{ScProgram, Blake2Generator};
+use mithril::randomx::superscalar::{Blake2Generator, ScProgram};
 
 #[test]
 fn test_generate_1() {
 	let key_str = b"test key 000";
 	let mut gen = Blake2Generator::new(key_str, 0);
 	let prog = ScProgram::generate(&mut gen);
-	
 	assert_diff!(EXPECTED_SUPERSCALAR_PROG_1, &prog.to_string(), "\n", 0);
 }
 
@@ -27,13 +26,12 @@ fn test_generate_rage() {
 	let key_str = b"RageAgainstTheMachine";
 	let mut gen = Blake2Generator::new(key_str, 0);
 	let prog = ScProgram::generate(&mut gen);
-	
 	assert_diff!(EXPECTED_SUPERSCALAR_PROG_RAGE, &prog.to_string(), "\n", 0);
 }
 
 //helper + testdata
 
-const EXPECTED_SUPERSCALAR_PROG_1 : &str = r#"op: IMUL_R, src: 0, dst: 3
+const EXPECTED_SUPERSCALAR_PROG_1: &str = r#"op: IMUL_R, src: 0, dst: 3
 op: IMUL_R, src: 1, dst: 4
 op: IMUL_R, src: 7, dst: 6
 op: IROR_C, src: -1, dst: 7
@@ -482,7 +480,7 @@ op: IXOR_C9, src: -1, dst: 7
 op: ISMULH_R, src: 2, dst: 4
 "#;
 
-const EXPECTED_SUPERSCALAR_PROG_666 : &str = r#"op: IMUL_R, src: 4, dst: 3
+const EXPECTED_SUPERSCALAR_PROG_666: &str = r#"op: IMUL_R, src: 4, dst: 3
 op: IMUL_R, src: 0, dst: 6
 op: IMUL_R, src: 1, dst: 7
 op: IADD_RS, src: 4, dst: 1
@@ -931,7 +929,7 @@ op: IMULH_R, src: 5, dst: 6
 op: IMUL_RCP, src: -1, dst: 1
 "#;
 
-const EXPECTED_SUPERSCALAR_PROG_RAGE : &str = r#"op: IMUL_R, src: 2, dst: 7
+const EXPECTED_SUPERSCALAR_PROG_RAGE: &str = r#"op: IMUL_R, src: 2, dst: 7
 op: IMUL_R, src: 4, dst: 2
 op: IMUL_R, src: 4, dst: 1
 op: IADD_RS, src: 3, dst: 0

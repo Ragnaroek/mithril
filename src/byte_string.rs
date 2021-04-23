@@ -18,9 +18,9 @@ pub fn string_to_u8_array(hex: &str) -> Vec<u8> {
 /// number. The hex string is interpreted as litte-endian
 /// (last two chars are most signifiant)
 pub fn hex2_u32_le(hex: &str) -> u32 {
-    let mut result : u32 = 0;
+    let mut result: u32 = 0;
     for k in (0..8).step_by(2) {
-        let p = u32::from_str_radix(&hex[(8-k-2)..(8-k)], 16).unwrap();
+        let p = u32::from_str_radix(&hex[(8 - k - 2)..(8 - k)], 16).unwrap();
         result <<= 8;
         result |= p;
     }
@@ -29,9 +29,9 @@ pub fn hex2_u32_le(hex: &str) -> u32 {
 
 //TODO Write a test
 pub fn hex2_u64_le(hex: &str) -> u64 {
-    let mut result : u64 = 0;
+    let mut result: u64 = 0;
     for k in (0..hex.len()).step_by(2) {
-        let p = u64::from_str_radix(&hex[(hex.len()-k-2)..(hex.len()-k)], 16).unwrap();
+        let p = u64::from_str_radix(&hex[(hex.len() - k - 2)..(hex.len() - k)], 16).unwrap();
         result <<= 8;
         result |= p;
     }
@@ -53,4 +53,3 @@ pub fn u8_array_to_string(a: &[u8]) -> String {
 pub fn u128_to_string(u: u128) -> String {
     return format!("{:016x}", u);
 }
-

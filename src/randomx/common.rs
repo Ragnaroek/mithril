@@ -1,4 +1,3 @@
-
 const P_2EXP63: u64 = 1 << 63;
 const INT32_MAX: u32 = i32::MAX as u32;
 

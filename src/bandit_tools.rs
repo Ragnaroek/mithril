@@ -1,19 +1,19 @@
 extern crate bandit;
-extern crate num_cpus;
 extern crate dirs;
+extern crate num_cpus;
 
-use std::path::{PathBuf};
-use std::fs::{DirBuilder};
+use std::fs::DirBuilder;
 use std::io;
+use std::path::PathBuf;
 
 use self::bandit::softmax::{AnnealingSoftmax, AnnealingSoftmaxConfig};
-use self::bandit::{Identifiable, BanditConfig};
+use self::bandit::{BanditConfig, Identifiable};
 
-const MAX_THREADS_PER_CPU : usize = 4;
+const MAX_THREADS_PER_CPU: usize = 4;
 
 #[derive(Hash, PartialEq, Eq, Clone, Copy, Debug)]
 pub struct ThreadArm {
-    pub num_threads: u64
+    pub num_threads: u64,
 }
 
 impl Identifiable for ThreadArm {
@@ -26,26 +26,34 @@ pub fn setup_bandit(log_file: String) -> AnnealingSoftmax<ThreadArm> {
     let num_arms = num_cpus::get() * MAX_THREADS_PER_CPU;
     let mut arms = Vec::with_capacity(num_arms);
     for i in 1..num_arms {
-        arms.push(ThreadArm{num_threads: i as u64})
+        arms.push(ThreadArm {
+            num_threads: i as u64,
+        })
     }
 
     let state_file = state_file();
 
-    let bandit_config = BanditConfig{
-        log_file: Some(PathBuf::from(log_file))
+    let bandit_config = BanditConfig {
+        log_file: Some(PathBuf::from(log_file)),
     };
 
-    let softmax_config = AnnealingSoftmaxConfig{cooldown_factor: 0.7};
+    let softmax_config = AnnealingSoftmaxConfig {
+        cooldown_factor: 0.7,
+    };
 
     if state_file.exists() {
-        let loaded_state = AnnealingSoftmax::load_bandit(arms.clone(), bandit_config.clone(), &state_file);
+        let loaded_state =
+            AnnealingSoftmax::load_bandit(arms.clone(), bandit_config.clone(), &state_file);
         if let Ok(result) = loaded_state {
             info!("continuing with loaded bandit state");
-            result 
+            result
         } else {
-            error!("loading bandit state failed, using new bandit. error {:?}", loaded_state);
+            error!(
+                "loading bandit state failed, using new bandit. error {:?}",
+                loaded_state
+            );
             AnnealingSoftmax::new(arms, bandit_config, softmax_config)
-        } 
+        }
     } else {
         info!("no bandit state file found, using new bandit");
         AnnealingSoftmax::new(arms, bandit_config, softmax_config)

@@ -1,8 +1,8 @@
-extern crate mithril;
 extern crate lazy_static;
+extern crate mithril;
 
 use lazy_static::lazy_static;
-use mithril::randomx::memory::{SeedMemory, init_dataset_item};
+use mithril::randomx::memory::{init_dataset_item, SeedMemory};
 
 lazy_static! {
     static ref TEST_SEED_MEM: SeedMemory = SeedMemory::new_initialised(b"test key 000");

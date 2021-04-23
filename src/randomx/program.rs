@@ -1,13 +1,13 @@
-use super::m128::{m128i};
-use super::vm::{Vm, SCRATCHPAD_L3_MASK, is_zero_or_power_of_2};
-use strum::Display;
+use super::m128::m128i;
+use super::vm::{is_zero_or_power_of_2, Vm, SCRATCHPAD_L3_MASK};
 use std::fmt;
+use strum::Display;
 
-pub const MAX_FLOAT_REG : usize = 4;
-pub const MAX_REG : usize = 8;
-pub const REG_NEEDS_DISPLACEMENT_IX : usize = 5;
+pub const MAX_FLOAT_REG: usize = 4;
+pub const MAX_REG: usize = 8;
+pub const REG_NEEDS_DISPLACEMENT_IX: usize = 5;
 pub const REG_NEEDS_DISPLACEMENT: Store = Store::R(REG_NEEDS_DISPLACEMENT_IX);
-const STORE_L3_CONDITION : u8 = 14;
+const STORE_L3_CONDITION: u8 = 14;
 
 #[allow(nonstandard_style)]
 #[derive(Display, Debug, PartialEq)]
@@ -85,28 +85,92 @@ pub struct Instr {
     pub unsigned_imm: bool,
     pub mode: Mode,
     pub target: Option<i32>,
-    pub effect: fn(&mut Vm, &Instr)
+    pub effect: fn(&mut Vm, &Instr),
 }
 
-fn new_instr(op: Opcode, dst: Store, src: Store, imm: i32, mode: Mode, effect: fn(&mut Vm, &Instr)) -> Instr {
+fn new_instr(
+    op: Opcode,
+    dst: Store,
+    src: Store,
+    imm: i32,
+    mode: Mode,
+    effect: fn(&mut Vm, &Instr),
+) -> Instr {
     if src == dst {
-        return Instr{op, dst, src: Store::NONE, imm: Some(imm), unsigned_imm: false, mode, target: None, effect};
+        return Instr {
+            op,
+            dst,
+            src: Store::NONE,
+            imm: Some(imm),
+            unsigned_imm: false,
+            mode,
+            target: None,
+            effect,
+        };
     }
-    Instr{op, dst, src, imm: None, unsigned_imm: false, mode, target: None, effect}
+    Instr {
+        op,
+        dst,
+        src,
+        imm: None,
+        unsigned_imm: false,
+        mode,
+        target: None,
+        effect,
+    }
 }
 
-fn new_imm_instr(op: Opcode, dst: Store, imm: i32, mode: Mode, effect: fn(&mut Vm, &Instr)) -> Instr {
-    Instr{op, dst, src: Store::NONE, imm: Some(imm), unsigned_imm: false, mode, target: None, effect}
+fn new_imm_instr(
+    op: Opcode,
+    dst: Store,
+    imm: i32,
+    mode: Mode,
+    effect: fn(&mut Vm, &Instr),
+) -> Instr {
+    Instr {
+        op,
+        dst,
+        src: Store::NONE,
+        imm: Some(imm),
+        unsigned_imm: false,
+        mode,
+        target: None,
+        effect,
+    }
 }
- 
-pub fn new_lcache_instr(op: Opcode, dst_reg: Store, src: usize, imm: i32, modi: u8, effect: fn(&mut Vm, &Instr)) -> Instr {
+
+pub fn new_lcache_instr(
+    op: Opcode,
+    dst_reg: Store,
+    src: usize,
+    imm: i32,
+    modi: u8,
+    effect: fn(&mut Vm, &Instr),
+) -> Instr {
     let src_reg = r_reg(src);
     if src_reg == dst_reg {
-        return Instr{op, dst: dst_reg, src: Store::L3(Box::new(Store::Imm)), imm: Some(imm & (SCRATCHPAD_L3_MASK as i32)), unsigned_imm: false, mode: Mode::None, target: None, effect};
+        return Instr {
+            op,
+            dst: dst_reg,
+            src: Store::L3(Box::new(Store::Imm)),
+            imm: Some(imm & (SCRATCHPAD_L3_MASK as i32)),
+            unsigned_imm: false,
+            mode: Mode::None,
+            target: None,
+            effect,
+        };
     }
     let lx = l12_cache(src, modi);
-    Instr{op, dst: dst_reg, src: lx, imm: Some(imm), unsigned_imm: false, mode: Mode::None, target: None, effect}
-
+    Instr {
+        op,
+        dst: dst_reg,
+        src: lx,
+        imm: Some(imm),
+        unsigned_imm: false,
+        mode: Mode::None,
+        target: None,
+        effect,
+    }
 }
 
 impl Instr {
@@ -119,7 +183,7 @@ impl fmt::Display for Instr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} ", self.op)?;
         match &self.dst {
-            Store::NONE => {/* do nothing */},
+            Store::NONE => { /* do nothing */ }
             Store::L1(reg) => write_l_access(f, self, reg, "L1")?,
             Store::L2(reg) => write_l_access(f, self, reg, "L2")?,
             Store::L3(reg) => write_l_access(f, self, reg, "L3")?,
@@ -133,7 +197,7 @@ impl fmt::Display for Instr {
             write!(f, ", ")?;
         }
         match &self.src {
-            Store::NONE => {/* do nothing */},
+            Store::NONE => { /* do nothing */ }
             Store::L1(reg) => write_l_access(f, self, reg, "L1")?,
             Store::L2(reg) => write_l_access(f, self, reg, "L2")?,
             Store::L3(reg) => write_l_access(f, self, reg, "L3")?,
@@ -141,9 +205,7 @@ impl fmt::Display for Instr {
             Store::F(i) => write!(f, "f{}", i)?,
             Store::E(i) => write!(f, "e{}", i)?,
             Store::A(i) => write!(f, "a{}", i)?,
-            _ => {
-                write!(f, ", {}", self.src)?
-            },
+            _ => write!(f, ", {}", self.src)?,
         }
         if self.imm.is_some() && !(is_l_cache(&self.dst) || is_l_cache(&self.src)) {
             if self.unsigned_imm {
@@ -159,7 +221,12 @@ impl fmt::Display for Instr {
     }
 }
 
-fn write_l_access(f: &mut fmt::Formatter<'_>, instr: &Instr, reg: &Store, lstore: &str) -> fmt::Result {
+fn write_l_access(
+    f: &mut fmt::Formatter<'_>,
+    instr: &Instr,
+    reg: &Store,
+    lstore: &str,
+) -> fmt::Result {
     if reg == &Store::Imm {
         write!(f, "{}[{}]", lstore, instr.imm.unwrap())
     } else {
@@ -178,12 +245,11 @@ fn write_l_access(f: &mut fmt::Formatter<'_>, instr: &Instr, reg: &Store, lstore
 pub struct Program {
     pub entropy: Vec<u64>,
     pub program: Vec<Instr>,
-    pub register_usage: [i32; MAX_REG]
+    pub register_usage: [i32; MAX_REG],
 }
 
 impl Program {
     pub fn from_bytes(bytes: Vec<m128i>) -> Program {
-        
         let mut entropy = Vec::with_capacity(16);
         let mut program = Vec::with_capacity((bytes.len() - 8) * 2);
         let mut register_usage = [-1; MAX_REG];
@@ -196,13 +262,17 @@ impl Program {
 
         for (i, byte) in bytes.iter().enumerate().skip(8) {
             let (op2, op1) = byte.as_i64();
-            let instr1 = decode_instruction(op1, ((i-8)*2) as i32, &mut register_usage);
-            let instr2 = decode_instruction(op2, (((i-8)*2)+1) as i32, &mut register_usage);
+            let instr1 = decode_instruction(op1, ((i - 8) * 2) as i32, &mut register_usage);
+            let instr2 = decode_instruction(op2, (((i - 8) * 2) + 1) as i32, &mut register_usage);
             program.push(instr1);
             program.push(instr2);
         }
-        
-        Program{entropy, program, register_usage}
+
+        Program {
+            entropy,
+            program,
+            register_usage,
+        }
     }
 }
 
@@ -222,7 +292,6 @@ pub fn decode_instruction(bytes: i64, i: i32, register_usage: &mut [i32; MAX_REG
     let src = ((bytes & 0xFF0000) >> 16) as usize;
     let modi = ((bytes & 0xFF000000) >> 24) as u8;
     let imm = ((bytes & 0xFFFFFFFF00000000) >> 32) as i32;
-    
     if op < Opcode::IADD_RS as i64 {
         let dst_reg = r_reg(dst);
         let imm_val;
@@ -231,128 +300,302 @@ pub fn decode_instruction(bytes: i64, i: i32, register_usage: &mut [i32; MAX_REG
         } else {
             imm_val = None;
         }
-        register_usage[dst%MAX_REG] = i;
-        return Instr{op: Opcode::IADD_RS, dst: dst_reg, src: r_reg(src), imm: imm_val, unsigned_imm: false, mode: mod_shft(modi), target: None, effect: Vm::exec_iadd_rs}
+        register_usage[dst % MAX_REG] = i;
+        return Instr {
+            op: Opcode::IADD_RS,
+            dst: dst_reg,
+            src: r_reg(src),
+            imm: imm_val,
+            unsigned_imm: false,
+            mode: mod_shft(modi),
+            target: None,
+            effect: Vm::exec_iadd_rs,
+        };
     }
     if op < Opcode::IADD_M as i64 {
-        register_usage[dst%MAX_REG] = i;
+        register_usage[dst % MAX_REG] = i;
         return new_lcache_instr(Opcode::IADD_M, r_reg(dst), src, imm, modi, Vm::exec_iadd_m);
     }
     if op < Opcode::ISUB_R as i64 {
-        register_usage[dst%MAX_REG] = i;
-        return new_instr(Opcode::ISUB_R, r_reg(dst), r_reg(src), imm, Mode::None, Vm::exec_isub_r);
+        register_usage[dst % MAX_REG] = i;
+        return new_instr(
+            Opcode::ISUB_R,
+            r_reg(dst),
+            r_reg(src),
+            imm,
+            Mode::None,
+            Vm::exec_isub_r,
+        );
     }
     if op < Opcode::ISUB_M as i64 {
-        register_usage[dst%MAX_REG] = i;
+        register_usage[dst % MAX_REG] = i;
         return new_lcache_instr(Opcode::ISUB_M, r_reg(dst), src, imm, modi, Vm::exec_isub_m);
     }
     if op < Opcode::IMUL_R as i64 {
-        register_usage[dst%MAX_REG] = i;
-        return new_instr(Opcode::IMUL_R, r_reg(dst), r_reg(src), imm, Mode::None, Vm::exec_imul_r);
+        register_usage[dst % MAX_REG] = i;
+        return new_instr(
+            Opcode::IMUL_R,
+            r_reg(dst),
+            r_reg(src),
+            imm,
+            Mode::None,
+            Vm::exec_imul_r,
+        );
     }
     if op < Opcode::IMUL_M as i64 {
-        register_usage[dst%MAX_REG] = i;
+        register_usage[dst % MAX_REG] = i;
         return new_lcache_instr(Opcode::IMUL_M, r_reg(dst), src, imm, modi, Vm::exec_imul_m);
     }
     if op < Opcode::IMULH_R as i64 {
-        register_usage[dst%MAX_REG] = i;
-        return Instr{op: Opcode::IMULH_R, dst: r_reg(dst), src: r_reg(src), imm: None, unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_imulh_r}
+        register_usage[dst % MAX_REG] = i;
+        return Instr {
+            op: Opcode::IMULH_R,
+            dst: r_reg(dst),
+            src: r_reg(src),
+            imm: None,
+            unsigned_imm: false,
+            mode: Mode::None,
+            target: None,
+            effect: Vm::exec_imulh_r,
+        };
     }
     if op < Opcode::IMULH_M as i64 {
-        register_usage[dst%MAX_REG] = i;
-        return new_lcache_instr(Opcode::IMULH_M, r_reg(dst), src, imm, modi, Vm::exec_imulh_m);
+        register_usage[dst % MAX_REG] = i;
+        return new_lcache_instr(
+            Opcode::IMULH_M,
+            r_reg(dst),
+            src,
+            imm,
+            modi,
+            Vm::exec_imulh_m,
+        );
     }
     if op < Opcode::ISMULH_R as i64 {
-        register_usage[dst%MAX_REG] = i;
-        return Instr{op: Opcode::ISMULH_R, dst: r_reg(dst), src: r_reg(src), imm: None, unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_ismulh_r}
+        register_usage[dst % MAX_REG] = i;
+        return Instr {
+            op: Opcode::ISMULH_R,
+            dst: r_reg(dst),
+            src: r_reg(src),
+            imm: None,
+            unsigned_imm: false,
+            mode: Mode::None,
+            target: None,
+            effect: Vm::exec_ismulh_r,
+        };
     }
     if op < Opcode::ISMULH_M as i64 {
-        register_usage[dst%MAX_REG] = i;
-        return new_lcache_instr(Opcode::ISMULH_M, r_reg(dst), src, imm, modi, Vm::exec_ismulh_m);
+        register_usage[dst % MAX_REG] = i;
+        return new_lcache_instr(
+            Opcode::ISMULH_M,
+            r_reg(dst),
+            src,
+            imm,
+            modi,
+            Vm::exec_ismulh_m,
+        );
     }
     if op < Opcode::IMUL_RCP as i64 {
         if !is_zero_or_power_of_2(imm as u64) {
-            register_usage[dst%MAX_REG] = i;
+            register_usage[dst % MAX_REG] = i;
         }
-        let mut instr = new_imm_instr(Opcode::IMUL_RCP, r_reg(dst), imm, Mode::None, Vm::exec_imul_rcp);
+        let mut instr = new_imm_instr(
+            Opcode::IMUL_RCP,
+            r_reg(dst),
+            imm,
+            Mode::None,
+            Vm::exec_imul_rcp,
+        );
         instr.unsigned_imm = true;
         return instr;
     }
     if op < Opcode::INEG_R as i64 {
-        register_usage[dst%MAX_REG] = i;
-        return new_instr(Opcode::INEG_R, r_reg(dst), Store::NONE, imm, Mode::None, Vm::exec_ineg_r);
+        register_usage[dst % MAX_REG] = i;
+        return new_instr(
+            Opcode::INEG_R,
+            r_reg(dst),
+            Store::NONE,
+            imm,
+            Mode::None,
+            Vm::exec_ineg_r,
+        );
     }
     if op < Opcode::IXOR_R as i64 {
-        register_usage[dst%MAX_REG] = i;
-        return new_instr(Opcode::IXOR_R, r_reg(dst), r_reg(src), imm, Mode::None, Vm::exec_ixor_r);
+        register_usage[dst % MAX_REG] = i;
+        return new_instr(
+            Opcode::IXOR_R,
+            r_reg(dst),
+            r_reg(src),
+            imm,
+            Mode::None,
+            Vm::exec_ixor_r,
+        );
     }
     if op < Opcode::IXOR_M as i64 {
-        register_usage[dst%MAX_REG] = i;
+        register_usage[dst % MAX_REG] = i;
         return new_lcache_instr(Opcode::IXOR_M, r_reg(dst), src, imm, modi, Vm::exec_ixor_m);
     }
     if op < Opcode::IROR_R as i64 {
-        register_usage[dst%MAX_REG] = i;
-        return new_instr(Opcode::IROR_R, r_reg(dst), r_reg(src), imm & 63, Mode::None, Vm::exec_iror_r);
+        register_usage[dst % MAX_REG] = i;
+        return new_instr(
+            Opcode::IROR_R,
+            r_reg(dst),
+            r_reg(src),
+            imm & 63,
+            Mode::None,
+            Vm::exec_iror_r,
+        );
     }
     if op < Opcode::IROL_R as i64 {
-        register_usage[dst%MAX_REG] = i;
-        return new_instr(Opcode::IROL_R, r_reg(dst), r_reg(src), imm & 63, Mode::None, Vm::exec_irol_r);
+        register_usage[dst % MAX_REG] = i;
+        return new_instr(
+            Opcode::IROL_R,
+            r_reg(dst),
+            r_reg(src),
+            imm & 63,
+            Mode::None,
+            Vm::exec_irol_r,
+        );
     }
     if op < Opcode::ISWAP_R as i64 {
-        register_usage[dst%MAX_REG] = i;
-        register_usage[src%MAX_REG] = i;
-        return Instr{op: Opcode::ISWAP_R, dst: r_reg(dst), src: r_reg(src), imm: None, unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_iswap_r}
+        register_usage[dst % MAX_REG] = i;
+        register_usage[src % MAX_REG] = i;
+        return Instr {
+            op: Opcode::ISWAP_R,
+            dst: r_reg(dst),
+            src: r_reg(src),
+            imm: None,
+            unsigned_imm: false,
+            mode: Mode::None,
+            target: None,
+            effect: Vm::exec_iswap_r,
+        };
     }
     if op < Opcode::FSWAP_R as i64 {
         let dst_ix = dst % MAX_REG;
         if dst_ix >= MAX_FLOAT_REG {
-            return new_instr(Opcode::FSWAP_R, e_reg_ix(dst_ix % MAX_FLOAT_REG) , Store::NONE, imm, Mode::None, Vm::exec_fswap_r);
+            return new_instr(
+                Opcode::FSWAP_R,
+                e_reg_ix(dst_ix % MAX_FLOAT_REG),
+                Store::NONE,
+                imm,
+                Mode::None,
+                Vm::exec_fswap_r,
+            );
         } else {
-            return new_instr(Opcode::FSWAP_R, f_reg_ix(dst_ix % MAX_FLOAT_REG), Store::NONE, imm, Mode::None, Vm::exec_fswap_r);
+            return new_instr(
+                Opcode::FSWAP_R,
+                f_reg_ix(dst_ix % MAX_FLOAT_REG),
+                Store::NONE,
+                imm,
+                Mode::None,
+                Vm::exec_fswap_r,
+            );
         }
     }
     if op < Opcode::FADD_R as i64 {
-        return new_instr(Opcode::FADD_R, f_reg(dst), a_reg(src), imm, Mode::None, Vm::exec_fadd_r);
+        return new_instr(
+            Opcode::FADD_R,
+            f_reg(dst),
+            a_reg(src),
+            imm,
+            Mode::None,
+            Vm::exec_fadd_r,
+        );
     }
     if op < Opcode::FADD_M as i64 {
         return new_lcache_instr(Opcode::FADD_M, f_reg(dst), src, imm, modi, Vm::exec_fadd_m);
     }
     if op < Opcode::FSUB_R as i64 {
-        return new_instr(Opcode::FSUB_R, f_reg(dst), a_reg(src), imm, Mode::None, Vm::exec_fsub_r);
+        return new_instr(
+            Opcode::FSUB_R,
+            f_reg(dst),
+            a_reg(src),
+            imm,
+            Mode::None,
+            Vm::exec_fsub_r,
+        );
     }
     if op < Opcode::FSUB_M as i64 {
         return new_lcache_instr(Opcode::FSUB_M, f_reg(dst), src, imm, modi, Vm::exec_fsub_m);
     }
     if op < Opcode::FSCAL_R as i64 {
-        return new_instr(Opcode::FSCAL_R, f_reg(dst), Store::NONE, imm, Mode::None, Vm::exec_fscal_r);
+        return new_instr(
+            Opcode::FSCAL_R,
+            f_reg(dst),
+            Store::NONE,
+            imm,
+            Mode::None,
+            Vm::exec_fscal_r,
+        );
     }
     if op < Opcode::FMUL_R as i64 {
-        return new_instr(Opcode::FMUL_R, e_reg(dst), a_reg(src), imm, Mode::None, Vm::exec_fmul_r);
+        return new_instr(
+            Opcode::FMUL_R,
+            e_reg(dst),
+            a_reg(src),
+            imm,
+            Mode::None,
+            Vm::exec_fmul_r,
+        );
     }
     if op < Opcode::FDIV_M as i64 {
         return new_lcache_instr(Opcode::FDIV_M, e_reg(dst), src, imm, modi, Vm::exec_fdiv_m);
     }
     if op < Opcode::FSQRT_R as i64 {
-        return new_instr(Opcode::FSQRT_R, e_reg(dst), Store::NONE, imm, Mode::None, Vm::exec_fsqrt_r);
+        return new_instr(
+            Opcode::FSQRT_R,
+            e_reg(dst),
+            Store::NONE,
+            imm,
+            Mode::None,
+            Vm::exec_fsqrt_r,
+        );
     }
     if op < Opcode::CBRANCH as i64 {
-        let target = register_usage[dst%MAX_REG];
+        let target = register_usage[dst % MAX_REG];
         for usage in register_usage.iter_mut().take(MAX_REG) {
             *usage = i;
         }
-        return Instr{op: Opcode::CBRANCH, dst: r_reg(dst), src: Store::NONE, imm: Some(imm), unsigned_imm: false, mode: mod_cond(modi), target: Some(target), effect: Vm::exec_cbranch}
+        return Instr {
+            op: Opcode::CBRANCH,
+            dst: r_reg(dst),
+            src: Store::NONE,
+            imm: Some(imm),
+            unsigned_imm: false,
+            mode: mod_cond(modi),
+            target: Some(target),
+            effect: Vm::exec_cbranch,
+        };
     }
     if op < Opcode::CFROUND as i64 {
-        return Instr{op: Opcode::CFROUND , dst: Store::NONE, src: r_reg(src), imm: Some(imm & 63), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_cfround}
+        return Instr {
+            op: Opcode::CFROUND,
+            dst: Store::NONE,
+            src: r_reg(src),
+            imm: Some(imm & 63),
+            unsigned_imm: false,
+            mode: Mode::None,
+            target: None,
+            effect: Vm::exec_cfround,
+        };
     }
     if op < Opcode::ISTORE as i64 {
-        return Instr{op: Opcode::ISTORE, dst: l_cache(dst, modi), src: r_reg(src), imm: Some(imm), unsigned_imm: false, mode: Mode::None, target: None, effect: Vm::exec_istore};
+        return Instr {
+            op: Opcode::ISTORE,
+            dst: l_cache(dst, modi),
+            src: r_reg(src),
+            imm: Some(imm),
+            unsigned_imm: false,
+            mode: Mode::None,
+            target: None,
+            effect: Vm::exec_istore,
+        };
     }
     new_instr(Opcode::NOP, Store::NONE, Store::NONE, imm, Mode::None, nop)
 }
 
 pub fn r_reg(dst: usize) -> Store {
-    match dst%MAX_REG {
+    match dst % MAX_REG {
         0 => Store::R(0),
         1 => Store::R(1),
         2 => Store::R(2),
@@ -366,7 +609,7 @@ pub fn r_reg(dst: usize) -> Store {
 }
 
 pub fn a_reg(dst: usize) -> Store {
-    match dst%MAX_FLOAT_REG {
+    match dst % MAX_FLOAT_REG {
         0 => Store::A(0),
         1 => Store::A(1),
         2 => Store::A(2),
@@ -376,7 +619,7 @@ pub fn a_reg(dst: usize) -> Store {
 }
 
 pub fn e_reg(dst: usize) -> Store {
-    e_reg_ix(dst%MAX_FLOAT_REG)
+    e_reg_ix(dst % MAX_FLOAT_REG)
 }
 
 fn e_reg_ix(ix: usize) -> Store {
@@ -390,7 +633,7 @@ fn e_reg_ix(ix: usize) -> Store {
 }
 
 pub fn f_reg(dst: usize) -> Store {
-    f_reg_ix(dst%MAX_FLOAT_REG)
+    f_reg_ix(dst % MAX_FLOAT_REG)
 }
 
 fn f_reg_ix(ix: usize) -> Store {
@@ -411,7 +654,7 @@ fn l_cache(dst: usize, modi: u8) -> Store {
             return Store::L2(Box::new(reg));
         }
         return Store::L1(Box::new(reg));
-    } 
+    }
     Store::L3(Box::new(reg))
 }
 
@@ -436,7 +679,7 @@ fn mod_cond_u8(modi: u8) -> u8 {
 }
 
 fn mod_cond(modi: u8) -> Mode {
-    Mode::Cond(mod_cond_u8(modi)) 
+    Mode::Cond(mod_cond_u8(modi))
 }
 
 fn mod_shft(modi: u8) -> Mode {

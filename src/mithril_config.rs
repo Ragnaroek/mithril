@@ -1,15 +1,14 @@
-
 extern crate config;
 
-use metric::{MetricConfig};
-use stratum::stratum_data::{PoolConfig};
-use worker::worker_pool::{WorkerConfig};
+use metric::MetricConfig;
+use stratum::stratum_data::PoolConfig;
+use worker::worker_pool::WorkerConfig;
 
-use std;
-use std::path::{Path};
 use self::config::{Config, ConfigError, File};
+use std;
+use std::path::Path;
 
-pub const CONFIG_FILE_NAME : &str = "config.toml";
+pub const CONFIG_FILE_NAME: &str = "config.toml";
 
 /// contains all configurations for mithril
 #[derive(Clone)]
@@ -22,7 +21,7 @@ pub struct MithrilConfig {
 
 #[derive(Clone)]
 pub struct DonationConfig {
-    pub percentage: f64
+    pub percentage: f64,
 }
 
 pub fn read_config(conf_file: &Path, filename: &str) -> Result<MithrilConfig, config::ConfigError> {
@@ -33,40 +32,55 @@ pub fn read_config(conf_file: &Path, filename: &str) -> Result<MithrilConfig, co
     let metric_conf = metric_config(&config)?;
     let donation_conf = donation_config(&config)?;
 
-    Ok(MithrilConfig{pool_conf, worker_conf, metric_conf, donation_conf})
+    Ok(MithrilConfig {
+        pool_conf,
+        worker_conf,
+        metric_conf,
+        donation_conf,
+    })
 }
 
 fn donation_config(conf: &Config) -> Result<DonationConfig, ConfigError> {
     let percentage = conf.get_float("donation.percentage")?;
-    Ok(DonationConfig{percentage})
+    Ok(DonationConfig { percentage })
 }
 
 fn pool_config(conf: &Config) -> Result<PoolConfig, ConfigError> {
     let pool_address = conf.get_str("pool.pool_address")?;
     let wallet_address = conf.get_str("pool.wallet_address")?;
     let pool_password = conf.get_str("pool.pool_password")?;
-    Ok(PoolConfig{pool_address, wallet_address, pool_password})
+    Ok(PoolConfig {
+        pool_address,
+        wallet_address,
+        pool_password,
+    })
 }
 
 fn worker_config(conf: &Config) -> Result<WorkerConfig, ConfigError> {
     let num_threads = conf.get_int("worker.num_threads")?;
     if num_threads <= 0 {
-        return Err(ConfigError::Message("num_threads has to be > 0".to_string()));
+        return Err(ConfigError::Message(
+            "num_threads has to be > 0".to_string(),
+        ));
     }
 
     let auto_tune = conf.get_bool("worker.auto_tune")?;
 
     let auto_tune_interval_minutes = conf.get_int("worker.auto_tune_interval_minutes")?;
     if auto_tune_interval_minutes <= 0 {
-        return Err(ConfigError::Message("auto_tune_interval_minutes has to be > 0".to_string()));
+        return Err(ConfigError::Message(
+            "auto_tune_interval_minutes has to be > 0".to_string(),
+        ));
     }
 
     let auto_tune_log = conf.get_str("worker.auto_tune_log")?;
 
-    Ok(WorkerConfig{num_threads: num_threads as u64,
-                    auto_tune,
-                    auto_tune_interval_minutes: auto_tune_interval_minutes as u64,
-                    auto_tune_log})
+    Ok(WorkerConfig {
+        num_threads: num_threads as u64,
+        auto_tune,
+        auto_tune_interval_minutes: auto_tune_interval_minutes as u64,
+        auto_tune_log,
+    })
 }
 
 fn metric_config(conf: &Config) -> Result<MetricConfig, ConfigError> {
@@ -75,10 +89,19 @@ fn metric_config(conf: &Config) -> Result<MetricConfig, ConfigError> {
         let resolution = get_u64_no_zero(conf, "metric.resolution")?;
         let sample_interval_seconds = get_u64_no_zero(conf, "metric.sample_interval_seconds")?;
         let report_file = conf.get_str("metric.report_file")?;
-        Ok(MetricConfig{enabled, resolution, sample_interval_seconds, report_file})
+        Ok(MetricConfig {
+            enabled,
+            resolution,
+            sample_interval_seconds,
+            report_file,
+        })
     } else {
-        Ok(MetricConfig{enabled: false, resolution: std::u32::MAX as u64,
-                        sample_interval_seconds: std::u32::MAX as u64, report_file: "/dev/null".to_string()})
+        Ok(MetricConfig {
+            enabled: false,
+            resolution: std::u32::MAX as u64,
+            sample_interval_seconds: std::u32::MAX as u64,
+            report_file: "/dev/null".to_string(),
+        })
     }
 }
 
