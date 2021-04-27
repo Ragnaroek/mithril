@@ -52,7 +52,7 @@ fn main() {
 
     let timer_rcvr = timer::setup(&config.worker_conf, &config.donation_conf);
     let mut donation_hashing = false;
-    let vm_memory_allocator = VmMemoryAllocator::initial();
+    let mut vm_memory_allocator = VmMemoryAllocator::initial();
 
     loop {
         //Stratum start
@@ -90,12 +90,13 @@ fn main() {
             &share_sndr,
             config.metric_conf.resolution,
             &metric_sndr.clone(),
-            vm_memory_allocator.clone(),
+            vm_memory_allocator,
         );
 
         let term_result =
             start_main_event_loop(&mut pool, &client_err_rcvr, &stratum_rcvr, &timer_rcvr);
 
+        vm_memory_allocator = pool.vm_memory_allocator.clone();
         pool.stop();
         client.stop();
 

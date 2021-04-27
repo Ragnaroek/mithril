@@ -14,7 +14,7 @@ use super::super::stratum::stratum_data;
 pub struct WorkerPool {
     thread_chan: Vec<Sender<WorkerCmd>>,
     thread_hnd: Vec<thread::JoinHandle<()>>,
-    vm_memory_allocator: VmMemoryAllocator,
+    pub vm_memory_allocator: VmMemoryAllocator,
 }
 
 #[derive(Clone)]
