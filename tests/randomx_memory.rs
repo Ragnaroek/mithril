@@ -2,7 +2,6 @@ extern crate lazy_static;
 extern crate mithril;
 
 use lazy_static::lazy_static;
-use mithril::byte_string::string_to_u8_array;
 use mithril::randomx::memory::{init_dataset_item, SeedMemory};
 
 lazy_static! {
