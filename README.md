@@ -10,14 +10,12 @@
 
 Rust Monero Miner (pure Rust is the goal, but the project is not there yet, see help wanted section)
 
-## Current Status (2020-03-30)
+## Current Status (2020-05-06)
 
-RandomX is implemented and for the first time a full hash could be computed! The implementation needs some more tests
-and optimisations. Next step will be the integration into the mining mode and further tests from there.
+RandomX is implemented, but still some more testing is needed. It is now possible to mine with the implementation.
+Optimisations are next.
 
 ## Unique Selling Points
-
-aka: Why you should consider using Mithril.
 
 - Auto-Tuning: Finds the optimal setup for your hardware itself with a bandit algorithm
 - Easy to compile: inherited from the great rust toolchain
