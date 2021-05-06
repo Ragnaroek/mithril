@@ -172,6 +172,7 @@ impl Vm {
     pub fn calculate_hash(&mut self, input: &[u8]) -> Hash {
         let hash = blake2b(input);
         let seed = hash_to_m128i_array(&hash);
+
         let mut tmp_hash = self.init_scratchpad(&seed);
         self.reset_rounding_mode();
 
@@ -196,13 +197,13 @@ impl Vm {
     /// Runs one round
     pub fn run(&mut self, seed: &[m128i; 4]) {
         let prog = Program::from_bytes(gen_program_aes_4rx4(seed, 136));
+
         self.init_vm(&prog);
 
         let mut sp_addr_0: u32 = self.mem_reg.mx as u32;
         let mut sp_addr_1: u32 = self.mem_reg.ma as u32;
 
         for _ in 0..RANDOMX_PROGRAM_ITERATIONS {
-            //init registers
             let sp_mix = self.reg.r[self.config.read_reg[0]] ^ self.reg.r[self.config.read_reg[1]];
 
             sp_addr_0 ^= sp_mix as u32;
@@ -240,6 +241,7 @@ impl Vm {
                 self.dataset_offset + self.mem_reg.ma as u64,
                 &mut self.reg.r,
             );
+
             std::mem::swap(&mut self.mem_reg.mx, &mut self.mem_reg.ma);
 
             for i in 0..MAX_REG {

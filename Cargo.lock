@@ -422,7 +422,8 @@ checksum = "24d5f089152e60f62d28b835fbff2cd2e8dc0baf1ac13343bef92ab7eed84548"
 [[package]]
 name = "rust-argon2"
 version = "0.8.3"
-source = "git+https://github.com/Ragnaroek/rust-argon2#b54e4eaa9188b7d809b6f840b67b8000491c6bc4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4b18820d944b33caa75a71378964ac46f58517c92b6ae5f762636247c09e78fb"
 dependencies = [
  "base64",
  "blake2b_simd",
@@ -433,8 +434,7 @@ dependencies = [
 [[package]]
 name = "rust-argon2"
 version = "0.8.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4b18820d944b33caa75a71378964ac46f58517c92b6ae5f762636247c09e78fb"
+source = "git+https://github.com/Ragnaroek/rust-argon2#b54e4eaa9188b7d809b6f840b67b8000491c6bc4"
 dependencies = [
  "base64",
  "blake2b_simd",

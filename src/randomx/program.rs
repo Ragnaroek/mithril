@@ -457,18 +457,24 @@ pub fn decode_instruction(bytes: i64, i: i32, register_usage: &mut [i32; MAX_REG
         );
     }
     if op < Opcode::ISWAP_R as i64 {
-        register_usage[dst % MAX_REG] = i;
-        register_usage[src % MAX_REG] = i;
-        return Instr {
-            op: Opcode::ISWAP_R,
-            dst: r_reg(dst),
-            src: r_reg(src),
-            imm: None,
-            unsigned_imm: false,
-            mode: Mode::None,
-            target: None,
-            effect: Vm::exec_iswap_r,
-        };
+        let dst_r = dst % MAX_REG;
+        let src_r = src % MAX_REG;
+        if src_r != dst_r {
+            register_usage[dst_r] = i;
+            register_usage[src_r] = i;
+            return Instr {
+                op: Opcode::ISWAP_R,
+                dst: r_reg(dst),
+                src: r_reg(src),
+                imm: None,
+                unsigned_imm: false,
+                mode: Mode::None,
+                target: None,
+                effect: Vm::exec_iswap_r,
+            };
+        } else {
+            return new_instr(Opcode::NOP, Store::NONE, Store::NONE, imm, Mode::None, nop);
+        }
     }
     if op < Opcode::FSWAP_R as i64 {
         let dst_ix = dst % MAX_REG;

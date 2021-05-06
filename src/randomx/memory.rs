@@ -88,6 +88,7 @@ fn create_argon_context(key: &[u8]) -> argon2::context::Context {
 fn mix_block_value(seed_mem: &SeedMemory, reg_value: u64, r: usize) -> u64 {
     let mask = (((RANDOMX_ARGON_MEMORY * ARGON_BLOCK_SIZE) as u64) / CACHE_LINE_SIZE) - 1;
     let byte_offset = ((reg_value & mask) * CACHE_LINE_SIZE) + (8 * r as u64);
+
     let block_ix = byte_offset / ARGON_BLOCK_SIZE as u64;
     let block_v_ix = (byte_offset - (block_ix * ARGON_BLOCK_SIZE as u64)) / 8;
     seed_mem.blocks[block_ix as usize][block_v_ix as usize]
