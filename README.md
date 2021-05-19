@@ -25,17 +25,18 @@ Optimisations are next.
 ## Roadmap
 
 Feature Backlog:
-- [ ] RandomX update
-- [ ] integrate GPU Mining  (AMD)
+- [ ] API for statistic data (especially the hash-rate)
+- [ ] Simple statistic terminal UI
+- [ ] RandomX (compiled mode)
 - [ ] WebAssembler Support
-- [ ] Better displaying of Hash-Rate
+- [ ] integrate GPU Mining  (AMD)
 
 Future Feature Backlog
 - [ ] ARM support (Raspberry, Pine64)
 - [ ] integrate GPU Mining (NVIDIA)
-- [ ] Skein, JH native Rust implementation
 
 DONE:
+- [x] RandomX update (interpreter mode)
 - [x] hard-fork v7 update
 - [x] auto-optimisation via bandit algorithms
 - [x] optimise cryptonight hashing function
