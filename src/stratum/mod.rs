@@ -331,7 +331,7 @@ fn handle_stratum_receive(
                     //that means EOF in the TCPStream was reached
                     return Err(Error::new(ErrorKind::Other, "connection terminated"));
                 }
-                parse_line_dispatch_result(&line, &rcv, miner_id);
+                parse_line_dispatch_result(&line, rcv, miner_id);
             }
             Err(e) => {
                 //read_line fails (maybe connection lost, dispatch err to channel)

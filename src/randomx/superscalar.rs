@@ -49,7 +49,6 @@ struct RegisterInfo {
 	pub last_op_group: ScOpcode,
 	pub latency: usize,
 	pub last_op_par: i32,
-	pub value: usize,
 }
 
 impl RegisterInfo {
@@ -58,7 +57,6 @@ impl RegisterInfo {
 			latency: 0,
 			last_op_group: ScOpcode::INVALID,
 			last_op_par: -1,
-			value: 0,
 		}
 	}
 }
@@ -196,22 +194,22 @@ impl ScInstr<'_> {
 		match slot_size {
 			3 => {
 				if is_last {
-					ScInstr::create(&SLOT_3L[(gen.get_byte() & 3) as usize], gen)
+					ScInstr::create(SLOT_3L[(gen.get_byte() & 3) as usize], gen)
 				} else {
-					ScInstr::create(&SLOT_3L[(gen.get_byte() & 1) as usize], gen)
+					ScInstr::create(SLOT_3L[(gen.get_byte() & 1) as usize], gen)
 				}
 			}
 			4 => {
 				if fetch_type == 4 && !is_last {
 					ScInstr::create(&IMUL_R, gen)
 				} else {
-					ScInstr::create(&SLOT_4[(gen.get_byte() & 1) as usize], gen)
+					ScInstr::create(SLOT_4[(gen.get_byte() & 1) as usize], gen)
 				}
 			}
-			7 => ScInstr::create(&SLOT_7[(gen.get_byte() & 1) as usize], gen),
-			8 => ScInstr::create(&SLOT_8[(gen.get_byte() & 1) as usize], gen),
-			9 => ScInstr::create(&SLOT_9[(gen.get_byte() & 1) as usize], gen),
-			10 => ScInstr::create(&SLOT_10, gen),
+			7 => ScInstr::create(SLOT_7[(gen.get_byte() & 1) as usize], gen),
+			8 => ScInstr::create(SLOT_8[(gen.get_byte() & 1) as usize], gen),
+			9 => ScInstr::create(SLOT_9[(gen.get_byte() & 1) as usize], gen),
+			10 => ScInstr::create(SLOT_10, gen),
 			_ => panic!("illegal slot_size {}", slot_size),
 		}
 	}
