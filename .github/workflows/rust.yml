@@ -21,8 +21,6 @@ jobs:
       with:
         toolchain: nightly
         override: true
-    - name: Install components
-      run: rustup component add --toolchain nightly
     - name: Build
       run: cargo build --verbose
     - name: Run tests
