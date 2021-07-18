@@ -16,6 +16,13 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: Install Nightly
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: nightly
+        override: true
+    - name: Install components
+      run: rustup component add --toolchain nightly
     - name: Build
       run: cargo build --verbose
     - name: Run tests
