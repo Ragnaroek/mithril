@@ -237,6 +237,7 @@ impl Vm {
             self.mem_reg.mx ^= (self.reg.r[self.config.read_reg[2]]
                 ^ self.reg.r[self.config.read_reg[3]]) as usize;
             self.mem_reg.mx &= CACHE_LINE_ALIGN_MASK as usize;
+            self.mem.dataset_prefetch(self.mem_reg.mx as u64);
             self.mem.dataset_read(
                 self.dataset_offset + self.mem_reg.ma as u64,
                 &mut self.reg.r,

@@ -1,4 +1,8 @@
-#### v0.2.0 randomx (first version) 
+#### v0.20.0 randomx (after small updates) 
+test bench_hash_full_memory  ... bench:  68,748,763 ns/iter (+/- 3,334,985)
+test bench_hash_light_memory ... bench: 1,822,705,955 ns/iter (+/- 102,666,358)
+
+#### v0.20.0 randomx (first version) 
 test bench_hash_light_memory ... bench: 2,209,886,383 ns/iter (+/- 420,180,801)
 test bench_hash_full_memory  ... bench:  72,622,909 ns/iter (+/- 15,813,058)
 

@@ -109,24 +109,9 @@ fn test_calculate_hash_2_with_full_memory() {
 //Bugfix Test
 #[test]
 fn test_calculate_hash_3_with_full_memory() {
-    let mut vm = new_vm(Arc::new(VmMemory::light(&string_to_u8_array(
+    let mut vm = new_vm(Arc::new(VmMemory::full(&string_to_u8_array(
         "15564c3122550436919ac2f8a71baf7cbaf9a4117b842d7f2b19dfd27dd178e9",
     ))));
-
-    /*
-    let seed = string_to_u8_array("0e0eace28a84066e289987b45d30ad6b588623c490a67d714edfa25f98e71d51a66db481e257c5000015f5f01895b55b96a383f87c32eded92bc469df6c11ceca976d3016a3abc467cf0c007");
-    let result = vm.calculate_hash(&seed);
-    assert_eq!(
-        "90138a49c1982fb72e1fcbafc2102e0068e16ea97ec2e7ef804c7c62ec520400",
-        u8_array_to_string(result.as_bytes())
-    );
-
-    let seed = string_to_u8_array("0e0eace28a84066e289987b45d30ad6b588623c490a67d714edfa25f98e71d51a66db481e257c5000015f1f01895b55b96a383f87c32eded92bc469df6c11ceca976d3016a3abc467cf0c007");
-    let result = vm.calculate_hash(&seed);
-    assert_eq!(
-        "ab7397afa1d1bb7773e4cc20f5234a2e443da9f1d6dcfe3ed856a8d78b95b3b4",
-        u8_array_to_string(result.as_bytes())
-    );*/
 
     let seed = string_to_u8_array("0e0e8bb48b8406bf43039198b7712a35031e0607036ebf9afb3096977e7b8fb88c751430e96b02000006ad82bd221c5e282d0533c5dcca38f30babc2e62cd3aa03a965f8aec8ad6f129f5211");
     let result = vm.calculate_hash(&seed);
