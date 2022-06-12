@@ -46,9 +46,9 @@ fn donation_config(conf: &Config) -> Result<DonationConfig, ConfigError> {
 }
 
 fn pool_config(conf: &Config) -> Result<PoolConfig, ConfigError> {
-    let pool_address = conf.get_str("pool.pool_address")?;
-    let wallet_address = conf.get_str("pool.wallet_address")?;
-    let pool_password = conf.get_str("pool.pool_password")?;
+    let pool_address = conf.get_string("pool.pool_address")?;
+    let wallet_address = conf.get_string("pool.wallet_address")?;
+    let pool_password = conf.get_string("pool.pool_password")?;
     Ok(PoolConfig {
         pool_address,
         wallet_address,
@@ -73,7 +73,7 @@ fn worker_config(conf: &Config) -> Result<WorkerConfig, ConfigError> {
         ));
     }
 
-    let auto_tune_log = conf.get_str("worker.auto_tune_log")?;
+    let auto_tune_log = conf.get_string("worker.auto_tune_log")?;
 
     Ok(WorkerConfig {
         num_threads: num_threads as u64,
@@ -88,7 +88,7 @@ fn metric_config(conf: &Config) -> Result<MetricConfig, ConfigError> {
     if enabled {
         let resolution = get_u64_no_zero(conf, "metric.resolution")?;
         let sample_interval_seconds = get_u64_no_zero(conf, "metric.sample_interval_seconds")?;
-        let report_file = conf.get_str("metric.report_file")?;
+        let report_file = conf.get_string("metric.report_file")?;
         Ok(MetricConfig {
             enabled,
             resolution,
