@@ -16,7 +16,7 @@ config = "0.13.1"
 log = "0.4.17"
 env_logger = "0.9.0"
 num_cpus = "1.13.1"
-bandit = "0.12.3"
+bandit = "0.12.4"
 dirs = "4.0.0"
 crossbeam-channel = "0.5.4"
 rust-argon2 = { git = "https://github.com/Ragnaroek/rust-argon2" }
