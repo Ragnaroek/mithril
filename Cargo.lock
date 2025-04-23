@@ -25,12 +25,6 @@ checksum = "a4c527152e37cf757a3f78aae5a06fbeefdb07ccc535c980a3208ee3060dd544"
 
 [[package]]
 name = "arrayvec"
-version = "0.5.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23b62fc65de8e4e7f52534fb52b0f3ed04746ae267519eef2a83941e8085068b"
-
-[[package]]
-name = "arrayvec"
 version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8da52d66c7071e2e3fa2a1e5c6d088fec47b593032b254f5e980de8ea54454d6"
@@ -71,12 +65,6 @@ dependencies = [
 
 [[package]]
 name = "base64"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "904dfeac50f3cdaba28fc6f57fdcddb75f49ed61346676a78c4ffe55877802fd"
-
-[[package]]
-name = "base64"
 version = "0.21.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9d297deb1925b89f2ccc13d7635fa0714f12c87adce1c75356b39ca9b7178567"
@@ -98,24 +86,13 @@ dependencies = [
 
 [[package]]
 name = "blake2b_simd"
-version = "0.5.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "afa748e348ad3be8263be728124b24a24f268266f6f5d58af9d75f6a40b5c587"
-dependencies = [
- "arrayref",
- "arrayvec 0.5.2",
- "constant_time_eq",
-]
-
-[[package]]
-name = "blake2b_simd"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72936ee4afc7f8f736d1c38383b56480b5497b4617b4a77bdbf1d2ababc76127"
 dependencies = [
  "arrayref",
- "arrayvec 0.7.2",
- "constant_time_eq",
+ "arrayvec",
+ "constant_time_eq 0.1.5",
 ]
 
 [[package]]
@@ -201,6 +178,12 @@ name = "constant_time_eq"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "245097e9a4535ee1e3e3931fcfcd55a796a44c643e8596ff6566d68f09b87bbc"
+
+[[package]]
+name = "constant_time_eq"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7c74b8349d32d297c9134b8c88677813a227df8f779daa29bfc29c183fe3dca6"
 
 [[package]]
 name = "convert_case"
@@ -452,7 +435,7 @@ name = "mithril"
 version = "0.20.0"
 dependencies = [
  "bandit",
- "blake2b_simd 1.0.0",
+ "blake2b_simd",
  "config",
  "crossbeam-channel",
  "difference",
@@ -646,7 +629,7 @@ version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b91f7eff05f748767f183df4320a63d6936e9c6107d97c9e6bdd9784f4289c94"
 dependencies = [
- "base64 0.21.7",
+ "base64",
  "bitflags 2.9.0",
  "serde",
  "serde_derive",
@@ -654,13 +637,12 @@ dependencies = [
 
 [[package]]
 name = "rust-argon2"
-version = "0.8.3"
-source = "git+https://github.com/Ragnaroek/rust-argon2#b54e4eaa9188b7d809b6f840b67b8000491c6bc4"
+version = "2.1.0"
+source = "git+https://github.com/Ragnaroek/rust-argon2#449b3128f8b64d610f386635b6ff6e2c4d0b72a9"
 dependencies = [
- "base64 0.13.0",
- "blake2b_simd 0.5.11",
- "constant_time_eq",
- "crossbeam-utils",
+ "base64",
+ "blake2b_simd",
+ "constant_time_eq 0.3.1",
 ]
 
 [[package]]

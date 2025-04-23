@@ -768,7 +768,7 @@ impl ScProgram<'_> {
 				dep_cycle = schedule_cycle + mop.latency;
 
 				if macro_op_index == current_instr.info.result_op {
-					let mut ri = &mut registers[current_instr.dst as usize];
+					let ri = &mut registers[current_instr.dst as usize];
 					retire_cycle = dep_cycle;
 					ri.latency = retire_cycle;
 					ri.last_op_group = current_instr.op_group;

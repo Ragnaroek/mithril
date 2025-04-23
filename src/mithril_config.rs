@@ -1,10 +1,10 @@
 extern crate config;
 
-use metric::MetricConfig;
-use stratum::stratum_data::PoolConfig;
-use worker::worker_pool::WorkerConfig;
+use crate::metric::MetricConfig;
+use crate::stratum::stratum_data::PoolConfig;
+use crate::worker::worker_pool::WorkerConfig;
 
-use self::config::{Config, ConfigError, File};
+use self::config::{Config, ConfigError, File, FileFormat};
 use std;
 use std::path::Path;
 
@@ -115,9 +115,9 @@ fn get_u64_no_zero(conf: &Config, field: &str) -> Result<u64, ConfigError> {
 
 fn parse_conf(conf_file: &Path, filename: &str) -> Result<Config, ConfigError> {
     if conf_file.exists() {
-        let mut conf = Config::default();
-        conf.merge(File::with_name(filename))?;
-        return Ok(conf);
+        return Config::builder()
+            .add_source(File::new(filename, FileFormat::Toml))
+            .build();
     }
     Err(ConfigError::Message("config file not found".to_string()))
 }
