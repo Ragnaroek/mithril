@@ -1,12 +1,8 @@
 extern crate argon2;
 
-
+use std::arch::x86_64::{_mm_prefetch, _MM_HINT_NTA};
 use std::sync::{Arc, RwLock};
 use std::time::Instant;
-use std::arch::x86_64::{
-    _mm_prefetch,
-    _MM_HINT_NTA
-};
 
 use self::argon2::block::Block;
 
@@ -76,7 +72,6 @@ fn create_argon_context(key: &[u8]) -> argon2::context::Context {
         lanes: RANDOMX_ARGON_LANES,
         mem_cost: RANDOMX_ARGON_MEMORY,
         secret: &[],
-        thread_mode: argon2::ThreadMode::from_threads(1),
         time_cost: RANDOMX_ARGON_ITERATIONS,
         variant: argon2::Variant::Argon2d,
         version: argon2::Version::Version13,
@@ -192,8 +187,8 @@ impl VmMemory {
             let mem = self.dataset_memory.read().unwrap();
             let rl_cached = &mem[item_num as usize];
             if let Some(rl) = rl_cached {
-                unsafe{
-                    let raw : *const i8 = std::mem::transmute(rl);
+                unsafe {
+                    let raw: *const i8 = std::mem::transmute(rl);
                     _mm_prefetch(raw, _MM_HINT_NTA);
                 }
             }

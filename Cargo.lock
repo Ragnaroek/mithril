@@ -638,7 +638,7 @@ dependencies = [
 [[package]]
 name = "rust-argon2"
 version = "2.1.0"
-source = "git+https://github.com/Ragnaroek/rust-argon2#449b3128f8b64d610f386635b6ff6e2c4d0b72a9"
+source = "git+https://github.com/Ragnaroek/rust-argon2#d20b4dac4539c52ae4e1624d72696e15962429d7"
 dependencies = [
  "base64",
  "blake2b_simd",
