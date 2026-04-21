@@ -53,3 +53,17 @@ pub fn u8_array_to_string(a: &[u8]) -> String {
 pub fn u128_to_string(u: u128) -> String {
     return format!("{:016x}", u);
 }
+
+pub fn u32_to_hex(val: u32) -> String {
+    format!("{:08x}", val)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_nonce_hex() {
+        assert_eq!(u32_to_hex(666), "0000029a");
+    }
+}

@@ -1,6 +1,5 @@
 extern crate config;
 
-use crate::metric::MetricConfig;
 use crate::stratum::stratum_data::PoolConfig;
 use crate::worker::worker_pool::WorkerConfig;
 
@@ -15,7 +14,6 @@ pub const CONFIG_FILE_NAME: &str = "config.toml";
 pub struct MithrilConfig {
     pub pool_conf: PoolConfig,
     pub worker_conf: WorkerConfig,
-    pub metric_conf: MetricConfig,
     pub donation_conf: DonationConfig,
 }
 
@@ -29,13 +27,12 @@ pub fn read_config(conf_file: &Path, filename: &str) -> Result<MithrilConfig, co
 
     let pool_conf = pool_config(&config)?;
     let worker_conf = worker_config(&config)?;
-    let metric_conf = metric_config(&config)?;
     let donation_conf = donation_config(&config)?;
 
     Ok(MithrilConfig {
         pool_conf,
         worker_conf,
-        metric_conf,
+
         donation_conf,
     })
 }
@@ -81,36 +78,6 @@ fn worker_config(conf: &Config) -> Result<WorkerConfig, ConfigError> {
         auto_tune_interval_minutes: auto_tune_interval_minutes as u64,
         auto_tune_log,
     })
-}
-
-fn metric_config(conf: &Config) -> Result<MetricConfig, ConfigError> {
-    let enabled = conf.get_bool("metric.enabled")?;
-    if enabled {
-        let resolution = get_u64_no_zero(conf, "metric.resolution")?;
-        let sample_interval_seconds = get_u64_no_zero(conf, "metric.sample_interval_seconds")?;
-        let report_file = conf.get_string("metric.report_file")?;
-        Ok(MetricConfig {
-            enabled,
-            resolution,
-            sample_interval_seconds,
-            report_file,
-        })
-    } else {
-        Ok(MetricConfig {
-            enabled: false,
-            resolution: std::u32::MAX as u64,
-            sample_interval_seconds: std::u32::MAX as u64,
-            report_file: "/dev/null".to_string(),
-        })
-    }
-}
-
-fn get_u64_no_zero(conf: &Config, field: &str) -> Result<u64, ConfigError> {
-    let val = conf.get_int(field)?;
-    if val <= 0 {
-        return Err(ConfigError::Message(format!("{} has to be > 0", field)));
-    }
-    Ok(val as u64)
 }
 
 fn parse_conf(conf_file: &Path, filename: &str) -> Result<Config, ConfigError> {

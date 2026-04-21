@@ -8,16 +8,20 @@ extern crate mithril;
 
 use self::crossbeam_channel::{select, unbounded, Receiver};
 use mithril::bandit_tools;
-use mithril::metric;
 use mithril::mithril_config;
 use mithril::randomx::memory::VmMemoryAllocator;
 use mithril::stratum::{StratumAction, StratumClient};
 use mithril::timer;
+use mithril::worker::worker_metrics;
+use mithril::worker::worker_metrics::HashCompletionReport;
 use mithril::worker::worker_pool;
 use mithril::worker::worker_pool::WorkerPool;
 use std::io;
 use std::io::Error;
 use std::path::Path;
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering;
+use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
@@ -55,7 +59,7 @@ fn main() {
     let mut vm_memory_allocator = VmMemoryAllocator::initial();
 
     loop {
-        //Stratum start
+        // Stratum start.
         let (stratum_sndr, stratum_rcvr) = unbounded();
         let (client_err_sndr, client_err_rcvr) = unbounded();
 
@@ -81,17 +85,19 @@ fn main() {
             (None, config.worker_conf.num_threads)
         };
 
-        let (metric_sndr, metric_rcvr) = unbounded();
-        let metric = metric::start(config.metric_conf.clone(), metric_rcvr);
+        // Start metrics thread.
+        let (metric_sndr, metric_rx) = unbounded::<HashCompletionReport>();
+        let (agg, total_hashes) = worker_metrics::MetricsAggregator::new();
+        let stop_metrics = Arc::new(AtomicBool::new(false));
+        let stop_metrics_thread = stop_metrics.clone();
+        let metrics_hnd = thread::Builder::new()
+            .name("metrics".into())
+            .spawn(move || worker_metrics::run_metrics_loop(agg, &metric_rx, &stop_metrics_thread))
+            .expect("metrics thread");
 
-        //worker pool start
-        let mut pool = worker_pool::start(
-            num_threads,
-            &share_sndr,
-            config.metric_conf.resolution,
-            &metric_sndr.clone(),
-            vm_memory_allocator,
-        );
+        // Start worker pool.
+        let mut pool =
+            worker_pool::start(num_threads, &share_sndr, &metric_sndr, vm_memory_allocator);
 
         let term_result =
             start_main_event_loop(&mut pool, &client_err_rcvr, &stratum_rcvr, &timer_rcvr);
@@ -100,29 +106,34 @@ fn main() {
         pool.stop();
         client.stop();
 
+        // Signal the metrics thread to flush its final samples and exit.
+        stop_metrics.store(true, Ordering::Relaxed);
+
         match term_result {
             Err(err) => {
                 error!(
                     "error received, restarting connection after 60 seconds. err was {}",
                     err
                 );
+                // Wait for metrics thread before dropping the channel.
+                let _ = metrics_hnd.join();
                 await_timeout();
             }
             Ok(ex) => {
-                info!("main loop exit, next loop {:?}", ex);
+                info!("Main loop exit, next loop {:?}", ex);
                 pool.join();
+                let _ = metrics_hnd.join(); // wait for final drain
 
-                metric.stop();
-                let hashes = metric.hash_count();
-                metric.join();
+                // Read lifetime hashes for bandit reward (replaces metric.hash_count()).
+                let hashes = total_hashes.load(Ordering::Relaxed);
 
                 if arm.is_some() && bandit.is_some() && !donation_hashing {
-                    //do not save reward for donation hashing, it probably only runs for a short period
+                    // Do not save reward for donation hashing, it probably only runs for a short period.
                     let bandit_ref = bandit.as_mut().unwrap();
                     let reward = (hashes as f64
                         / (config.worker_conf.auto_tune_interval_minutes as f64 * 60.0))
-                        / 1000.0; /*kH/s*/
-                    info!("adding reward {:?} for arm {:?}", reward, arm);
+                        / 1000.0; // kH/s
+                    info!("Adding reward {:?} for arm {:?}", reward, arm);
                     bandit_ref.update(arm.unwrap(), reward);
                     save_bandit_state(bandit_ref);
                 }
